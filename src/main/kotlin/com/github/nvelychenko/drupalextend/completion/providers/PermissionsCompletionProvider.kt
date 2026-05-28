@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
-import com.github.nvelychenko.drupalextend.index.PermissionsIndex
+import com.github.nvelychenko.drupalextend.index.*
+import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -54,7 +55,7 @@ class PermissionsCompletionProvider : CompletionProvider<CompletionParameters>()
         if (parameterList.parameters[methodsToCheck[methodToCheck]!!]?.isEquivalentTo(element) == false) return
 
         FileBasedIndex.getInstance()
-            .getAllKeys(PermissionsIndex.KEY, project)
+            .getAllProjectKeys(PERMISSIONS_INDEX_KEY, project)
             .forEach {
                 completionResultSet.addElement(LookupElementBuilder.create(it))
             }

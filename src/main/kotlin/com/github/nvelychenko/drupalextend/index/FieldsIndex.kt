@@ -28,6 +28,8 @@ import kotlinx.serialization.serializer
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.YAMLFile
 
+const val GENERAL_BASE_FIELD_KEY_PREFIX = "KEY|"
+
 class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
     private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
 
@@ -35,7 +37,7 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
             SerializedObjectDataExternalizer(serializer<DrupalField>())
 
     override fun getName(): ID<String, DrupalField> {
-        return KEY
+        return FIELDS_INDEX_KEY
     }
 
     override fun getIndexer(): DataIndexer<String, DrupalField, FileContent> {
@@ -265,7 +267,7 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
         }
 
         return if (docComment.getTagElementsByName("@ContentEntityType").isEmpty()) {
-            return ExtendableContentEntityRelatedClasses.hasClass(phpClass.fqn)
+            ExtendableContentEntityRelatedClasses.hasClass(phpClass.fqn)
         } else {
             true
         }
@@ -305,12 +307,6 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
     override fun dependsOnFileContent(): Boolean = true
 
     override fun getVersion(): Int = 12
-
-    companion object {
-        val KEY = ID.create<String, DrupalField>("com.github.nvelychenko.drupalextend.index.fields")
-
-        const val GENERAL_BASE_FIELD_KEY_PREFIX = "KEY|"
-    }
 
     private data class FieldRepresentation(val key: String, val value: String, val path: String?, val targetType: String? = null)
 

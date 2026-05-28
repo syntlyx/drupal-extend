@@ -18,7 +18,7 @@ class ConfigEntityIndex : FileBasedIndexExtension<String, String>() {
 
     private val myDataExternalizer: DataExternalizer<String> = EnumeratorStringDescriptor.INSTANCE
     override fun getName(): ID<String, String> {
-        return KEY
+        return CONFIG_ENTITY_INDEX_KEY
     }
 
     override fun getIndexer(): DataIndexer<String, String, FileContent> {
@@ -62,9 +62,5 @@ class ConfigEntityIndex : FileBasedIndexExtension<String, String>() {
     override fun dependsOnFileContent(): Boolean = true
 
     override fun getVersion(): Int = 1
-
-    companion object {
-        val KEY = ID.create<String, String>("com.github.nvelychenko.drupalextend.index.config_types")
-    }
 
 }

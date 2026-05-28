@@ -42,7 +42,7 @@ class LibrariesIndex : FileBasedIndexExtension<String, Void?>() {
     private val myDataExternalizer = VoidDataExternalizer.INSTANCE
 
     override fun getName(): ID<String, Void?> {
-        return KEY
+        return LIBRARIES_INDEX_KEY
     }
 
     override fun getKeyDescriptor(): KeyDescriptor<String> = myKeyDescriptor
@@ -56,9 +56,5 @@ class LibrariesIndex : FileBasedIndexExtension<String, Void?>() {
     override fun dependsOnFileContent(): Boolean = true
 
     override fun getVersion(): Int = 0
-
-    companion object {
-        val KEY = ID.create<String, Void?>("com.github.nvelychenko.drupalextend.index.libraries")
-    }
 
 }

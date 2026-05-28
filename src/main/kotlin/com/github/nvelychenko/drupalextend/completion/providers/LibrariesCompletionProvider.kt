@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
-import com.github.nvelychenko.drupalextend.index.LibrariesIndex
+import com.github.nvelychenko.drupalextend.index.*
+import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.patterns.Patterns.TRIPLE_ARRAY_WITH_STRING_VALUE
 import com.github.nvelychenko.drupalextend.patterns.Patterns.TRIPLE_NESTED_STRING_ARRAY_VALUE
 import com.github.nvelychenko.drupalextend.patterns.Patterns.TRIPLE_SIMPLE_STRING_ARRAY_VALUE
@@ -39,8 +40,8 @@ class LibrariesCompletionProvider : CompletionProvider<CompletionParameters>() {
 
         if (shouldEnableAutocomplete) {
             FileBasedIndex.getInstance()
-                .getAllKeys(LibrariesIndex.KEY, project)
-                .mapNotNull(::create)
+                .getAllProjectKeys(LIBRARIES_INDEX_KEY, project)
+                .map(::create)
                 .forEach { result.addElement(it) }
         }
     }

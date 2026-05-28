@@ -1,0 +1,49 @@
+package com.github.nvelychenko.drupalextend.index
+
+import com.github.nvelychenko.drupalextend.index.types.ContentEntity
+import com.github.nvelychenko.drupalextend.index.types.DrupalContentEntity
+import com.github.nvelychenko.drupalextend.index.types.DrupalField
+import com.github.nvelychenko.drupalextend.index.types.DrupalFieldType
+import com.github.nvelychenko.drupalextend.index.types.DrupalRoute
+import com.github.nvelychenko.drupalextend.index.types.DrupalTheme
+import com.github.nvelychenko.drupalextend.index.types.RenderElementType
+import com.intellij.util.indexing.ID
+
+val CONFIG_ENTITY_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.config_types")
+
+val CONTENT_ENTITY_INDEX_KEY: ID<String, DrupalContentEntity> =
+    ID.create("com.github.nvelychenko.drupalextend.index.content_types")
+
+val CONTENT_ENTITY_FQN_INDEX_KEY: ID<String, ContentEntity> =
+    ID.create("com.github.nvelychenko.drupalextend.index.content_entity_fqn")
+
+val FIELDS_INDEX_KEY: ID<String, DrupalField> =
+    ID.create("com.github.nvelychenko.drupalextend.index.fields")
+
+val FIELD_TYPE_INDEX_KEY: ID<String, DrupalFieldType> =
+    ID.create("com.github.nvelychenko.drupalextend.index.field_type")
+
+val HOOK_ATTRIBUTES_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.hook_attributes")
+
+val LIBRARIES_INDEX_KEY: ID<String, Void?> =
+    ID.create("com.github.nvelychenko.drupalextend.index.libraries")
+
+val LINKS_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.links")
+
+val PERMISSIONS_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.permissions")
+
+val RENDER_ELEMENT_INDEX_KEY: ID<String, RenderElementType> =
+    ID.create("com.github.nvelychenko.drupalextend.index.render_element")
+
+val ROUTES_INDEX_KEY: ID<String, DrupalRoute> =
+    ID.create("com.github.nvelychenko.drupalextend.index.routes")
+
+val SERVICES_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.services")
+
+val THEME_INDEX_KEY: ID<String, DrupalTheme> =
+    ID.create("com.github.nvelychenko.drupalextend.index.hook_themes")

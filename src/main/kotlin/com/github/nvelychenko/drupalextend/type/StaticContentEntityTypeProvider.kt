@@ -1,7 +1,7 @@
 package com.github.nvelychenko.drupalextend.type
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ContentEntityFqnIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -58,7 +58,7 @@ class StaticContentEntityTypeProvider : PhpTypeProvider4 {
         for (partialSignature in decompressSignature(signature).split("|")) {
             if (partialSignature.startsWith("#M#C")) {
                 val contentEntity = fileBasedIndex.getValue(
-                    ContentEntityFqnIndex.KEY,
+                    CONTENT_ENTITY_FQN_INDEX_KEY,
                     partialSignature.substring(4).substringBefore('.'),
                     project
                 ) ?: continue

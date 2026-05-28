@@ -1,8 +1,8 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.completion.utils.RenderElementTypeInsertionHandler
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.RenderElementIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -46,7 +46,7 @@ class RenderElementTypePropertiesCompletionProvider : CompletionProvider<Complet
         val type =
             (typeElement.value as StringLiteralExpression).contents.takeIf { it.isNotEmpty() } ?: return
 
-        val renderElementType = fileBasedIndex.getValue(RenderElementIndex.KEY, type, project) ?: return
+        val renderElementType = fileBasedIndex.getValue(RENDER_ELEMENT_INDEX_KEY, type, project) ?: return
 
         val elementClass =
             PhpIndex.getInstance(project).getClassesByFQN(renderElementType.typeClass).firstOrNull()
@@ -55,7 +55,7 @@ class RenderElementTypePropertiesCompletionProvider : CompletionProvider<Complet
         var properties = renderElementType.properties
 
         PhpClassHierarchyUtils.processSuperClasses(elementClass, false, true) { phpClass ->
-            fileBasedIndex.getValue(RenderElementIndex.KEY, phpClass.fqn, project)
+            fileBasedIndex.getValue(RENDER_ELEMENT_INDEX_KEY, phpClass.fqn, project)
                 ?.let { properties = arrayOf(*properties, *it.properties) }
             if (renderElementClazzes.contains(phpClass.fqn)) {
                 return@processSuperClasses false

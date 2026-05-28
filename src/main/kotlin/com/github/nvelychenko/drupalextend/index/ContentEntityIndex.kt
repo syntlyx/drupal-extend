@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.getModificationTrackerForIndexId
+import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.getValue
 import com.github.nvelychenko.drupalextend.extensions.isInConfigurationDirectory
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
@@ -163,7 +164,7 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
             ?.let {
                 val value = attribute.parameters[it]
                 if (value is ArrayCreationExpression) {
-                    value.hashElements.map { element ->
+                    value.hashElements.forEach { element ->
                         val key = element.key
                         val arrayValue = element.value
                         if (key is StringLiteralExpression && arrayValue is StringLiteralExpression) {
@@ -180,7 +181,7 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
         SerializedObjectDataExternalizer(serializer<DrupalContentEntity>())
 
     override fun getName(): ID<String, DrupalContentEntity> {
-        return KEY
+        return CONTENT_ENTITY_INDEX_KEY
     }
 
     override fun getValueExternalizer(): DataExternalizer<DrupalContentEntity> = myDataExternalizer
@@ -193,26 +194,26 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
 
     override fun getVersion(): Int = 14
 
-    companion object {
-        val KEY = ID.create<String, DrupalContentEntity>("com.github.nvelychenko.drupalextend.index.content_types")
+}
 
-        private val index by lazy { FileBasedIndex.getInstance() }
+object ContentEntityIndexQueries {
+    private val index by lazy { FileBasedIndex.getInstance() }
 
-        @Synchronized
-        fun getAllHandlers(project: Project): HashMap<String, DrupalContentEntity> {
-            return CachedValuesManager.getManager(project).getCachedValue(project) {
-                val results = hashMapOf<String, DrupalContentEntity>()
+    @Synchronized
+    fun getAllHandlers(project: Project): HashMap<String, DrupalContentEntity> {
+        return CachedValuesManager.getManager(project).getCachedValue(project) {
+            val results = hashMapOf<String, DrupalContentEntity>()
 
-                index.getAllKeys(KEY, project).forEach {
-                    index.getValue(KEY, it, project)?.let { contentEntity ->
-                        results[contentEntity.storageHandler] = contentEntity
-                    }
+            index.getAllProjectKeys(CONTENT_ENTITY_INDEX_KEY, project).forEach {
+                index.getValue(CONTENT_ENTITY_INDEX_KEY, it, project)?.let { contentEntity ->
+                    results[contentEntity.storageHandler] = contentEntity
                 }
-
-                CachedValueProvider.Result.create(results, getModificationTrackerForIndexId(project, KEY, index))
             }
+
+            CachedValueProvider.Result.create(
+                results,
+                getModificationTrackerForIndexId(project, CONTENT_ENTITY_INDEX_KEY, index)
+            )
         }
-
     }
-
 }

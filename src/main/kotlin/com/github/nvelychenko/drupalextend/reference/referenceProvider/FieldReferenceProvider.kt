@@ -1,8 +1,8 @@
 package com.github.nvelychenko.drupalextend.reference.referenceProvider
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ContentEntityFqnIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.reference.referenceType.FieldPropertyReference
 import com.intellij.psi.PsiElement
@@ -39,11 +39,11 @@ class FieldReferenceProvider : PsiReferenceProvider() {
 
         val index = FileBasedIndex.getInstance()
 
-        val contentEntity = index.getAllProjectKeys(ContentEntityFqnIndex.KEY, project)
+        val contentEntity = index.getAllProjectKeys(CONTENT_ENTITY_FQN_INDEX_KEY, project)
             .find { types.contains(it) } ?: return psiReferences
 
         val entityTypeId =
-            index.getValue(ContentEntityFqnIndex.KEY, contentEntity, project)?.entityTypeId
+            index.getValue(CONTENT_ENTITY_FQN_INDEX_KEY, contentEntity, project)?.entityTypeId
                 ?: return psiReferences
 
         return arrayOf(FieldPropertyReference(element, entityTypeId, element.contents))

@@ -155,7 +155,7 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
         SerializedObjectDataExternalizer(serializer<DrupalTheme>())
 
     override fun getName(): ID<String, DrupalTheme> {
-        return KEY
+        return THEME_INDEX_KEY
     }
 
     override fun getKeyDescriptor(): KeyDescriptor<String> = myKeyDescriptor
@@ -169,9 +169,5 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
     override fun dependsOnFileContent(): Boolean = true
 
     override fun getVersion(): Int = 1
-
-    companion object {
-        val KEY = ID.create<String, DrupalTheme>("com.github.nvelychenko.drupalextend.index.hook_themes")
-    }
 
 }

@@ -1,12 +1,12 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.data.contentEntitySqlFactoryClass
 import com.github.nvelychenko.drupalextend.extensions.getValue
 import com.github.nvelychenko.drupalextend.type.EntityQueryTypeProvider.Companion.END_KEY
 import com.github.nvelychenko.drupalextend.type.EntityQueryTypeProvider.Companion.KEY
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.jetbrains.php.lang.psi.elements.MemberReference
-import com.github.nvelychenko.drupalextend.index.ContentEntityIndex.Companion.KEY as ContentEntityIndexKEY
 
 /**
  * Provides autocompletion for fields.
@@ -26,7 +26,7 @@ open class EntityQueryConditionFieldCompletionProvider : FieldCompletionCompleti
 
         val entityTypeId = signature.substringAfter(KEY).substringBefore(END_KEY)
         val project = memberReference.project
-        val contentEntity = fileBasedIndex.getValue(ContentEntityIndexKEY, entityTypeId, project) ?: return
+        val contentEntity = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project) ?: return
         buildResultForEntity(contentEntity, project, result)
     }
 

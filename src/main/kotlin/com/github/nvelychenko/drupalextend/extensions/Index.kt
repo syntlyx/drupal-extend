@@ -97,7 +97,7 @@ fun <K : Any, V> FileBasedIndex.getAllValuesWithKeyPrefix(
         project,
         getKey("${id.name}${prefix}"),
         {
-            val result = getAllKeys(id, project)
+            val result = getAllProjectKeys(id, project)
                 .filter { it is String && it.startsWith(prefix) }
                 .mapNotNull {
                     getValues(id, it, GlobalSearchScope.allScope(project)).firstOrNull()
@@ -138,4 +138,3 @@ fun <K : Any, V> getModificationTrackerForIndexId(
         index.getIndexModificationStamp(id, project)
     }
 }
-

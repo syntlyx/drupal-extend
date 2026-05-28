@@ -199,7 +199,7 @@ class RenderElementIndex : FileBasedIndexExtension<String, RenderElementType>() 
         SerializedObjectDataExternalizer(serializer<RenderElementType>())
 
     override fun getName(): ID<String, RenderElementType> {
-        return KEY
+        return RENDER_ELEMENT_INDEX_KEY
     }
 
     override fun getKeyDescriptor(): KeyDescriptor<String> = myKeyDescriptor
@@ -213,9 +213,5 @@ class RenderElementIndex : FileBasedIndexExtension<String, RenderElementType>() 
     override fun dependsOnFileContent(): Boolean = true
 
     override fun getVersion(): Int = 2
-
-    companion object {
-        val KEY = ID.create<String, RenderElementType>("com.github.nvelychenko.drupalextend.index.render_element")
-    }
 
 }

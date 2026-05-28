@@ -18,6 +18,14 @@ class DrupalReferenceContributor : PsiReferenceContributor() {
         //                                             ↑
         registrar.registerReferenceProvider(STRING_INSIDE_METHOD_PARAMETER, EntityStorageReferenceProvider())
 
+        // \Drupal::service('database')
+        //                  ↑
+        registrar.registerReferenceProvider(STRING_INSIDE_METHOD_PARAMETER, ServicesReferenceProvider())
+
+        // Url::fromRoute('entity.node.canonical')
+        //                ↑
+        registrar.registerReferenceProvider(STRING_INSIDE_METHOD_PARAMETER, RoutesReferenceProvider())
+
         // $node->get('field_body')
         //                ↑
         registrar.registerReferenceProvider(STRING_INSIDE_METHOD_PARAMETER, FieldReferenceProvider())

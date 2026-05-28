@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/jetbrains/plugin/v/23474-drupal-extend.svg)](https://plugins.jetbrains.com/plugin/23474-drupal-extend)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/23474-drupal-extend.svg)](https://plugins.jetbrains.com/plugin/23474-drupal-extend)
 
-The plugin is enhancement for your Drupal development experience.
+The plugin enhances the Drupal development experience in PhpStorm.
 
 ## Features
 * Autocomplete for Content/Config Entities Storage (eck support)
@@ -32,7 +32,20 @@ The plugin is enhancement for your Drupal development experience.
 
 * Type Provider for static `Node::load/create/loadMultiple` methods
 
-* Type Provider for `\Drupal::service('')`
+* Drupal services support:
+  * autocomplete, references, hover, and type resolving for `\Drupal::service('')` and container `get()` calls
+  * `*.services.yml` service id and class completion, references, Find Usages, and navigation to service classes
+  * inspections for unknown services/classes and constructor argument mismatches
+
+* Drupal routes and links support:
+  * route name completion and references in PHP APIs such as `Url::fromRoute()`, `Link::createFromRoute()`, and form redirects
+  * route name completion/references in `*.routing.yml`, `*.links.menu.yml`, `*.links.task.yml`, `*.links.action.yml`, and `*.links.contextual.yml`
+  * navigation to controller/form/access handler classes and methods
+  * inspections for unknown routes, missing route parameters, unknown permissions, and missing handler methods
+
+* Dependency injection helper for replacing static Drupal service access with constructor injection.
+
+* Version-aware Drupal plugin annotation quick fixes for core plugin attributes, including Field/Block/Views/Migrate/Render/Entity plugin annotations. Drupal core version is detected from Composer files or can be overridden in plugin settings.
 
 * Autocomplete for `#theme`
   ![Theme autocomplete example](./assets/theme_autocomplete.gif)

@@ -1,7 +1,7 @@
 package com.github.nvelychenko.drupalextend.reference.referenceType
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.icon.DrupalIcons
-import com.github.nvelychenko.drupalextend.index.ThemeIndex
 import com.github.nvelychenko.drupalextend.index.types.DrupalTheme
 import com.github.nvelychenko.drupalextend.patterns.Patterns.ARRAY_KEY_INSIDE_ASSIGNMENT_EXPRESSION
 import com.github.nvelychenko.drupalextend.patterns.Patterns.ARRAY_KEY_WITH_ARRAY_CREATION_EXPRESSION
@@ -45,7 +45,7 @@ class ThemeElementReference(element: PsiElement, private val theme: DrupalTheme)
 
         FilenameIndex
             .getVirtualFilesByName("$templateName.html.twig", scope)
-            .map {
+            .forEach {
                 it.findPsiFile(project)
                     ?.let { file -> resultList.add(file) }
             }
@@ -61,7 +61,7 @@ class ThemeElementReference(element: PsiElement, private val theme: DrupalTheme)
             true
         }
 
-        fileBasedIndex.processValues(ThemeIndex.KEY, theme.themeName, null, processor, scope)
+        fileBasedIndex.processValues(THEME_INDEX_KEY, theme.themeName, null, processor, scope)
 
         val file = list?.findPsiFile(project) ?: return null
 

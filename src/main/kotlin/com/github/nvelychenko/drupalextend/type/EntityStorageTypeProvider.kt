@@ -1,8 +1,8 @@
 package com.github.nvelychenko.drupalextend.type
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getValue
 import com.github.nvelychenko.drupalextend.extensions.isSuperInterfaceOf
-import com.github.nvelychenko.drupalextend.index.ContentEntityIndex
 import com.github.nvelychenko.drupalextend.patterns.Patterns.METHOD_WITH_FIRST_STRING_PARAMETER
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.type.EntityStorageTypeProvider.Util.SPLIT_KEY
@@ -58,7 +58,7 @@ class EntityStorageTypeProvider : PhpTypeProvider4 {
 
         val (originalSignature, entityTypeId) = expression.substring(2).split(SPLIT_KEY)
 
-        val entityType = fileBasedIndex.getValue(ContentEntityIndex.KEY, entityTypeId, project) ?: return null
+        val entityType = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project) ?: return null
 
         val phpIndex = PhpIndex.getInstance(project)
         val namedCollection = mutableListOf<PhpNamedElement>()

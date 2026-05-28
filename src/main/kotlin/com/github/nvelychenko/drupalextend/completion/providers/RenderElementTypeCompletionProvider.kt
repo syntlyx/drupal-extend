@@ -1,8 +1,8 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.hasDrupalRenderElement
-import com.github.nvelychenko.drupalextend.index.RenderElementIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -25,7 +25,7 @@ class RenderElementTypeCompletionProvider : CompletionProvider<CompletionParamet
 
         if (!leaf.hasDrupalRenderElement()) return
 
-        FileBasedIndex.getInstance().getAllProjectKeys(RenderElementIndex.KEY, project)
+        FileBasedIndex.getInstance().getAllProjectKeys(RENDER_ELEMENT_INDEX_KEY, project)
             .forEach {
                 completionResultSet.addElement(
                     LookupElementBuilder.create(it)

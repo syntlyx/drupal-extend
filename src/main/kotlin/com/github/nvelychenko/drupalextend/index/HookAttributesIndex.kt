@@ -46,7 +46,7 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
     private val myDataExternalizer = EnumeratorStringDescriptor.INSTANCE
 
     override fun getName(): ID<String, String> {
-        return KEY
+        return HOOK_ATTRIBUTES_INDEX_KEY
     }
 
     override fun getKeyDescriptor(): KeyDescriptor<String> = myKeyDescriptor
@@ -61,23 +61,19 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
 
     override fun getVersion(): Int = 0
 
-    companion object {
-        val KEY = ID.create<String, String>("com.github.nvelychenko.drupalextend.index.hook_attributes")
+}
 
-        fun getHookAttributesByName(psiElement: PsiElement, name: String): Array<PhpAttribute> {
-            val result = mutableListOf<PhpAttribute>()
-            val attributes = PsiTreeUtil.findChildrenOfType(psiElement, PhpAttribute::class.java)
+fun getHookAttributesByName(psiElement: PsiElement, name: String): Array<PhpAttribute> {
+    val result = mutableListOf<PhpAttribute>()
+    val attributes = PsiTreeUtil.findChildrenOfType(psiElement, PhpAttribute::class.java)
 
-            for (attribute in attributes) {
-                if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") continue
-                val hookName = attribute.parameters.first() ?: continue
-                if (hookName is StringLiteralExpression && hookName.contents == name) {
-                    result.add(attribute)
-                }
-            }
-
-            return result.toTypedArray()
+    for (attribute in attributes) {
+        if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") continue
+        val hookName = attribute.parameters.first() ?: continue
+        if (hookName is StringLiteralExpression && hookName.contents == name) {
+            result.add(attribute)
         }
     }
 
+    return result.toTypedArray()
 }

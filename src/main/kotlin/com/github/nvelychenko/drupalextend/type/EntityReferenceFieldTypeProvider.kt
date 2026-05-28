@@ -1,10 +1,7 @@
 package com.github.nvelychenko.drupalextend.type
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ConfigEntityIndex
-import com.github.nvelychenko.drupalextend.index.ContentEntityFqnIndex
-import com.github.nvelychenko.drupalextend.index.ContentEntityIndex
-import com.github.nvelychenko.drupalextend.index.FieldsIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.type.EntityStorageTypeProvider.Util.SPLIT_KEY
 import com.intellij.openapi.project.DumbService
@@ -75,7 +72,7 @@ class EntityReferenceFieldTypeProvider : PhpTypeProvider4 {
         }
 
         getClassesFromSignature(signature, project)
-            .mapNotNull { fileBasedIndex.getValue(ContentEntityFqnIndex.KEY, it.fqn, project) }
+            .mapNotNull { fileBasedIndex.getValue(CONTENT_ENTITY_FQN_INDEX_KEY, it.fqn, project) }
             .forEach { contentEntity ->
                 if (addType(contentEntity.entityTypeId, fieldName, project, type)) return@forEach
             }
@@ -91,16 +88,16 @@ class EntityReferenceFieldTypeProvider : PhpTypeProvider4 {
         type: PhpType
     ): Boolean {
         val field = fileBasedIndex
-            .getValue(FieldsIndex.KEY, "${contentEntityId}|${fieldName}", project)
+            .getValue(FIELDS_INDEX_KEY, "${contentEntityId}|${fieldName}", project)
             ?: return true
 
         if (field.targetType.isNullOrEmpty()) return true
         fileBasedIndex
-            .getValue(ContentEntityIndex.KEY, field.targetType, project)
+            .getValue(CONTENT_ENTITY_INDEX_KEY, field.targetType, project)
             ?.let { type.add(it.fqn) }
 
         fileBasedIndex
-            .getValue(ConfigEntityIndex.KEY, field.targetType, project)
+            .getValue(CONFIG_ENTITY_INDEX_KEY, field.targetType, project)
             ?.let { type.add(it) }
         return false
     }

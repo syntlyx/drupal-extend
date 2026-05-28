@@ -21,8 +21,8 @@ data class RenderElementType(
 
             var equals = true
 
-            for (i in 0..<this.properties.size) {
-                if (this.properties[i] != other.properties[i]) {
+            for ((i, element) in this.properties.withIndex()) {
+                if (element != other.properties[i]) {
                     equals = false
                 }
             }

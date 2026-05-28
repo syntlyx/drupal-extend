@@ -1,0 +1,247 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drupal-extend.local/schemas/drupal-services.schema.json",
+  "title": "Drupal services.yml",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/serviceDefinition"
+      }
+    }
+  },
+  "definitions": {
+    "serviceDefinition": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/serviceObject"
+        }
+      ]
+    },
+    "serviceObject": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "alias": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "abstract": {
+          "$ref": "#/definitions/booleanLike"
+        },
+        "arguments": {
+          "$ref": "#/definitions/argumentList"
+        },
+        "autoconfigure": {
+          "$ref": "#/definitions/booleanLike"
+        },
+        "autowire": {
+          "$ref": "#/definitions/booleanLike"
+        },
+        "bind": {
+          "$ref": "#/definitions/map"
+        },
+        "calls": {
+          "$ref": "#/definitions/listOrMap"
+        },
+        "class": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configurator": {
+          "$ref": "#/definitions/callable"
+        },
+        "decorates": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "decoration_inner_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "decoration_priority": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "deprecated": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/booleanLike"
+            },
+            {
+              "$ref": "#/definitions/map"
+            }
+          ]
+        },
+        "factory": {
+          "$ref": "#/definitions/callable"
+        },
+        "file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lazy": {
+          "$ref": "#/definitions/booleanLike"
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "properties": {
+          "$ref": "#/definitions/listOrMap"
+        },
+        "public": {
+          "$ref": "#/definitions/booleanLike"
+        },
+        "shared": {
+          "$ref": "#/definitions/booleanLike"
+        },
+        "synthetic": {
+          "$ref": "#/definitions/booleanLike"
+        },
+        "tags": {
+          "$ref": "#/definitions/tags"
+        }
+      }
+    },
+    "argumentList": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/argument"
+          }
+        },
+        {
+          "$ref": "#/definitions/map"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "argument": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/scalar"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/argument"
+          }
+        },
+        {
+          "$ref": "#/definitions/map"
+        }
+      ]
+    },
+    "booleanLike": {
+      "type": [
+        "boolean",
+        "string",
+        "null"
+      ]
+    },
+    "callable": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/argument"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "listOrMap": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/argument"
+          }
+        },
+        {
+          "$ref": "#/definitions/map"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "map": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/argument"
+      }
+    },
+    "scalar": {
+      "type": [
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "null"
+      ]
+    },
+    "tags": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/map"
+              }
+            ]
+          }
+        },
+        {
+          "$ref": "#/definitions/map"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

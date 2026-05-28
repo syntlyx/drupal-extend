@@ -58,7 +58,7 @@ class ContentEntityFqnIndex : FileBasedIndexExtension<String, ContentEntity>() {
         }
 
     override fun getName(): ID<String, ContentEntity> {
-        return KEY
+        return CONTENT_ENTITY_FQN_INDEX_KEY
     }
 
     override fun getIndexer(): DataIndexer<String, ContentEntity, FileContent> {
@@ -122,9 +122,5 @@ class ContentEntityFqnIndex : FileBasedIndexExtension<String, ContentEntity>() {
     override fun dependsOnFileContent(): Boolean = true
 
     override fun getVersion(): Int = 13
-
-    companion object {
-        val KEY = ID.create<String, ContentEntity>("com.github.nvelychenko.drupalextend.index.content_entity_fqn")
-    }
 
 }

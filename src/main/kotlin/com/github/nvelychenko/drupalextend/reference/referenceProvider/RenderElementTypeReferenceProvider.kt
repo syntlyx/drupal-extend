@@ -1,9 +1,9 @@
 package com.github.nvelychenko.drupalextend.reference.referenceProvider
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getArrayStringLiteralValue
 import com.github.nvelychenko.drupalextend.extensions.getValue
 import com.github.nvelychenko.drupalextend.extensions.hasDrupalRenderElement
-import com.github.nvelychenko.drupalextend.index.RenderElementIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.reference.referenceType.RenderElementReference
 import com.intellij.psi.PsiElement
@@ -28,7 +28,7 @@ class RenderElementTypeReferenceProvider : PsiReferenceProvider() {
         val value = element.getArrayStringLiteralValue() ?: return emptyArray()
 
         val renderElement = FileBasedIndex.getInstance()
-            .getValue(RenderElementIndex.KEY, value.contents, project)
+            .getValue(RENDER_ELEMENT_INDEX_KEY, value.contents, project)
             ?: return emptyArray()
 
         return arrayOf(RenderElementReference(element, renderElement))

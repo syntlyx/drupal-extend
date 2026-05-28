@@ -1,8 +1,8 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.hasDrupalTheme
-import com.github.nvelychenko.drupalextend.index.ThemeIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -27,7 +27,7 @@ class ThemeCompletionProvider : CompletionProvider<CompletionParameters>() {
 
         if (!leaf.hasDrupalTheme()) return
 
-        instance.getAllProjectKeys(ThemeIndex.KEY, project)
+        instance.getAllProjectKeys(THEME_INDEX_KEY, project)
             .forEach {
                 completionResultSet.addElement(
                     LookupElementBuilder.create(it)

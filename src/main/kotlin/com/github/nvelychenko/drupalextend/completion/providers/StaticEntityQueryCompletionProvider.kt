@@ -1,9 +1,8 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ConfigEntityIndex
-import com.github.nvelychenko.drupalextend.index.ContentEntityIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -40,10 +39,10 @@ class StaticEntityQueryCompletionProvider : CompletionProvider<CompletionParamet
         val instance = FileBasedIndex.getInstance()
 
         instance
-            .getAllProjectKeys(ContentEntityIndex.KEY, project)
+            .getAllProjectKeys(CONTENT_ENTITY_INDEX_KEY, project)
             .filter { !it.contains("\\") }
             .forEach {
-                val contentEntity = instance.getValue(ContentEntityIndex.KEY, it, project) ?: return@forEach
+                val contentEntity = instance.getValue(CONTENT_ENTITY_INDEX_KEY, it, project) ?: return@forEach
 
                 completionResultSet.addElement(
                     LookupElementBuilder.create(it)
@@ -52,10 +51,10 @@ class StaticEntityQueryCompletionProvider : CompletionProvider<CompletionParamet
             }
 
         instance
-            .getAllProjectKeys(ConfigEntityIndex.KEY, project)
+            .getAllProjectKeys(CONFIG_ENTITY_INDEX_KEY, project)
             .forEach {
                 val configEntityFqn =
-                    instance.getValue(ConfigEntityIndex.KEY, it, project) ?: return@forEach
+                    instance.getValue(CONFIG_ENTITY_INDEX_KEY, it, project) ?: return@forEach
 
                 completionResultSet.addElement(
                     LookupElementBuilder.create(it)

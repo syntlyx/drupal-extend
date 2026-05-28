@@ -1,0 +1,12 @@
+<html>
+<body>
+<p>Reports procedural Drupal service lookups that can be replaced with constructor injection.</p>
+<p>
+    The inspection highlights calls such as <code>\Drupal::service()</code>,
+    <code>\Drupal::routeMatch()</code>, and <code>\Drupal::currentUser()</code> inside classes and
+    offers a quick fix that adds the dependency, constructor wiring, and a container
+    <code>create()</code> method where Drupal expects one.
+</p>
+<!-- tooltip end -->
+</body>
+</html>

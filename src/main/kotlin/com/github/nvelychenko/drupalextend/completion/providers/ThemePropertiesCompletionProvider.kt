@@ -1,8 +1,8 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.completion.utils.RenderElementTypeInsertionHandler
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ThemeIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -40,7 +40,7 @@ class ThemePropertiesCompletionProvider : CompletionProvider<CompletionParameter
         val type =
             (typeElement.value as StringLiteralExpression).contents.takeIf { it.isNotEmpty() } ?: return
 
-        fileBasedIndex.getValue(ThemeIndex.KEY, type, project)
+        fileBasedIndex.getValue(THEME_INDEX_KEY, type, project)
             ?.variables
             ?.map(::create)
             ?.forEach {

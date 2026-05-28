@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.findVariablesByName
+import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.getModificationTrackerForIndexId
 import com.github.nvelychenko.drupalextend.extensions.getValue
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
@@ -26,6 +27,8 @@ import com.jetbrains.php.lang.psi.elements.impl.MethodReferenceImpl
 import java.io.DataInput
 import java.io.DataOutput
 
+const val FIELD_TYPE_DUMMY_LIST_CLASS = "Dummy"
+
 class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
     private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
 
@@ -48,7 +51,7 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
                 val listClassFqn = input.readUTF()
 
                 val properties = hashMapOf<String, String>()
-                for (i in 1..input.readInt()) {
+                (1..input.readInt()).forEach { _ ->
                     properties[input.readUTF()] = input.readUTF()
                 }
 
@@ -57,7 +60,7 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
         }
 
     override fun getName(): ID<String, DrupalFieldType> {
-        return KEY
+        return FIELD_TYPE_INDEX_KEY
     }
 
     override fun getIndexer(): DataIndexer<String, DrupalFieldType, FileContent> {
@@ -72,7 +75,7 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
 
             val docComment = phpClass.docComment
 
-            var listClass = DUMMY_LIST_CLASS
+            var listClass = FIELD_TYPE_DUMMY_LIST_CLASS
             var hasEntityTypeAnnotation = false
 
             var id = phpClass.attributes.find { it.fqn == "\\Drupal\\Core\\Field\\Attribute\\FieldType" }
@@ -86,13 +89,13 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
                 id = if (docComment is PhpDocComment) {
                     val fieldTypeDocs = docComment.getTagElementsByName("@FieldType")
                     if (fieldTypeDocs.isEmpty()) {
-                        listClass = DUMMY_LIST_CLASS
+                        listClass = FIELD_TYPE_DUMMY_LIST_CLASS
                         phpClass.fqn
                     } else {
                         hasEntityTypeAnnotation = true
 
                         val fieldTypeDoc = fieldTypeDocs[0].text
-                        listClass = getPhpDocParameter(fieldTypeDoc, "list_class") ?: DUMMY_LIST_CLASS
+                        listClass = getPhpDocParameter(fieldTypeDoc, "list_class") ?: FIELD_TYPE_DUMMY_LIST_CLASS
                         getPhpDocParameter(fieldTypeDoc, "id") ?: phpClass.fqn
                     }
                 } else {
@@ -171,29 +174,28 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
 
     override fun getVersion(): Int = 3
 
-    companion object {
-        val index: FileBasedIndex by lazy {
-            FileBasedIndex.getInstance()
-        }
+}
 
-        val KEY = ID.create<String, DrupalFieldType>("com.github.nvelychenko.drupalextend.index.field_type")
-        const val DUMMY_LIST_CLASS = "Dummy"
-
-        @Synchronized
-        fun getAllFqns(project: Project): HashMap<String, DrupalFieldType> {
-            return CachedValuesManager.getManager(project).getCachedValue(project) {
-                val results = hashMapOf<String, DrupalFieldType>()
-
-                index.getAllKeys(KEY, project).forEach {
-                    index.getValue(KEY, it, project)?.let { contentEntity ->
-                        results[contentEntity.fqn] = contentEntity
-                    }
-                }
-
-                CachedValueProvider.Result.create(results, getModificationTrackerForIndexId(project, KEY, index))
-            }
-        }
+object FieldTypeIndexQueries {
+    private val index: FileBasedIndex by lazy {
+        FileBasedIndex.getInstance()
     }
 
+    @Synchronized
+    fun getAllFqns(project: Project): HashMap<String, DrupalFieldType> {
+        return CachedValuesManager.getManager(project).getCachedValue(project) {
+            val results = hashMapOf<String, DrupalFieldType>()
 
+            index.getAllProjectKeys(FIELD_TYPE_INDEX_KEY, project).forEach {
+                index.getValue(FIELD_TYPE_INDEX_KEY, it, project)?.let { contentEntity ->
+                    results[contentEntity.fqn] = contentEntity
+                }
+            }
+
+            CachedValueProvider.Result.create(
+                results,
+                getModificationTrackerForIndexId(project, FIELD_TYPE_INDEX_KEY, index)
+            )
+        }
+    }
 }

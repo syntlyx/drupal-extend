@@ -1,9 +1,7 @@
 package com.github.nvelychenko.drupalextend.type
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ContentEntityFqnIndex
-import com.github.nvelychenko.drupalextend.index.FieldTypeIndex
-import com.github.nvelychenko.drupalextend.index.FieldsIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -60,11 +58,11 @@ class FieldItemListTypeProvider : PhpTypeProvider4 {
         val type = PhpType()
 
         getEntityTypes(decompressSignature(signature), project).forEach {
-            val field = fileBasedIndex.getValue(FieldsIndex.KEY, "${it}|${fieldName}", project) ?: return null
-            val fieldType = fileBasedIndex.getValue(FieldTypeIndex.KEY, field.fieldType, project) ?: return null
+            val field = fileBasedIndex.getValue(FIELDS_INDEX_KEY, "${it}|${fieldName}", project) ?: return null
+            val fieldType = fileBasedIndex.getValue(FIELD_TYPE_INDEX_KEY, field.fieldType, project) ?: return null
 
             type.add(
-                if (fieldType.listClassFqn != FieldTypeIndex.DUMMY_LIST_CLASS) {
+                if (fieldType.listClassFqn != FIELD_TYPE_DUMMY_LIST_CLASS) {
                     fieldType.listClassFqn
                 } else {
                     "\\Drupal\\Core\\Field\\FieldItemList"
@@ -92,7 +90,7 @@ class FieldItemListTypeProvider : PhpTypeProvider4 {
         }
 
         getClassesFromSignature(signatures, project)
-            .mapNotNull { fileBasedIndex.getValue(ContentEntityFqnIndex.KEY, it.fqn, project) }
+            .mapNotNull { fileBasedIndex.getValue(CONTENT_ENTITY_FQN_INDEX_KEY, it.fqn, project) }
             .forEach { entityTypes.add(it.entityTypeId) }
 
         return entityTypes.toSet()

@@ -1,10 +1,9 @@
 package com.github.nvelychenko.drupalextend.type
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.data.configEntitySqlFactoryClass
 import com.github.nvelychenko.drupalextend.data.contentEntitySqlFactoryClass
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ConfigEntityIndex
-import com.github.nvelychenko.drupalextend.index.ContentEntityIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.type.EntityStorageTypeProvider.Util.SPLIT_KEY
 import com.intellij.openapi.project.DumbService
@@ -88,12 +87,12 @@ class EntityQueryTypeProvider : PhpTypeProvider4 {
 
         val entityTypeId = expression.substring(2).substringBefore(END_KEY)
 
-        val contentEntity = fileBasedIndex.getValue(ContentEntityIndex.KEY, entityTypeId, project)
+        val contentEntity = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project)
         if (contentEntity != null) {
             return PhpType().add(contentEntitySqlFactoryClass)
         }
 
-        val configEntity = fileBasedIndex.getValue(ConfigEntityIndex.KEY, entityTypeId, project)
+        val configEntity = fileBasedIndex.getValue(CONFIG_ENTITY_INDEX_KEY, entityTypeId, project)
         if (configEntity != null) {
             return PhpType().add(configEntitySqlFactoryClass)
         }

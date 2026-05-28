@@ -72,7 +72,7 @@ fun StringLiteralExpression.getArrayStringLiteralKey(): StringLiteralExpression?
             arrayHash.key as StringLiteralExpression
         }
 
-        else -> return null
+        else -> null
     }
 }
 
@@ -87,6 +87,6 @@ fun StringLiteralExpression.getArrayStringLiteralValue(): StringLiteralExpressio
             arrayHash.value as? StringLiteralExpression
         }
 
-        else -> return null
+        else -> null
     }
 }

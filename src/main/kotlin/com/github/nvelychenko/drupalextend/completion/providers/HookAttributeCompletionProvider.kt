@@ -133,16 +133,16 @@ class HookAttributeCompletionProvider : CompletionProvider<CompletionParameters>
             // Some piece of actual shit.
             val onlyWhiteSpace = secondLeaf is PsiWhiteSpace && Regex("\\R").findAll(secondLeaf.text).count() == 1
             if (
-                (method.attributes.size > 1 && onlyWhiteSpace && secondLeaf?.nextSibling is PhpAttributesList)
-                || (onlyWhiteSpace && secondLeaf?.nextSibling?.parent is Method)
+                (method.attributes.size > 1 && onlyWhiteSpace && secondLeaf.nextSibling is PhpAttributesList)
+                || (onlyWhiteSpace && secondLeaf.nextSibling?.parent is Method)
             ) {
                 return
             }
 
-            addMethodImpl(context, currentAttribute)
+            addMethodImpl(context)
         }
 
-        private fun addMethodImpl(context: InsertionContext, attribute: PhpAttribute) {
+        private fun addMethodImpl(context: InsertionContext) {
             val editor = context.editor
             val file: PsiFile = context.file
             val project = editor.project ?: return

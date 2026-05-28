@@ -1,13 +1,10 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.data.ExtendableContentEntityRelatedClasses
 import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.getAllValuesWithKeyPrefix
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.ContentEntityFqnIndex
-import com.github.nvelychenko.drupalextend.index.ContentEntityIndex
-import com.github.nvelychenko.drupalextend.index.FieldsIndex
-import com.github.nvelychenko.drupalextend.index.FieldsIndex.Companion.GENERAL_BASE_FIELD_KEY_PREFIX
 import com.github.nvelychenko.drupalextend.index.types.DrupalContentEntity
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.type.EntityStorageTypeProvider.Util.SPLIT_KEY
@@ -79,7 +76,7 @@ open class FieldCompletionCompletionProvider : CompletionProvider<CompletionPara
         val signature = classReference.signature
         if (signature.contains(SPLIT_KEY)) {
             val entityTypeId = signature.substringAfter(SPLIT_KEY).substringBefore('.')
-            val contentEntity = fileBasedIndex.getValue(ContentEntityIndex.KEY, entityTypeId, project) ?: return
+            val contentEntity = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project) ?: return
 
             if (contentEntity.isEck) {
                 buildResultForEntity(contentEntity, project, result)
@@ -96,12 +93,12 @@ open class FieldCompletionCompletionProvider : CompletionProvider<CompletionPara
             it.takeIf { isArrayAccessExpression }?.replace("[]", "") ?: it
         }.takeIf { it.isNotEmpty() } ?: return
 
-        val contentEntityFqn = fileBasedIndex.getAllProjectKeys(ContentEntityFqnIndex.KEY, project)
+        val contentEntityFqn = fileBasedIndex.getAllProjectKeys(CONTENT_ENTITY_FQN_INDEX_KEY, project)
             .find { globalTypes.contains(it) }
-            ?.let { fileBasedIndex.getValue(ContentEntityFqnIndex.KEY, it, project) } ?: return
+            ?.let { fileBasedIndex.getValue(CONTENT_ENTITY_FQN_INDEX_KEY, it, project) } ?: return
 
         val contentEntity =
-            fileBasedIndex.getValue(ContentEntityIndex.KEY, contentEntityFqn.entityTypeId, project) ?: return
+            fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, contentEntityFqn.entityTypeId, project) ?: return
 
         buildResultForEntity(contentEntity, project, result)
     }
@@ -113,7 +110,7 @@ open class FieldCompletionCompletionProvider : CompletionProvider<CompletionPara
     ) {
         val entityTypeId = contentEntity.entityTypeId
         val keys =
-            fileBasedIndex.getValue(ContentEntityIndex.KEY, entityTypeId, project)?.keys?.toMutableMap() ?: return
+            fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project)?.keys?.toMutableMap() ?: return
 
         // General fields definitions are usually preset in subclasses.
         val additionalClasses = mutableListOf<String>()
@@ -128,12 +125,12 @@ open class FieldCompletionCompletionProvider : CompletionProvider<CompletionPara
                 }
             }
 
-        fileBasedIndex.getAllValuesWithKeyPrefix(FieldsIndex.KEY, "$entityTypeId|", project)
+        fileBasedIndex.getAllValuesWithKeyPrefix(FIELDS_INDEX_KEY, "$entityTypeId|", project)
             .toMutableList()
             // Merge additional fields.
             .let { main ->
                 additionalClasses.forEach {
-                    main.addAll(fileBasedIndex.getAllValuesWithKeyPrefix(FieldsIndex.KEY, "$it|", project))
+                    main.addAll(fileBasedIndex.getAllValuesWithKeyPrefix(FIELDS_INDEX_KEY, "$it|", project))
                 }
 
                 main

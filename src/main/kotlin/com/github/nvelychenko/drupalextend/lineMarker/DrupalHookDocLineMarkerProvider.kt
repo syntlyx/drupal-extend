@@ -1,6 +1,6 @@
 package com.github.nvelychenko.drupalextend.lineMarker
 
-import com.github.nvelychenko.drupalextend.index.HookAttributesIndex
+import com.github.nvelychenko.drupalextend.index.*
 import com.intellij.codeInsight.daemon.DefaultGutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
@@ -47,12 +47,12 @@ class DrupalHookDocLineMarkerProvider : LineMarkerProvider {
 
         val phpIndex = PhpIndex.getInstance(project)
         val hookName = hookFunctionName.substringAfter("hook_")
-        val values = instance.getValues(HookAttributesIndex.KEY, hookName, GlobalSearchScope.allScope(project))
+        val values = instance.getValues(HOOK_ATTRIBUTES_INDEX_KEY, hookName, GlobalSearchScope.allScope(project))
         for (value in values) {
             phpIndex.getClassesByFQN(value)
                 .takeIf { it.isNotEmpty() }
                 ?.forEach {
-                    HookAttributesIndex.getHookAttributesByName(it, hookName)
+                    getHookAttributesByName(it, hookName)
                         .forEach { attribute ->
                             val parent = attribute.parent.parent
                             if (parent is PhpPsiElement) {
@@ -62,8 +62,6 @@ class DrupalHookDocLineMarkerProvider : LineMarkerProvider {
                 }
 
             if (attributes.isEmpty()) return
-
-            attributes.map { it.parent.parent }
         }
 
         val anchor = PsiTreeUtil.getDeepestFirst(element)

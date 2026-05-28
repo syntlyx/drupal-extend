@@ -1,7 +1,7 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.index.FieldTypeIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -72,7 +72,7 @@ open class FieldPropertyCompletionProvider : CompletionProvider<CompletionParame
         }
 
         val project = methodReference.project
-        val fieldTypes = FieldTypeIndex.getAllFqns(project)
+        val fieldTypes = FieldTypeIndexQueries.getAllFqns(project)
         val fieldTypeFqn = phpTypes.types.find {
             val singularType = it.replace("[]", "")
             fieldTypes.containsKey(singularType)
@@ -88,7 +88,7 @@ open class FieldPropertyCompletionProvider : CompletionProvider<CompletionParame
             PhpIndex.getInstance(project).getClassesByFQN(fieldType.fqn).firstOrNull() ?: return
         PhpClassHierarchyUtils.processSuperClasses(fieldClassInstance, false, true) {
             it.findOwnMethodByName("propertyDefinitions") ?: return@processSuperClasses true
-            val superProperties = fileBasedIndex.getValue(FieldTypeIndex.KEY, it.fqn, project)
+            val superProperties = fileBasedIndex.getValue(FIELD_TYPE_INDEX_KEY, it.fqn, project)
             superProperties?.let { properties.putAll(superProperties.properties) }
             return@processSuperClasses true
         }

@@ -1,10 +1,8 @@
 package com.github.nvelychenko.drupalextend.type
 
+import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getValue
 import com.github.nvelychenko.drupalextend.extensions.isSuperInterfaceOf
-import com.github.nvelychenko.drupalextend.index.ConfigEntityIndex
-import com.github.nvelychenko.drupalextend.index.ContentEntityFqnIndex
-import com.github.nvelychenko.drupalextend.index.ContentEntityIndex
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -82,12 +80,12 @@ class EntityFromStorageTypeProvider : PhpTypeProvider4 {
             return null
         }
 
-        val contentEntity = fileBasedIndex.getValue(ContentEntityIndex.KEY, entityTypeId, project)
+        val contentEntity = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project)
         if (contentEntity != null) {
             return PhpType().add(contentEntity.fqn.letIf(possibleMethods.containsKey(methodName)) { fqn -> fqn + possibleMethods[methodName] })
         }
 
-        val configEntity = fileBasedIndex.getValue(ConfigEntityIndex.KEY, entityTypeId, project)
+        val configEntity = fileBasedIndex.getValue(CONFIG_ENTITY_INDEX_KEY, entityTypeId, project)
         if (configEntity != null) {
             return PhpType().add(configEntity.letIf(possibleMethods.containsKey(methodName)) { fqn -> fqn + possibleMethods[methodName] })
         }
@@ -118,7 +116,7 @@ class EntityFromStorageTypeProvider : PhpTypeProvider4 {
         val fileBasedIndex = FileBasedIndex.getInstance()
 
         classes.forEach { classFqn ->
-            fileBasedIndex.getValue(ContentEntityFqnIndex.KEY, classFqn, project)
+            fileBasedIndex.getValue(CONTENT_ENTITY_FQN_INDEX_KEY, classFqn, project)
                 ?.let { return Pair(methodName, it.entityTypeId) }
 
             if (classFqn == "\\Drupal\\Core\\Entity\\EntityStorageInterface") return@forEach
@@ -135,7 +133,7 @@ class EntityFromStorageTypeProvider : PhpTypeProvider4 {
             }
 
             if (clazz.isSuperInterfaceOf(entityStorageInterface)) {
-                val allHandlers = ContentEntityIndex.getAllHandlers(project)
+                val allHandlers = ContentEntityIndexQueries.getAllHandlers(project)
                 val fqn = clazz.fqn
                 val contentEntity = allHandlers[fqn] ?: allHandlers[fqn.substring(1)] ?: return@forEach
 

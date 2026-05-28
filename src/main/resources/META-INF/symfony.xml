@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<idea-plugin>
-
-    <extensions defaultExtensionNs="com.jetbrains.php">
-        <typeProvider4 implementation="com.github.nvelychenko.drupalextend.symfonyIntegration.type.DrupalContainerTypeProvider"/>
-    </extensions>
-
-</idea-plugin>

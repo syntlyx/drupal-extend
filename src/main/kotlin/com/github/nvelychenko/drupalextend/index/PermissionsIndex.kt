@@ -57,7 +57,7 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
     private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
 
     override fun getName(): ID<String, String> {
-        return KEY
+        return PERMISSIONS_INDEX_KEY
     }
 
     override fun getKeyDescriptor(): KeyDescriptor<String> = myKeyDescriptor
@@ -74,9 +74,5 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
 
     // todo
     override fun getVersion(): Int = 0
-
-    companion object {
-        val KEY = ID.create<String, String>("com.github.nvelychenko.drupalextend.index.permissions")
-    }
 
 }

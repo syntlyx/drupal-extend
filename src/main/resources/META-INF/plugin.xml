@@ -10,8 +10,8 @@
 <h2>Features</h2>
 
 <ul>
-    <li>Autocomplete for Content/Config Entity Storages, fields, themes, attribute hooks, render element types and their properties</li>
-    <li>References for Storages, RenderElements, themes and Fields (Ctrl + Click)</li>
+    <li>Autocomplete for Content/Config Entity Storages, services, routes, fields, themes, attribute hooks, render element types and their properties</li>
+    <li>References for Storages, services, routes, RenderElements, themes and Fields (Ctrl + Click)</li>
     <li>And much more. You can find list of all features <a href="https://github.com/nvelychenko/drupal-extend?tab=readme-ov-file#drupal-extend">here.</a></li>
 </ul>
 
@@ -27,17 +27,97 @@
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.RenderElementIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.LibrariesIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.PermissionsIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ServicesIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.RoutesIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.LinksIndex"/>
 
         <psi.referenceContributor
                 implementation="com.github.nvelychenko.drupalextend.reference.DrupalReferenceContributor"
                 language="PHP"/>
+        <psi.referenceContributor
+                implementation="com.github.nvelychenko.drupalextend.reference.ServicesYamlReferenceContributor"
+                language="yaml"/>
+        <psi.referenceContributor
+                implementation="com.github.nvelychenko.drupalextend.reference.RoutesYamlReferenceContributor"
+                language="yaml"/>
+        <findUsagesHandlerFactory
+                implementation="com.github.nvelychenko.drupalextend.reference.ServicesYamlFindUsagesHandlerFactory"
+                order="first"/>
+        <findUsagesHandlerFactory
+                implementation="com.github.nvelychenko.drupalextend.reference.RoutesYamlFindUsagesHandlerFactory"
+                order="first"/>
+        <referencesSearch
+                implementation="com.github.nvelychenko.drupalextend.reference.ServicesReferencesSearch"
+                order="first"/>
+        <referencesSearch
+                implementation="com.github.nvelychenko.drupalextend.reference.RoutesReferencesSearch"
+                order="first"/>
+        <gotoDeclarationHandler
+                implementation="com.github.nvelychenko.drupalextend.reference.RoutesYamlGotoDeclarationHandler"
+                order="first"/>
+        <usageTargetProvider implementation="com.github.nvelychenko.drupalextend.reference.DrupalUsageTargetProvider"/>
+        <gotoTargetPresentationProvider
+                implementation="com.github.nvelychenko.drupalextend.reference.DrupalYamlTargetPresentationProvider"/>
+        <implicitUsageProvider implementation="com.github.nvelychenko.drupalextend.usage.DrupalImplicitUsageProvider"/>
 
         <annotator language="PHP" implementationClass="com.github.nvelychenko.drupalextend.psi.RenderElementAnnotator"/>
+        <localInspection language="yaml"
+                         shortName="DrupalServicesYaml"
+                         displayName="Drupal services.yml problems"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection"/>
+        <localInspection language="yaml"
+                         shortName="DrupalRoutesYaml"
+                         displayName="Drupal routing.yml problems"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.RoutesYamlInspection"/>
+        <localInspection language="PHP"
+                         shortName="DrupalRoutesPhp"
+                         displayName="Drupal route call problems"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.RoutesPhpInspection"/>
+        <localInspection language="PHP"
+                         shortName="DrupalDependencyInjection"
+                         displayName="Drupal dependency injection suggestions"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalDependencyInjectionInspection"/>
+        <localInspection language="PHP"
+                         shortName="DrupalPluginAttributes"
+                         displayName="Drupal plugin annotations can be converted to attributes"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WEAK WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalPluginAttributeInspection"/>
+        <localInspection language="PHP"
+                         shortName="DrupalCodeStyle"
+                         displayName="Drupal code style"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WEAK WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalCodeStyleInspection"/>
 
         <completion.contributor order="first" language="PHP"
                                 implementationClass="com.github.nvelychenko.drupalextend.completion.DrupalCompletionContributor"/>
         <completion.contributor order="last" language="PHP"
                                 implementationClass="com.github.nvelychenko.drupalextend.completion.FieldMagicMethodCompletionContributor"/>
+        <completion.contributor language="yaml"
+                                implementationClass="com.github.nvelychenko.drupalextend.completion.ServicesYamlCompletionContributor"/>
+        <completion.contributor language="yaml"
+                                implementationClass="com.github.nvelychenko.drupalextend.completion.RoutesYamlCompletionContributor"/>
+        <lang.documentationProvider language="yaml"
+                                    order="first"
+                                    implementationClass="com.github.nvelychenko.drupalextend.documentation.ServicesYamlDocumentationProvider"/>
+        <lang.documentationProvider language="yaml"
+                                    order="first"
+                                    implementationClass="com.github.nvelychenko.drupalextend.documentation.RoutesYamlDocumentationProvider"/>
 
         <projectConfigurable
                 instance="com.github.nvelychenko.drupalextend.project.configurable.DrupalConfig"
@@ -48,6 +128,15 @@
                 nonDefaultProject="true"/>
     </extensions>
 
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ProviderFactory implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaProviderFactory"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij.json">
+        <catalog.exclusion implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaCatalogExclusion"/>
+        <jsonSchemaGotoDeclarationSuppressor implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaGotoDeclarationSuppressor"/>
+    </extensions>
+
     <extensions defaultExtensionNs="com.jetbrains.php">
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.EntityStorageTypeProvider"/>
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.EntityFromStorageTypeProvider"/>
@@ -55,15 +144,15 @@
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.FieldItemListTypeProvider"/>
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.EntityQueryTypeProvider"/>
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.EntityReferenceFieldTypeProvider"/>
+        <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.ServicesTypeProvider"/>
 
         <libraryRoot id="drupal-extend" path="/metadata" runtime="false"/>
     </extensions>
 
     <depends>com.jetbrains.php</depends>
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.json</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
-    <depends optional="true" config-file="symfony.xml">fr.adrienbrault.idea.symfony2plugin</depends>
     <depends optional="true" config-file="drupal.xml">com.jetbrains.php.drupal</depends>
-    <depends optional="true" config-file="annotation.xml">de.espend.idea.php.annotation</depends>
 </idea-plugin>

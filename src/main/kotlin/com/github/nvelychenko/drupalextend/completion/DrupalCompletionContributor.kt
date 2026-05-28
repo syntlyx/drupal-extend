@@ -25,6 +25,15 @@ class DrupalCompletionContributor : CompletionContributor() {
         // \Drupal::entityTypeManager->getStorage('no|
         extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, EntityStorageCompletionProvider())
 
+        // \Drupal::service('da|
+        // $container->get('da|
+        extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, ServicesCompletionProvider())
+
+        // Url::fromRoute('entity.node.canonical')
+        // Link::createFromRoute('entity.node.canonical')
+        // $form_state->setRedirect('entity.node.canonical')
+        extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, RoutesCompletionProvider())
+
         // \Drupal::entityTypeManager->getStorage('no|
         extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, StaticEntityQueryCompletionProvider())
 
