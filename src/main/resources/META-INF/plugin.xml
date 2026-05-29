@@ -149,6 +149,16 @@
         <libraryRoot id="drupal-extend" path="/metadata" runtime="false"/>
     </extensions>
 
+    <actions>
+        <action id="DrupalExtend.FixDrupalCodeStyle"
+                class="com.github.nvelychenko.drupalextend.action.FixDrupalCodeStyleAction"
+                text="Fix Drupal Code Style"
+                description="Reformat PHP and apply Drupal code style fixes">
+            <add-to-group group-id="CodeMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+
     <depends>com.jetbrains.php</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.json</depends>

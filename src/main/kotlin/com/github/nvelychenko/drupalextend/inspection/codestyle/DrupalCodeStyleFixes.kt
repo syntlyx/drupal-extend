@@ -1,10 +1,14 @@
 package com.github.nvelychenko.drupalextend.inspection.codestyle
 
 import com.github.nvelychenko.drupalextend.php.edit.TextEdit
+import com.github.nvelychenko.drupalextend.php.edit.applyTo
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
 import com.jetbrains.php.lang.psi.elements.ArrayHashElement
@@ -21,11 +25,37 @@ import com.jetbrains.php.lang.psi.elements.PhpSwitch
 internal object DrupalCodeStyleFixes {
     val fixFile = DrupalCodeStyleTextEditQuickFix("Fix Drupal code style in file") { project, descriptor ->
         val file = descriptor.psiElement.containingFile ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-        file.fullFileFixEdits(project.drupalExtendSettings)
+        file.drupalCodeStyleFileEdits(project.drupalExtendSettings)
     }
 }
 
-private fun PsiFile.fullFileFixEdits(settings: DrupalExtendSettings): Collection<TextEdit> {
+internal object DrupalCodeStyleFileFixer {
+    fun reformatAndApply(project: Project, file: PsiFile): Boolean {
+        val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return false
+        val beforeText = document.text
+        val documentManager = PsiDocumentManager.getInstance(project)
+
+        documentManager.commitDocument(document)
+        CodeStyleManager.getInstance(project).reformatText(file, 0, document.textLength)
+        documentManager.commitDocument(document)
+
+        apply(project, file)
+
+        return beforeText != document.text
+    }
+
+    fun apply(project: Project, file: PsiFile): Boolean {
+        val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return false
+        val edits = file.drupalCodeStyleFileEdits(project.drupalExtendSettings)
+        if (edits.isEmpty()) return false
+
+        edits.applyTo(document)
+        PsiDocumentManager.getInstance(project).commitDocument(document)
+        return true
+    }
+}
+
+internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): Collection<TextEdit> {
     val document = document() ?: return emptyList()
     val edits = mutableListOf<TextEdit>()
 
