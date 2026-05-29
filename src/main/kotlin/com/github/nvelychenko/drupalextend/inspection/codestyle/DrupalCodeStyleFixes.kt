@@ -7,6 +7,8 @@ import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
+import com.jetbrains.php.lang.psi.elements.ArrayHashElement
+import com.jetbrains.php.lang.psi.elements.AssignmentExpression
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.PhpClass
 
@@ -34,6 +36,17 @@ private fun PsiFile.fullFileFixEdits(settings: DrupalExtendSettings): Collection
         PsiTreeUtil.findChildrenOfType(this, PhpClass::class.java)
             .filterNot { it.isAnonymous }
             .mapNotNullTo(edits) { it.classCloseBraceSpacingFixEdit(document) }
+    }
+
+    if (settings.isCodeStyleOperatorSpacingEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, AssignmentExpression::class.java)
+            .mapNotNullTo(edits) { it.assignmentOperatorSpacingEdit() }
+        PsiTreeUtil.findChildrenOfType(this, ArrayHashElement::class.java)
+            .mapNotNullTo(edits) { it.arrayArrowSpacingEdit() }
+    }
+
+    if (settings.isCodeStyleUseStatementSortingEnabled) {
+        edits += sortUseStatementEdits()
     }
 
     return edits.distinctBy { Triple(it.startOffset, it.endOffset, it.text) }

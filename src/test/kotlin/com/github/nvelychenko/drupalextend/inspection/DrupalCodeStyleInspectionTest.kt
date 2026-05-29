@@ -12,6 +12,8 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleUseStatementSortingEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockTagGroupSpacingEnabled = true
@@ -22,6 +24,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionIndentationEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionRequiredEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionLineEnabled = true
+        project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionPunctuationEnabled = true
     }
 
     fun testReportsDrupalClassFunctionAndSpacingProblems() {
@@ -176,6 +179,104 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
              */
             final class Example {}
             """.trimIndent()
+        )
+    }
+
+    fun testQuickFixAddsParamAndReturnDescriptionPunctuation() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Test method description
+               *
+               * @param string ${'$'}name
+               *   hylla
+               *
+               * @return string
+               *   helooa
+               */
+              public function test(string ${'$'}name): string {
+                return 'test2';
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(
+            descriptions,
+            "DocBlock summary should end with punctuation",
+            "@param description should end with punctuation",
+            "@return description should end with punctuation"
+        )
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal DocBlock"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Test method description.
+               *
+               * @param string ${'$'}name
+               *   hylla.
+               *
+               * @return string
+               *   helooa.
+               */
+              public function test(string ${'$'}name): string {
+                return 'test2';
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testDocBlockSummaryPunctuationIgnoresTagDescriptions() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * @param string ${'$'}name
+               *   The name
+               */
+              public function test(string ${'$'}name): void {}
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("DocBlock summary should end with punctuation"))
+        assertContainsElements(
+            descriptions,
+            "DocBlock is missing a short summary",
+            "@param description should end with punctuation"
         )
     }
 
@@ -903,6 +1004,106 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
 
               public function format(): string {
                 return 'value';
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixNormalizesAssignmentAndArrayOperatorSpacing() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(string ${'$'}id): array {
+                ${'$'}rows=['id'=>${'$'}id];
+                ${'$'}count+=1;
+                return ${'$'}rows;
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(
+            descriptions,
+            "Assignment operator must be surrounded by single spaces",
+            "Array key/value operator must be surrounded by single spaces"
+        )
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(string ${'$'}id): array {
+                ${'$'}rows = ['id' => ${'$'}id];
+                ${'$'}count += 1;
+                return ${'$'}rows;
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixSortsUseStatements() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            use Drupal\zeta\Zed;
+            use Drupal\alpha\Alpha;
+
+            final class Example {
+              public function build(): Alpha {
+                return new Alpha();
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(descriptions, "Use statements must be sorted alphabetically")
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Sort use statements"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            use Drupal\alpha\Alpha;
+            use Drupal\zeta\Zed;
+
+            final class Example {
+              public function build(): Alpha {
+                return new Alpha();
               }
 
             }

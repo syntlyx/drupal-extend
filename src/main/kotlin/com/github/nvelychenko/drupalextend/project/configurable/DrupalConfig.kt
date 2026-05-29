@@ -115,6 +115,18 @@ class DrupalConfig(
                 }
 
                 row {
+                    checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_operator_spacing"))
+                        .bindSelected(settings::isCodeStyleOperatorSpacingEnabled)
+                        .enabledIf(codeStyleLinterCheckbox.selected)
+                }
+
+                row {
+                    checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_use_statement_sorting"))
+                        .bindSelected(settings::isCodeStyleUseStatementSortingEnabled)
+                        .enabledIf(codeStyleLinterCheckbox.selected)
+                }
+
+                row {
                     checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_summary_punctuation"))
                         .bindSelected(settings::isCodeStyleDocBlockSummaryPunctuationEnabled)
                         .enabledIf(codeStyleLinterCheckbox.selected)
@@ -171,6 +183,12 @@ class DrupalConfig(
                 row {
                     checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_line"))
                         .bindSelected(settings::isCodeStyleDocBlockTagDescriptionLineEnabled)
+                        .enabledIf(codeStyleLinterCheckbox.selected)
+                }
+
+                row {
+                    checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_punctuation"))
+                        .bindSelected(settings::isCodeStyleDocBlockTagDescriptionPunctuationEnabled)
                         .enabledIf(codeStyleLinterCheckbox.selected)
                 }
             }

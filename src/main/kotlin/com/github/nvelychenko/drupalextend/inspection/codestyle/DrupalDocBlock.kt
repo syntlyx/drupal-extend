@@ -50,6 +50,10 @@ internal fun DrupalDocBlockLine.isSummaryLine(allowInheritDoc: Boolean = false):
     return true
 }
 
+internal fun String.endsWithDocBlockSentencePunctuation(): Boolean {
+    return lastOrNull() in setOf('.', '!', '?', ':')
+}
+
 internal fun DrupalDocBlockLine.isInheritDocSummary(): Boolean {
     return normalizedTrimmedContent() in setOf("{@inheritdoc}", "{@inheritDoc}")
 }

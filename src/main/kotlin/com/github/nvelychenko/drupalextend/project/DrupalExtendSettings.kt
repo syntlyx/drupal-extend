@@ -111,6 +111,12 @@ class DrupalExtendSettings :
             state.isCodeStyleDocBlockTagDescriptionLineEnabled = value
         }
 
+    var isCodeStyleDocBlockTagDescriptionPunctuationEnabled: Boolean
+        get() = state.isCodeStyleDocBlockTagDescriptionPunctuationEnabled
+        set(value) {
+            state.isCodeStyleDocBlockTagDescriptionPunctuationEnabled = value
+        }
+
     var isCodeStyleClassFileNameEnabled: Boolean
         get() = state.isCodeStyleClassFileNameEnabled
         set(value) {
@@ -133,6 +139,18 @@ class DrupalExtendSettings :
         get() = state.isCodeStyleClassCloseBraceSpacingEnabled
         set(value) {
             state.isCodeStyleClassCloseBraceSpacingEnabled = value
+        }
+
+    var isCodeStyleOperatorSpacingEnabled: Boolean
+        get() = state.isCodeStyleOperatorSpacingEnabled
+        set(value) {
+            state.isCodeStyleOperatorSpacingEnabled = value
+        }
+
+    var isCodeStyleUseStatementSortingEnabled: Boolean
+        get() = state.isCodeStyleUseStatementSortingEnabled
+        set(value) {
+            state.isCodeStyleUseStatementSortingEnabled = value
         }
 
     var configDirectory: String
@@ -167,10 +185,13 @@ class DrupalExtendSettings :
         var isCodeStyleDocBlockTagDescriptionIndentationEnabled: Boolean by property(true)
         var isCodeStyleDocBlockTagDescriptionRequiredEnabled: Boolean by property(true)
         var isCodeStyleDocBlockTagDescriptionLineEnabled: Boolean by property(true)
+        var isCodeStyleDocBlockTagDescriptionPunctuationEnabled: Boolean by property(true)
         var isCodeStyleClassFileNameEnabled: Boolean by property(true)
         var isCodeStyleMissingDocCommentsEnabled: Boolean by property(true)
         var isCodeStyleFunctionSpacingEnabled: Boolean by property(true)
         var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)
+        var isCodeStyleOperatorSpacingEnabled: Boolean by property(true)
+        var isCodeStyleUseStatementSortingEnabled: Boolean by property(true)
     }
 
 }

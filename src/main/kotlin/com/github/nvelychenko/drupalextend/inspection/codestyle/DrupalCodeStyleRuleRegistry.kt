@@ -6,6 +6,8 @@ internal object DrupalCodeStyleRuleRegistry {
         MissingDocCommentRule,
         FunctionSpacingRule,
         ClassCloseBraceSpacingRule,
+        OperatorSpacingRule,
+        UseStatementSortingRule,
         DocBlockSummaryPunctuationRule,
         DocBlockBlankLineBeforeTagsRule,
         DocBlockTagGroupSpacingRule,
@@ -16,5 +18,6 @@ internal object DrupalCodeStyleRuleRegistry {
         FunctionDocTagDescriptionRequiredRule,
         FunctionDocTagDescriptionIndentationRule,
         FunctionDocTagDescriptionLineRule,
+        FunctionDocTagDescriptionPunctuationRule,
     )
 }

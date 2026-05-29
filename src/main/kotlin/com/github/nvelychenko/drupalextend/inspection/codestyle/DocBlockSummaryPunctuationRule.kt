@@ -15,9 +15,10 @@ internal object DocBlockSummaryPunctuationRule : DrupalCodeStyleRule {
     override fun inspect(element: PsiElement, context: DrupalCodeStyleContext) {
         val docComment = element as? PhpDocComment ?: return
         val summaryLine = docComment.drupalDocBlockLines()
+            .takeWhile { !it.isTag }
             .firstOrNull { it.isSummaryLine() }
             ?: return
-        if (summaryLine.normalizedTrimmedContent().endsWithSummaryPunctuation()) return
+        if (summaryLine.normalizedTrimmedContent().endsWithDocBlockSentencePunctuation()) return
 
         context.registerDocBlockProblem(
             docComment,
@@ -31,14 +32,13 @@ internal object DocBlockSummaryPunctuationRule : DrupalCodeStyleRule {
         return DrupalCodeStyleTextEditQuickFix("Add DocBlock summary punctuation") { _, descriptor ->
             val docComment = descriptor.psiElement as? PhpDocComment ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             val summaryLine = docComment.drupalDocBlockLines()
-                .firstOrNull { it.isSummaryLine() && !it.normalizedTrimmedContent().endsWithSummaryPunctuation() }
+                .takeWhile { !it.isTag }
+                .firstOrNull {
+                    it.isSummaryLine() && !it.normalizedTrimmedContent().endsWithDocBlockSentencePunctuation()
+                }
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
 
             listOf(TextEdit(docComment.textRange.startOffset + summaryLine.contentEndOffset(), "."))
         }
-    }
-
-    private fun String.endsWithSummaryPunctuation(): Boolean {
-        return lastOrNull() in setOf('.', '!', '?', ':')
     }
 }

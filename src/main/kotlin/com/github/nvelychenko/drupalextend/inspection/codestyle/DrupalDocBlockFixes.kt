@@ -41,6 +41,7 @@ private fun PhpDocComment.fullDocBlockFixText(
         .withMissingParamNames(function, settings)
         .withInlineDescriptionsOnContinuationLines(settings)
         .withDescriptionIndentation(settings)
+        .withTagDescriptionPunctuation(settings)
         .withSummaryPunctuation(settings)
         .withSemanticBlankLines(settings)
 
@@ -147,13 +148,32 @@ private fun List<String>.withSummaryPunctuation(
 ): List<String> {
     if (!settings.isCodeStyleDocBlockSummaryPunctuationEnabled) return this
 
-    val summaryIndex = indexOfFirst { it.isSummaryLineContent() }
+    val summaryIndex = takeWhile { !it.isTag() }
+        .indexOfFirst { it.isSummaryLineContent() }
     if (summaryIndex < 0) return this
     val summary = get(summaryIndex)
-    if (summary.endsWithSummaryPunctuation()) return this
+    if (summary.endsWithDocBlockSentencePunctuation()) return this
 
     return toMutableList().also {
         it[summaryIndex] = "$summary."
+    }
+}
+
+private fun List<String>.withTagDescriptionPunctuation(
+    settings: DrupalExtendSettings,
+): List<String> {
+    if (!settings.isCodeStyleDocBlockTagDescriptionPunctuationEnabled) return this
+
+    return toMutableList().also { lines ->
+        lines.indices.forEach { index ->
+            val tagName = lines[index].tagName()
+            if (tagName != "param" && tagName != "return") return@forEach
+
+            val descriptionIndex = lines.tagDescriptionIndex(index, tagName) ?: return@forEach
+            if (lines[descriptionIndex].trimEnd().endsWithDocBlockSentencePunctuation()) return@forEach
+
+            lines[descriptionIndex] = lines[descriptionIndex].trimEnd() + "."
+        }
     }
 }
 
@@ -266,12 +286,28 @@ private fun String.isSummaryLineContent(): Boolean {
     return trim() !in setOf("{@inheritdoc}", "{@inheritDoc}")
 }
 
-private fun String.endsWithSummaryPunctuation(): Boolean {
-    return lastOrNull() in setOf('.', '!', '?', ':')
-}
-
 private fun String.isParamName(): Boolean {
     return startsWith("\$") || startsWith("...\$") || startsWith("&\$")
+}
+
+private fun MutableList<String>.tagDescriptionIndex(tagIndex: Int, tagName: String): Int? {
+    val continuationDescriptionIndexes = ((tagIndex + 1) until size)
+        .takeWhile { !this[it].isTag() && this[it].isNotBlank() }
+        .filter { this[it].trim().isNotBlank() }
+
+    if (continuationDescriptionIndexes.isNotEmpty()) {
+        return continuationDescriptionIndexes.last()
+    }
+
+    return tagIndex.takeIf { this[it].hasInlineTagDescription(tagName) }
+}
+
+private fun String.hasInlineTagDescription(tagName: String): Boolean {
+    return when (tagName) {
+        "param" -> PARAM_WITH_INLINE_DESCRIPTION.matches(this)
+        "return" -> RETURN_WITH_INLINE_DESCRIPTION.matches(this)
+        else -> false
+    }
 }
 
 private fun com.jetbrains.php.lang.psi.elements.Parameter.phpDocVariableName(): String {
