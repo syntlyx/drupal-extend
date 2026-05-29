@@ -13,6 +13,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleUseStatementSortingEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = true
@@ -1055,6 +1056,94 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                 ${'$'}rows = ['id' => ${'$'}id];
                 ${'$'}count += 1;
                 return ${'$'}rows;
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixNormalizesBinaryOperatorSpacing() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(int ${'$'}left, int ${'$'}right): string {
+                return ${'$'}left+${'$'}right . ':' . (${'$'}left===${'$'}right ? 'yes' : 'no');
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(descriptions, "Binary operator must be surrounded by single spaces")
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(int ${'$'}left, int ${'$'}right): string {
+                return ${'$'}left + ${'$'}right . ':' . (${'$'}left === ${'$'}right ? 'yes' : 'no');
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixNormalizesCommaSpacing() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(string ${'$'}id,string ${'$'}label): array {
+                return ${'$'}this->format(['id' ,${'$'}id,'label'  , ${'$'}label],${'$'}label);
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(descriptions, "Comma-separated lists must use single spaces")
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(string ${'$'}id, string ${'$'}label): array {
+                return ${'$'}this->format(['id', ${'$'}id, 'label', ${'$'}label], ${'$'}label);
               }
 
             }

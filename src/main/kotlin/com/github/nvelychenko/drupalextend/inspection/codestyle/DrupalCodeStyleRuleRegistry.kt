@@ -7,6 +7,7 @@ internal object DrupalCodeStyleRuleRegistry {
         FunctionSpacingRule,
         ClassCloseBraceSpacingRule,
         OperatorSpacingRule,
+        CommaSpacingRule,
         UseStatementSortingRule,
         DocBlockSummaryPunctuationRule,
         DocBlockBlankLineBeforeTagsRule,

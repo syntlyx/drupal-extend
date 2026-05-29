@@ -8,8 +8,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
 import com.jetbrains.php.lang.psi.elements.ArrayHashElement
+import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.AssignmentExpression
+import com.jetbrains.php.lang.psi.elements.BinaryExpression
 import com.jetbrains.php.lang.psi.elements.Function
+import com.jetbrains.php.lang.psi.elements.ParameterList
 import com.jetbrains.php.lang.psi.elements.PhpClass
 
 internal object DrupalCodeStyleFixes {
@@ -43,6 +46,15 @@ private fun PsiFile.fullFileFixEdits(settings: DrupalExtendSettings): Collection
             .mapNotNullTo(edits) { it.assignmentOperatorSpacingEdit() }
         PsiTreeUtil.findChildrenOfType(this, ArrayHashElement::class.java)
             .mapNotNullTo(edits) { it.arrayArrowSpacingEdit() }
+        PsiTreeUtil.findChildrenOfType(this, BinaryExpression::class.java)
+            .mapNotNullTo(edits) { it.binaryOperatorSpacingEdit() }
+    }
+
+    if (settings.isCodeStyleCommaSpacingEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, ParameterList::class.java)
+            .flatMapTo(edits) { it.commaSpacingEdits() }
+        PsiTreeUtil.findChildrenOfType(this, ArrayCreationExpression::class.java)
+            .flatMapTo(edits) { it.commaSpacingEdits() }
     }
 
     if (settings.isCodeStyleUseStatementSortingEnabled) {
