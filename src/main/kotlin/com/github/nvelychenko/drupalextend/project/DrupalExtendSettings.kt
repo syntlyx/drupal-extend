@@ -135,6 +135,18 @@ class DrupalExtendSettings :
             state.isCodeStyleFunctionNameEnabled = value
         }
 
+    var isCodeStyleConstantCasingEnabled: Boolean
+        get() = state.isCodeStyleConstantCasingEnabled
+        set(value) {
+            state.isCodeStyleConstantCasingEnabled = value
+        }
+
+    var isCodeStyleClosingPhpTagEnabled: Boolean
+        get() = state.isCodeStyleClosingPhpTagEnabled
+        set(value) {
+            state.isCodeStyleClosingPhpTagEnabled = value
+        }
+
     var isCodeStyleMissingDocCommentsEnabled: Boolean
         get() = state.isCodeStyleMissingDocCommentsEnabled
         set(value) {
@@ -207,6 +219,8 @@ class DrupalExtendSettings :
         var isCodeStyleClassFileNameEnabled: Boolean by property(true)
         var isCodeStyleClassNameEnabled: Boolean by property(true)
         var isCodeStyleFunctionNameEnabled: Boolean by property(true)
+        var isCodeStyleConstantCasingEnabled: Boolean by property(true)
+        var isCodeStyleClosingPhpTagEnabled: Boolean by property(true)
         var isCodeStyleMissingDocCommentsEnabled: Boolean by property(true)
         var isCodeStyleFunctionSpacingEnabled: Boolean by property(true)
         var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)

@@ -11,6 +11,8 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = true
         project.drupalExtendSettings.isCodeStyleClassNameEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = true
+        project.drupalExtendSettings.isCodeStyleConstantCasingEnabled = true
+        project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
@@ -147,6 +149,89 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             it.description == "Method name should use camelCase" &&
             myFixture.file.text.substring(it.startOffset, it.endOffset) == "__toString"
         })
+    }
+
+    fun testQuickFixNormalizesDrupalConstantCasing() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(): array {
+                return [true, false, null];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(descriptions, "TRUE, FALSE, and NULL constants must be uppercase")
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(): array {
+                return [TRUE, FALSE, NULL];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixRemovesClosingPhpTagAtEndOfFile() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+            }
+            ?>
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(descriptions, "PHP-only files must not end with a closing tag")
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+            }
+            """.trimIndent()
+        )
     }
 
     fun testFunctionSpacingRulesHighlightOnlyFunctionName() {

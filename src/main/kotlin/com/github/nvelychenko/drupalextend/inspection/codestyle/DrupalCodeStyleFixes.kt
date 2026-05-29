@@ -29,6 +29,10 @@ private fun PsiFile.fullFileFixEdits(settings: DrupalExtendSettings): Collection
     PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
         .mapNotNullTo(edits) { it.fullDocBlockFixEdit(settings) }
 
+    if (settings.isCodeStyleConstantCasingEnabled) {
+        edits += constantCasingEdits()
+    }
+
     if (settings.isCodeStyleFunctionSpacingEnabled) {
         PsiTreeUtil.findChildrenOfType(this, Function::class.java)
             .filterNot { it.isClosure }
@@ -59,6 +63,10 @@ private fun PsiFile.fullFileFixEdits(settings: DrupalExtendSettings): Collection
 
     if (settings.isCodeStyleUseStatementSortingEnabled) {
         edits += sortUseStatementEdits()
+    }
+
+    if (settings.isCodeStyleClosingPhpTagEnabled) {
+        closingPhpTagEdit()?.let { edits += it }
     }
 
     return edits.distinctBy { Triple(it.startOffset, it.endOffset, it.text) }

@@ -5,6 +5,8 @@ internal object DrupalCodeStyleRuleRegistry {
         ClassFileNameRule,
         ClassNameRule,
         FunctionNameRule,
+        ConstantCasingRule,
+        ClosingPhpTagRule,
         MissingDocCommentRule,
         FunctionSpacingRule,
         ClassCloseBraceSpacingRule,
