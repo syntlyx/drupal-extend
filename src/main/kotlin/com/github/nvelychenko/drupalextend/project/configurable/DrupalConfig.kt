@@ -124,6 +124,12 @@ class DrupalConfig(
                     }
 
                     row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_short_array_syntax"))
+                            .bindSelected(settings::isCodeStyleShortArraySyntaxEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_use_statement_sorting"))
                             .bindSelected(settings::isCodeStyleUseStatementSortingEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)

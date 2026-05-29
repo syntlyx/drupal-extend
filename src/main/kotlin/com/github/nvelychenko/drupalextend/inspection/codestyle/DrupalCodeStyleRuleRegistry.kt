@@ -7,6 +7,7 @@ internal object DrupalCodeStyleRuleRegistry {
         FunctionNameRule,
         ConstantCasingRule,
         ClosingPhpTagRule,
+        ShortArraySyntaxRule,
         MissingDocCommentRule,
         FunctionSpacingRule,
         ClassCloseBraceSpacingRule,

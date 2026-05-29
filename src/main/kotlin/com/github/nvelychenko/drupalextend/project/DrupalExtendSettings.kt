@@ -147,6 +147,12 @@ class DrupalExtendSettings :
             state.isCodeStyleClosingPhpTagEnabled = value
         }
 
+    var isCodeStyleShortArraySyntaxEnabled: Boolean
+        get() = state.isCodeStyleShortArraySyntaxEnabled
+        set(value) {
+            state.isCodeStyleShortArraySyntaxEnabled = value
+        }
+
     var isCodeStyleMissingDocCommentsEnabled: Boolean
         get() = state.isCodeStyleMissingDocCommentsEnabled
         set(value) {
@@ -227,6 +233,7 @@ class DrupalExtendSettings :
         var isCodeStyleFunctionNameEnabled: Boolean by property(true)
         var isCodeStyleConstantCasingEnabled: Boolean by property(true)
         var isCodeStyleClosingPhpTagEnabled: Boolean by property(true)
+        var isCodeStyleShortArraySyntaxEnabled: Boolean by property(true)
         var isCodeStyleMissingDocCommentsEnabled: Boolean by property(true)
         var isCodeStyleFunctionSpacingEnabled: Boolean by property(true)
         var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)

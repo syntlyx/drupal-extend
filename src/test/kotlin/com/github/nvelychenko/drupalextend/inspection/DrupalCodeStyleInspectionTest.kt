@@ -13,6 +13,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = true
         project.drupalExtendSettings.isCodeStyleConstantCasingEnabled = true
         project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
+        project.drupalExtendSettings.isCodeStyleShortArraySyntaxEnabled = true
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
@@ -1125,7 +1126,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                * @return array Rows.
                */
               public function build(): array {
-                return [];
+                return array('value');
               }
               public function format(): string {
                 return 'value';
@@ -1153,13 +1154,55 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                *   Rows.
                */
               public function build(): array {
-                return [];
+                return ['value'];
               }
 
               public function format(): string {
                 return 'value';
               }
 
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixConvertsArrayToShortSyntaxUsingPhpStormFix() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(): array {
+              return array('value', array('nested'));
+            }
+            """.trimIndent()
+        )
+
+        val highlights = myFixture.doHighlighting()
+        assertContainsElements(
+            highlights.mapNotNull { it.description },
+            "array() literals must use short array syntax"
+        )
+
+        val highlight = highlights.single {
+            it.description == "array() literals must use short array syntax"
+        }
+        assertEquals("array", myFixture.file.text.substring(highlight.startOffset, highlight.endOffset))
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Convert array to short syntax"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(): array {
+              return ['value', ['nested']];
             }
             """.trimIndent()
         )

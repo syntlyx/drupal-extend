@@ -4,6 +4,8 @@ import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.php.edit.applyTo
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
@@ -23,9 +25,19 @@ import com.jetbrains.php.lang.psi.elements.PhpClass
 import com.jetbrains.php.lang.psi.elements.PhpSwitch
 
 internal object DrupalCodeStyleFixes {
-    val fixFile = DrupalCodeStyleTextEditQuickFix("Fix Drupal code style in file") { project, descriptor ->
-        val file = descriptor.psiElement.containingFile ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-        file.drupalCodeStyleFileEdits(project.drupalExtendSettings)
+    val fixFile = object : LocalQuickFix {
+        override fun getFamilyName(): String {
+            return "Fix Drupal code style in file"
+        }
+
+        override fun getName(): String {
+            return familyName
+        }
+
+        override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+            val file = descriptor.psiElement.containingFile ?: return
+            DrupalCodeStyleFileFixer.apply(project, file)
+        }
     }
 }
 
@@ -46,12 +58,20 @@ internal object DrupalCodeStyleFileFixer {
 
     fun apply(project: Project, file: PsiFile): Boolean {
         val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return false
+        val beforeText = document.text
+        val settings = project.drupalExtendSettings
+
+        if (settings.isCodeStyleShortArraySyntaxEnabled) {
+            PhpStormShortArraySyntaxFixes.applyToFile(file)
+            PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
+        }
+
         val edits = file.drupalCodeStyleFileEdits(project.drupalExtendSettings)
-        if (edits.isEmpty()) return false
+        if (edits.isEmpty()) return beforeText != document.text
 
         edits.applyTo(document)
         PsiDocumentManager.getInstance(project).commitDocument(document)
-        return true
+        return beforeText != document.text
     }
 }
 
