@@ -154,6 +154,12 @@ class DrupalConfig(
                             .bindSelected(settings::isCodeStyleCommaSpacingEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_control_structure_spacing"))
+                            .bindSelected(settings::isCodeStyleControlStructureSpacingEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_docblock"), true) {

@@ -11,9 +11,12 @@ import com.jetbrains.php.lang.psi.elements.ArrayHashElement
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.AssignmentExpression
 import com.jetbrains.php.lang.psi.elements.BinaryExpression
+import com.jetbrains.php.lang.psi.elements.ControlStatement
+import com.jetbrains.php.lang.psi.elements.Else
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.ParameterList
 import com.jetbrains.php.lang.psi.elements.PhpClass
+import com.jetbrains.php.lang.psi.elements.PhpSwitch
 
 internal object DrupalCodeStyleFixes {
     val fixFile = DrupalCodeStyleTextEditQuickFix("Fix Drupal code style in file") { project, descriptor ->
@@ -59,6 +62,13 @@ private fun PsiFile.fullFileFixEdits(settings: DrupalExtendSettings): Collection
             .flatMapTo(edits) { it.commaSpacingEdits() }
         PsiTreeUtil.findChildrenOfType(this, ArrayCreationExpression::class.java)
             .flatMapTo(edits) { it.commaSpacingEdits() }
+    }
+
+    if (settings.isCodeStyleControlStructureSpacingEnabled) {
+        PsiTreeUtil.collectElements(this) { element ->
+            element is ControlStatement || element is PhpSwitch || element is Else
+        }
+            .flatMapTo(edits) { it.controlStructureSpacingEdits() }
     }
 
     if (settings.isCodeStyleUseStatementSortingEnabled) {

@@ -18,6 +18,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleUseStatementSortingEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = true
@@ -1296,6 +1297,79 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             final class Example {
               public function build(string ${'$'}id, string ${'$'}label): array {
                 return ${'$'}this->format(['id', ${'$'}id, 'label', ${'$'}label], ${'$'}label);
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixNormalizesControlStructureSpacing() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(array ${'$'}items): array {
+                foreach(${'$'}items as${'$'}key=>${'$'}value){
+                  if(${'$'}key){
+                    ${'$'}rows[] = ${'$'}value;
+                  }elseif(${'$'}value){
+                    ${'$'}rows[] = ${'$'}key;
+                  }else{
+                    ${'$'}rows[] = 'empty';
+                  }
+                }
+                while(${'$'}items){
+                }
+                switch(${'$'}items){
+                }
+                return ${'$'}rows;
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        assertContainsElements(descriptions, "Control structures must use Drupal spacing")
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(array ${'$'}items): array {
+                foreach (${'$'}items as ${'$'}key => ${'$'}value) {
+                  if (${'$'}key) {
+                    ${'$'}rows[] = ${'$'}value;
+                  } elseif (${'$'}value) {
+                    ${'$'}rows[] = ${'$'}key;
+                  } else {
+                    ${'$'}rows[] = 'empty';
+                  }
+                }
+                while (${'$'}items) {
+                }
+                switch (${'$'}items) {
+                }
+                return ${'$'}rows;
               }
 
             }

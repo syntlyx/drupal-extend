@@ -177,6 +177,12 @@ class DrupalExtendSettings :
             state.isCodeStyleCommaSpacingEnabled = value
         }
 
+    var isCodeStyleControlStructureSpacingEnabled: Boolean
+        get() = state.isCodeStyleControlStructureSpacingEnabled
+        set(value) {
+            state.isCodeStyleControlStructureSpacingEnabled = value
+        }
+
     var isCodeStyleUseStatementSortingEnabled: Boolean
         get() = state.isCodeStyleUseStatementSortingEnabled
         set(value) {
@@ -226,6 +232,7 @@ class DrupalExtendSettings :
         var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)
         var isCodeStyleOperatorSpacingEnabled: Boolean by property(true)
         var isCodeStyleCommaSpacingEnabled: Boolean by property(true)
+        var isCodeStyleControlStructureSpacingEnabled: Boolean by property(true)
         var isCodeStyleUseStatementSortingEnabled: Boolean by property(true)
     }
 
