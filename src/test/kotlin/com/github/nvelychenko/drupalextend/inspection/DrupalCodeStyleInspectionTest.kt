@@ -14,6 +14,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleConstantCasingEnabled = true
         project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
         project.drupalExtendSettings.isCodeStyleShortArraySyntaxEnabled = true
+        project.drupalExtendSettings.isCodeStyleElseIfSyntaxEnabled = true
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
@@ -1203,6 +1204,102 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
 
             function example_build(): array {
               return ['value', ['nested']];
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixConvertsElseIfToElseif() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(bool ${'$'}value): string {
+              if (${'$'}value) {
+                return 'yes';
+              } else if (!${'$'}value) {
+                return 'no';
+              }
+              return 'unknown';
+            }
+            """.trimIndent()
+        )
+
+        val highlights = myFixture.doHighlighting()
+        assertContainsElements(
+            highlights.mapNotNull { it.description },
+            "else if constructs must use elseif"
+        )
+
+        val highlight = highlights.single {
+            it.description == "else if constructs must use elseif"
+        }
+        assertEquals("else if", myFixture.file.text.substring(highlight.startOffset, highlight.endOffset))
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Convert else if to elseif"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(bool ${'$'}value): string {
+              if (${'$'}value) {
+                return 'yes';
+              } elseif (!${'$'}value) {
+                return 'no';
+              }
+              return 'unknown';
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixFixesElseIfSyntaxInFile() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(bool ${'$'}value): string {
+              if (${'$'}value) {
+                return 'yes';
+              } else if (!${'$'}value) {
+                return 'no';
+              }
+              return 'unknown';
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(bool ${'$'}value): string {
+              if (${'$'}value) {
+                return 'yes';
+              } elseif (!${'$'}value) {
+                return 'no';
+              }
+              return 'unknown';
             }
             """.trimIndent()
         )

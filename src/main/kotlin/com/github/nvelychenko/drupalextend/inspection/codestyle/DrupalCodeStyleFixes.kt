@@ -121,6 +121,11 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             .flatMapTo(edits) { it.controlStructureSpacingEdits() }
     }
 
+    if (settings.isCodeStyleElseIfSyntaxEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, Else::class.java)
+            .mapNotNullTo(edits) { it.elseIfSyntaxEdit() }
+    }
+
     if (settings.isCodeStyleUseStatementSortingEnabled) {
         edits += sortUseStatementEdits()
     }
