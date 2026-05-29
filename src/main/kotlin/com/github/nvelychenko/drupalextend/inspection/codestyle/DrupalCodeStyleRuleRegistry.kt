@@ -3,6 +3,8 @@ package com.github.nvelychenko.drupalextend.inspection.codestyle
 internal object DrupalCodeStyleRuleRegistry {
     val rules: List<DrupalCodeStyleRule> = listOf(
         ClassFileNameRule,
+        ClassNameRule,
+        FunctionNameRule,
         MissingDocCommentRule,
         FunctionSpacingRule,
         ClassCloseBraceSpacingRule,

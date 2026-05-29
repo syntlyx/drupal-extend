@@ -97,6 +97,18 @@ class DrupalConfig(
                 }
 
                 row {
+                    checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_class_name"))
+                        .bindSelected(settings::isCodeStyleClassNameEnabled)
+                        .enabledIf(codeStyleLinterCheckbox.selected)
+                }
+
+                row {
+                    checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_name"))
+                        .bindSelected(settings::isCodeStyleFunctionNameEnabled)
+                        .enabledIf(codeStyleLinterCheckbox.selected)
+                }
+
+                row {
                     checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_missing_doc_comments"))
                         .bindSelected(settings::isCodeStyleMissingDocCommentsEnabled)
                         .enabledIf(codeStyleLinterCheckbox.selected)

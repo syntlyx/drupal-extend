@@ -9,6 +9,8 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isEnabled = true
         project.drupalExtendSettings.isCodeStyleLinterEnabled = true
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = true
+        project.drupalExtendSettings.isCodeStyleClassNameEnabled = true
+        project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = true
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
@@ -58,6 +60,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
     }
 
     fun testClassFileNameRuleHighlightsOnlyClassName() {
+        project.drupalExtendSettings.isCodeStyleClassNameEnabled = false
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
@@ -80,6 +83,70 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         }
 
         assertEquals("Test2", myFixture.file.text.substring(highlight.startOffset, highlight.endOffset))
+    }
+
+    fun testReportsClassFunctionAndMethodNamingProblems() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockContentAfterOpenEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockMissingSummaryEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockMissingParamNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionIndentationEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionRequiredEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionLineEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionPunctuationEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockTagGroupSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleDocBlockBlankLineNormalizationEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            class test_service {
+              public function Bad_method(): void {}
+
+              public function __toString(): string {
+                return '';
+              }
+            }
+
+            function badFunction(): void {}
+            """.trimIndent()
+        )
+
+        val highlights = myFixture.doHighlighting()
+        val descriptions = highlights.mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "Class name should use PascalCase",
+            "Method name should use camelCase",
+            "Function name should use snake_case"
+        )
+        val classNameHighlight = highlights.single { it.description == "Class name should use PascalCase" }
+        val methodNameHighlight = highlights.single { it.description == "Method name should use camelCase" }
+        val functionNameHighlight = highlights.single { it.description == "Function name should use snake_case" }
+        assertEquals(
+            "test_service",
+            myFixture.file.text.substring(classNameHighlight.startOffset, classNameHighlight.endOffset)
+        )
+        assertEquals(
+            "Bad_method",
+            myFixture.file.text.substring(methodNameHighlight.startOffset, methodNameHighlight.endOffset)
+        )
+        assertEquals(
+            "badFunction",
+            myFixture.file.text.substring(functionNameHighlight.startOffset, functionNameHighlight.endOffset)
+        )
+        assertFalse(highlights.any {
+            it.description == "Method name should use camelCase" &&
+            myFixture.file.text.substring(it.startOffset, it.endOffset) == "__toString"
+        })
     }
 
     fun testFunctionSpacingRulesHighlightOnlyFunctionName() {

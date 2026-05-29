@@ -123,6 +123,18 @@ class DrupalExtendSettings :
             state.isCodeStyleClassFileNameEnabled = value
         }
 
+    var isCodeStyleClassNameEnabled: Boolean
+        get() = state.isCodeStyleClassNameEnabled
+        set(value) {
+            state.isCodeStyleClassNameEnabled = value
+        }
+
+    var isCodeStyleFunctionNameEnabled: Boolean
+        get() = state.isCodeStyleFunctionNameEnabled
+        set(value) {
+            state.isCodeStyleFunctionNameEnabled = value
+        }
+
     var isCodeStyleMissingDocCommentsEnabled: Boolean
         get() = state.isCodeStyleMissingDocCommentsEnabled
         set(value) {
@@ -193,6 +205,8 @@ class DrupalExtendSettings :
         var isCodeStyleDocBlockTagDescriptionLineEnabled: Boolean by property(true)
         var isCodeStyleDocBlockTagDescriptionPunctuationEnabled: Boolean by property(true)
         var isCodeStyleClassFileNameEnabled: Boolean by property(true)
+        var isCodeStyleClassNameEnabled: Boolean by property(true)
+        var isCodeStyleFunctionNameEnabled: Boolean by property(true)
         var isCodeStyleMissingDocCommentsEnabled: Boolean by property(true)
         var isCodeStyleFunctionSpacingEnabled: Boolean by property(true)
         var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)
