@@ -496,6 +496,41 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         assertTrue(myFixture.getAllQuickFixes().any {
             it.text.contains("Generate") && it.text.contains("PHPDoc")
         })
+        assertFalse(myFixture.getAllQuickFixes().any {
+            it.text == "Fix Drupal code style in file"
+        })
+    }
+
+    fun testMissingFunctionDocCommentDoesNotOfferNoOpFileFix() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "ApplicationActionManager.php",
+            """
+            <?php
+
+            class ApplicationActionManager {
+
+              public function __construct(
+                private readonly iterable ${'$'}actions,
+                private readonly LockAction ${'$'}lockAction,
+              ) {}
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        assertFalse(myFixture.getAllQuickFixes().any {
+            it.text == "Fix Drupal code style in file"
+        })
+        assertTrue(myFixture.getAllQuickFixes().any {
+            it.text.contains("Generate") && it.text.contains("PHPDoc")
+        })
     }
 
     fun testQuickFixNormalizesBlankLineAfterFunction() {

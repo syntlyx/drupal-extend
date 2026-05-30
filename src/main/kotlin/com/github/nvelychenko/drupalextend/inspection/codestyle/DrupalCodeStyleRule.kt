@@ -54,9 +54,11 @@ internal data class DrupalCodeStyleProblem(
     val highlightType: ProblemHighlightType = ProblemHighlightType.WEAK_WARNING,
     val rangeInElement: TextRange? = null,
     val fixes: List<LocalQuickFix> = emptyList(),
+    val includeFileFix: Boolean = true,
 )
 
 private fun DrupalCodeStyleProblem.withFileFix(): DrupalCodeStyleProblem {
+    if (!includeFileFix) return this
     if (fixes.isEmpty() || fixes.any { it.name == DrupalCodeStyleFixes.fixFile.name }) return this
 
     return copy(fixes = fixes + DrupalCodeStyleFixes.fixFile)

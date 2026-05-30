@@ -49,7 +49,8 @@ internal object MissingDocCommentRule : DrupalCodeStyleRule {
                 element = nameElement,
                 message = message,
                 highlightType = ProblemHighlightType.WEAK_WARNING,
-                fixes = listOf(fix)
+                fixes = listOf(fix),
+                includeFileFix = false
             )
         )
     }
