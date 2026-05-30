@@ -103,3 +103,15 @@ internal fun Document.normalizeBlankLinesAfterEdit(line: Int): TextEdit? {
     val range = blankLineRangeAfter(line) ?: return null
     return TextEdit(range.startOffset, range.endOffset, lineSeparator() + lineSeparator())
 }
+
+internal fun Document.removeBlankLinesBeforeEdit(line: Int): TextEdit? {
+    if (blankLinesBefore(line) == 0) return null
+    val range = blankLineRangeBefore(line) ?: return null
+    return TextEdit(range.startOffset, range.endOffset, lineSeparator())
+}
+
+internal fun Document.removeBlankLinesAfterEdit(line: Int): TextEdit? {
+    if (blankLinesAfter(line) == 0) return null
+    val range = blankLineRangeAfter(line) ?: return null
+    return TextEdit(range.startOffset, range.endOffset, lineSeparator())
+}

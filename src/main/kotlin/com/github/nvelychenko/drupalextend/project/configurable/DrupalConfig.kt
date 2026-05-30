@@ -188,6 +188,12 @@ class DrupalConfig(
                     }
 
                     row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_block_blank_lines"))
+                            .bindSelected(settings::isCodeStyleBlockBlankLinesEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_operator_spacing"))
                             .bindSelected(settings::isCodeStyleOperatorSpacingEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)

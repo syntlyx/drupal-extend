@@ -207,6 +207,12 @@ class DrupalExtendSettings :
             state.isCodeStyleClassCloseBraceSpacingEnabled = value
         }
 
+    var isCodeStyleBlockBlankLinesEnabled: Boolean
+        get() = state.isCodeStyleBlockBlankLinesEnabled
+        set(value) {
+            state.isCodeStyleBlockBlankLinesEnabled = value
+        }
+
     var isCodeStyleOperatorSpacingEnabled: Boolean
         get() = state.isCodeStyleOperatorSpacingEnabled
         set(value) {
@@ -285,6 +291,7 @@ class DrupalExtendSettings :
         var isCodeStyleFunctionDeclarationStyleEnabled: Boolean by property(true)
         var isCodeStyleFunctionSpacingEnabled: Boolean by property(true)
         var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)
+        var isCodeStyleBlockBlankLinesEnabled: Boolean by property(true)
         var isCodeStyleOperatorSpacingEnabled: Boolean by property(true)
         var isCodeStyleCommaSpacingEnabled: Boolean by property(true)
         var isCodeStyleControlStructureSpacingEnabled: Boolean by property(true)

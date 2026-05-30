@@ -22,6 +22,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleFunctionDeclarationStyleEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleBlockBlankLinesEnabled = true
         project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = true
@@ -952,6 +953,147 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         )
+    }
+
+    fun testReportsBlockBlankLineProblems() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionDeclarationStyleEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(array ${'$'}items): array {
+
+              if (${'$'}items) {
+
+                return ${'$'}items;
+
+              }
+
+              return [];
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "Block opening braces must not be followed by a blank line",
+            "Block closing braces must not be preceded by a blank line"
+        )
+    }
+
+    fun testQuickFixNormalizesBlockBlankLines() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionDeclarationStyleEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(): array {
+
+              return [];
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Normalize block blank lines"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(): array {
+              return [];
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixFixesBlockBlankLinesInFile() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionDeclarationStyleEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(array ${'$'}items): array {
+
+              if (${'$'}items) {
+
+                return ${'$'}items;
+
+              }
+
+              return [];
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(array ${'$'}items): array {
+              if (${'$'}items) {
+                return ${'$'}items;
+              }
+
+              return [];
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testValidBlockBlankLinesDoNotReport() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionDeclarationStyleEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(array ${'$'}items): array {
+              if (${'$'}items) {
+                return ${'$'}items;
+              }
+
+              return [];
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("Block opening braces must not be followed by a blank line"))
+        assertFalse(descriptions.contains("Block closing braces must not be preceded by a blank line"))
     }
 
     fun testDisabledDocBlockSummaryPunctuationRuleDoesNotReport() {

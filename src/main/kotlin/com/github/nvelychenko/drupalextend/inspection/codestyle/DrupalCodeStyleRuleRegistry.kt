@@ -37,6 +37,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(FunctionDeclarationStyleRule, Target.FUNCTION),
         register(FunctionSpacingRule, Target.FUNCTION),
         register(ClassCloseBraceSpacingRule, Target.PHP_CLASS),
+        register(BlockBlankLineRule, Target.FUNCTION, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),
         register(OperatorSpacingRule, Target.OPERATOR),
         register(CommaSpacingRule, Target.ARRAY_CREATION, Target.PARAMETER_LIST),
         register(ControlStructureSpacingRule, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),

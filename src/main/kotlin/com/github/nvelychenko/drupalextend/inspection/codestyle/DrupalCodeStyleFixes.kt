@@ -115,6 +115,15 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             .mapNotNullTo(edits) { it.classCloseBraceSpacingFixEdit(document) }
     }
 
+    if (settings.isCodeStyleBlockBlankLinesEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, Function::class.java)
+            .flatMapTo(edits) { it.blockBlankLineEdits(document) }
+        PsiTreeUtil.collectElements(this) { element ->
+            element is ControlStatement || element is PhpSwitch || element is Else
+        }
+            .flatMapTo(edits) { it.blockBlankLineEdits(document) }
+    }
+
     if (settings.isCodeStyleOperatorSpacingEnabled) {
         PsiTreeUtil.findChildrenOfType(this, AssignmentExpression::class.java)
             .mapNotNullTo(edits) { it.assignmentOperatorSpacingEdit() }
