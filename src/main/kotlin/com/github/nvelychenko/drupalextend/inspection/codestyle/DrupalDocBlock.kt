@@ -25,6 +25,10 @@ internal data class DrupalDocBlockLine(
         return trimmedContent.removeSuffix("*/").trimEnd()
     }
 
+    fun normalizedContent(): String {
+        return content.removeSuffix("*/").trimEnd()
+    }
+
     fun indentation(): String {
         return rawText.takeWhile { it == ' ' || it == '\t' }
     }
@@ -83,8 +87,34 @@ internal data class DrupalDocBlockParamTag(
     val descriptionStartOffset: Int?,
 )
 
+internal data class DrupalDocBlockReturnTag(
+    val type: String,
+    val typeEndOffset: Int,
+    val description: String?,
+    val descriptionStartOffset: Int?,
+)
+
 internal fun DrupalDocBlockLine.paramTag(): DrupalDocBlockParamTag? {
     return trimmedContent.drupalDocBlockParamTag()
+}
+
+internal fun DrupalDocBlockLine.returnTag(): DrupalDocBlockReturnTag? {
+    return trimmedContent.drupalDocBlockReturnTag()
+}
+
+internal fun List<DrupalDocBlockLine>.tagDescriptionLines(tagIndex: Int): List<DrupalDocBlockLine> {
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() in setOf("param", "return") } ?: return emptyList()
+    val continuationLines = tagContinuationLines(tagIndex)
+    val descriptionStartIndex = continuationDescriptionStartIndex(tagLine, continuationLines)
+
+    return continuationLines
+        .drop(descriptionStartIndex)
+        .filter { !it.isBlankContent && it.normalizedTrimmedContent().isNotBlank() }
+}
+
+internal fun List<DrupalDocBlockLine>.tagContinuationLines(tagIndex: Int): List<DrupalDocBlockLine> {
+    return drop(tagIndex + 1)
+        .takeWhile { !it.isTag && !it.isBlankContent }
 }
 
 internal fun String.drupalDocBlockParamTag(): DrupalDocBlockParamTag? {
@@ -116,6 +146,27 @@ internal fun String.drupalDocBlockParamTag(): DrupalDocBlockParamTag? {
         name = nameRange?.let { substring(it) },
         nameStartOffset = nameRange?.start,
         nameEndOffset = nameRange?.endInclusive?.plus(1),
+        description = description,
+        descriptionStartOffset = descriptionStart,
+    )
+}
+
+internal fun String.drupalDocBlockReturnTag(): DrupalDocBlockReturnTag? {
+    val tagMatch = Regex("""^@return(?:\s+|$)""").find(this) ?: return null
+    val typeStart = tagMatch.range.last + 1
+    if (typeStart >= length) return null
+
+    val tokens = topLevelDocBlockTokens(typeStart)
+    val typeRange = tokens.firstOrNull() ?: return null
+    val typeEndOffset = typeRange.endInclusive + 1
+    val descriptionStart = tokens
+        .getOrNull(1)
+        ?.start
+    val description = descriptionStart?.let { substring(it).trim() }?.takeIf { it.isNotBlank() }
+
+    return DrupalDocBlockReturnTag(
+        type = substring(typeStart, typeEndOffset).trim(),
+        typeEndOffset = typeEndOffset,
         description = description,
         descriptionStartOffset = descriptionStart,
     )
@@ -162,6 +213,18 @@ internal fun PhpDocComment.drupalDocBlockLines(): List<DrupalDocBlockLine> {
     return lines
 }
 
+internal fun String.docBlockTypeNestingBalance(): Int {
+    var balance = 0
+    forEach { char ->
+        when (char) {
+            '<', '{', '[', '(' -> balance++
+            '>', '}', ']', ')' -> if (balance > 0) balance--
+        }
+    }
+
+    return balance
+}
+
 private fun String.indexOfLineBreak(startOffset: Int): Int? {
     val lineFeed = indexOf('\n', startOffset).takeIf { it >= 0 }
     val carriageReturn = indexOf('\r', startOffset).takeIf { it >= 0 }
@@ -188,23 +251,23 @@ private fun String.contentStartInLine(): Int {
 private fun String.topLevelDocBlockTokens(startOffset: Int): List<IntRange> {
     val tokens = mutableListOf<IntRange>()
     var tokenStart: Int? = null
-    var angleDepth = 0
+    var nestingDepth = 0
     var offset = startOffset
 
     while (offset < length) {
         val char = this[offset]
         when {
-            char == '<' -> {
+            char in "<{[(" -> {
                 tokenStart = tokenStart ?: offset
-                angleDepth++
+                nestingDepth++
             }
 
-            char == '>' -> {
+            char in ">}])" -> {
                 tokenStart = tokenStart ?: offset
-                if (angleDepth > 0) angleDepth--
+                if (nestingDepth > 0) nestingDepth--
             }
 
-            char.isWhitespace() && angleDepth == 0 -> {
+            char.isWhitespace() && nestingDepth == 0 -> {
                 tokenStart?.let { tokens += it until offset }
                 tokenStart = null
             }
@@ -218,6 +281,47 @@ private fun String.topLevelDocBlockTokens(startOffset: Int): List<IntRange> {
 
     tokenStart?.let { tokens += it until length }
     return tokens
+}
+
+private fun continuationDescriptionStartIndex(
+    tagLine: DrupalDocBlockLine,
+    continuationLines: List<DrupalDocBlockLine>,
+): Int {
+    var typeBalance = tagLine.tagTypeNestingBalance()
+    if (typeBalance <= 0) return 0
+
+    continuationLines.forEachIndexed { index, line ->
+        typeBalance -= line.normalizedTrimmedContent().docBlockTypeClosingCount(typeBalance)
+        typeBalance += line.normalizedTrimmedContent().docBlockTypeOpeningCount()
+        if (typeBalance <= 0) return index + 1
+    }
+
+    return continuationLines.size
+}
+
+private fun DrupalDocBlockLine.tagTypeNestingBalance(): Int {
+    return when (tagName()) {
+        "param" -> paramTag()?.type?.docBlockTypeNestingBalance()
+        "return" -> returnTag()?.type?.docBlockTypeNestingBalance()
+        else -> null
+    } ?: 0
+}
+
+internal fun String.docBlockTypeOpeningCount(): Int {
+    return count { it in "<{[(" }
+}
+
+internal fun String.docBlockTypeClosingCount(maxCount: Int): Int {
+    if (maxCount <= 0) return 0
+
+    var count = 0
+    for (char in this) {
+        if (char !in ">}])") continue
+        count++
+        if (count >= maxCount) return count
+    }
+
+    return count
 }
 
 private fun String.skipWhitespace(startOffset: Int): Int {

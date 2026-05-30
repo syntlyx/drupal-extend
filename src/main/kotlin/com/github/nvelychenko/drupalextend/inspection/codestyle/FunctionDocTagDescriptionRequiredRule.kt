@@ -21,7 +21,7 @@ internal object FunctionDocTagDescriptionRequiredRule : DrupalCodeStyleRule {
             val tagName = line.tagName()
             if (tagName != "param" && tagName != "return") return@forEachIndexed
             if (line.hasInlineDescription()) return@forEachIndexed
-            if (lines.descriptionLines(index).isNotEmpty()) return@forEachIndexed
+            if (lines.tagDescriptionLines(index).isNotEmpty()) return@forEachIndexed
 
             context.registerDocBlockProblem(
                 docComment,
@@ -31,20 +31,11 @@ internal object FunctionDocTagDescriptionRequiredRule : DrupalCodeStyleRule {
         }
     }
 
-    private fun List<DrupalDocBlockLine>.descriptionLines(tagIndex: Int): List<DrupalDocBlockLine> {
-        return drop(tagIndex + 1)
-            .takeWhile { !it.isTag && !it.isBlankContent }
-            .filter { !it.isBlankContent && it.normalizedTrimmedContent().isNotBlank() }
-    }
-
     private fun DrupalDocBlockLine.hasInlineDescription(): Boolean {
         return when (tagName()) {
             "param" -> paramTag()?.description?.isNotBlank() == true
-            "return" -> RETURN_WITH_INLINE_DESCRIPTION.matches(trimmedContent)
+            "return" -> returnTag()?.description?.isNotBlank() == true
             else -> false
         }
     }
-
-    private val RETURN_WITH_INLINE_DESCRIPTION =
-        Regex("""^@return\s+\S+\s+.+\S\s*${'$'}""")
 }

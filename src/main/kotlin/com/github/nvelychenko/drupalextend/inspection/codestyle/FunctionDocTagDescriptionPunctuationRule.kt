@@ -60,9 +60,7 @@ internal fun List<DrupalDocBlockLine>.tagDescriptionPunctuationLine(
     tagName: String,
 ): DrupalDocBlockLine? {
     val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == tagName } ?: return null
-    val continuationDescriptionLines = drop(tagIndex + 1)
-        .takeWhile { !it.isTag && !it.isBlankContent }
-        .filter { it.normalizedTrimmedContent().isNotBlank() }
+    val continuationDescriptionLines = tagDescriptionLines(tagIndex)
 
     if (continuationDescriptionLines.isNotEmpty()) {
         return continuationDescriptionLines.last()
@@ -86,10 +84,7 @@ private fun List<DrupalDocBlockLine>.firstTagDescriptionPunctuationLine(tagName:
 internal fun DrupalDocBlockLine.hasInlineTagDescription(): Boolean {
     return when (tagName()) {
         "param" -> paramTag()?.description?.isNotBlank() == true
-        "return" -> RETURN_WITH_INLINE_DESCRIPTION.matches(trimmedContent)
+        "return" -> returnTag()?.description?.isNotBlank() == true
         else -> false
     }
 }
-
-private val RETURN_WITH_INLINE_DESCRIPTION =
-    Regex("""^@return\s+\S+\s+.+\S\s*${'$'}""")

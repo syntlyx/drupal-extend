@@ -89,7 +89,7 @@ private fun PhpDocComment.normalizedContentLines(): List<String> {
                 line.isOpeningLine() -> line.normalizedTrimmedContent().takeIf { it.isNotBlank() }
                 line.isClosingLine() -> null
                 line.isBlankContent -> null
-                else -> line.normalizedTrimmedContent()
+                else -> line.normalizedContent()
             }
         }
 }
@@ -125,22 +125,17 @@ private fun List<String>.withDescriptionIndentation(
 ): List<String> {
     if (!settings.isCodeStyleDocBlockTagDescriptionIndentationEnabled) return this
 
-    var activeDescriptionTag: String? = null
-    return map { line ->
-        val tagName = line.tagName()
-        when {
-            tagName == "param" || tagName == "return" -> {
-                activeDescriptionTag = tagName
-                line
-            }
+    return toMutableList().also { lines ->
+        lines.indices.forEach { index ->
+            val tagName = lines[index].tagName()
+            if (tagName != "param" && tagName != "return") return@forEach
 
-            tagName != null -> {
-                activeDescriptionTag = null
-                line
+            var previousDescriptionLine: String? = null
+            lines.tagDescriptionIndexes(index, tagName).forEach { descriptionIndex ->
+                val normalizedLine = lines[descriptionIndex].normalizedDescriptionLine(previousDescriptionLine)
+                lines[descriptionIndex] = normalizedLine
+                previousDescriptionLine = normalizedLine
             }
-
-            activeDescriptionTag != null -> "  ${line.trim()}"
-            else -> line
         }
     }
 }
@@ -238,7 +233,7 @@ private fun String.toContentEntry(previousTagGroup: String?): DocBlockContentEnt
     val tagGroup = tagGroup()
     return DocBlockContentEntry(
         content = trimEnd(),
-        tagGroup = tagGroup ?: previousTagGroup?.takeIf { !isTag() && startsWith("  ") }
+        tagGroup = tagGroup ?: previousTagGroup?.takeIf { !isTag() }
     )
 }
 
@@ -259,16 +254,12 @@ private fun String.splitInlineDescription(): List<String>? {
         return listOf(substring(0, nameEndOffset).trimEnd(), "  $description")
     }
 
-    val match = when (tagName()) {
-        "return" -> RETURN_WITH_INLINE_DESCRIPTION.find(this)
-        else -> null
-    } ?: return null
-
-    val tag = match.groups["tag"]?.value?.trimEnd() ?: return null
-    val description = match.groups["description"]?.value?.trim() ?: return null
+    if (tagName() != "return") return null
+    val tag = drupalDocBlockReturnTag() ?: return null
+    val description = tag.description?.trim() ?: return null
     if (description.isBlank()) return null
 
-    return listOf(tag, "  $description")
+    return listOf(substring(0, tag.typeEndOffset).trimEnd(), "  $description")
 }
 
 private fun String.tagName(): String? {
@@ -299,9 +290,7 @@ private fun String.isParamName(): Boolean {
 }
 
 private fun MutableList<String>.tagDescriptionIndex(tagIndex: Int, tagName: String): Int? {
-    val continuationDescriptionIndexes = ((tagIndex + 1) until size)
-        .takeWhile { !this[it].isTag() && this[it].isNotBlank() }
-        .filter { this[it].trim().isNotBlank() }
+    val continuationDescriptionIndexes = tagDescriptionIndexes(tagIndex, tagName)
 
     if (continuationDescriptionIndexes.isNotEmpty()) {
         return continuationDescriptionIndexes.last()
@@ -310,10 +299,23 @@ private fun MutableList<String>.tagDescriptionIndex(tagIndex: Int, tagName: Stri
     return tagIndex.takeIf { this[it].hasInlineTagDescription(tagName) }
 }
 
+private fun List<String>.tagDescriptionIndexes(tagIndex: Int, tagName: String): List<Int> {
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == tagName } ?: return emptyList()
+    val continuationIndexes = ((tagIndex + 1) until size)
+        .takeWhile { !this[it].isTag() && this[it].isNotBlank() }
+    val descriptionStartIndex = tagLine.continuationDescriptionStartIndex(
+        continuationIndexes.map { this[it] }
+    )
+
+    return continuationIndexes
+        .drop(descriptionStartIndex)
+        .filter { this[it].trim().isNotBlank() }
+}
+
 private fun String.hasInlineTagDescription(tagName: String): Boolean {
     return when (tagName) {
         "param" -> drupalDocBlockParamTag()?.description?.isNotBlank() == true
-        "return" -> RETURN_WITH_INLINE_DESCRIPTION.matches(this)
+        "return" -> drupalDocBlockReturnTag()?.description?.isNotBlank() == true
         else -> false
     }
 }
@@ -322,5 +324,53 @@ private fun com.jetbrains.php.lang.psi.elements.Parameter.phpDocVariableName(): 
     return "\$" + name.removePrefix("\$")
 }
 
-private val RETURN_WITH_INLINE_DESCRIPTION =
-    Regex("""^(?<tag>@return\s+\S+)\s+(?<description>.+\S)\s*${'$'}""")
+private fun String.normalizedDescriptionLine(previousDescriptionLine: String?): String {
+    return expectedDescriptionIndentation(previousDescriptionLine) + trim()
+}
+
+private fun String.expectedDescriptionIndentation(previousDescriptionLine: String?): String {
+    val currentIndent = descriptionIndentationWidth()
+    val previousIndent = previousDescriptionLine?.descriptionIndentationWidth() ?: DESCRIPTION_INDENT.length
+    val trimmed = trim()
+
+    if (trimmed.startsWith("- ") && previousDescriptionLine?.trimEnd()?.endsWith(":") == true) {
+        return " ".repeat(previousIndent + DESCRIPTION_INDENT.length)
+    }
+
+    if (trimmed.startsWith("- ") && previousDescriptionLine?.trimStart()?.startsWith("- ") == true) {
+        return " ".repeat(previousIndent)
+    }
+
+    if (trimmed.startsWith("- ") && currentIndent >= DESCRIPTION_INDENT.length && currentIndent % DESCRIPTION_INDENT.length == 0) {
+        return " ".repeat(currentIndent)
+    }
+
+    return DESCRIPTION_INDENT
+}
+
+private fun String.descriptionIndentationWidth(): Int {
+    return takeWhile { it == ' ' }.length
+}
+
+private fun String.continuationDescriptionStartIndex(continuationLines: List<String>): Int {
+    var typeBalance = tagTypeNestingBalance()
+    if (typeBalance <= 0) return 0
+
+    continuationLines.forEachIndexed { index, line ->
+        typeBalance -= line.trim().docBlockTypeClosingCount(typeBalance)
+        typeBalance += line.trim().docBlockTypeOpeningCount()
+        if (typeBalance <= 0) return index + 1
+    }
+
+    return continuationLines.size
+}
+
+private fun String.tagTypeNestingBalance(): Int {
+    return when (tagName()) {
+        "param" -> drupalDocBlockParamTag()?.type?.docBlockTypeNestingBalance()
+        "return" -> drupalDocBlockReturnTag()?.type?.docBlockTypeNestingBalance()
+        else -> null
+    } ?: 0
+}
+
+private const val DESCRIPTION_INDENT = "  "

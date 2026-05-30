@@ -69,22 +69,17 @@ internal object FunctionDocTagDescriptionLineRule : DrupalCodeStyleRule {
             return InlineTagDescription(descriptionStart, description)
         }
 
-        val match = when (tagName()) {
-            "return" -> RETURN_WITH_INLINE_DESCRIPTION.find(trimmedContent)
-            else -> null
-        } ?: return null
-
-        val descriptionGroup = match.groups["description"] ?: return null
-        val description = descriptionGroup.value.trim()
+        if (tagName() != "return") return null
+        val returnTag = returnTag() ?: return null
+        val descriptionStart = returnTag.descriptionStartOffset ?: return null
+        val description = returnTag.description?.trim().orEmpty()
         if (description.isBlank()) return null
 
-        return InlineTagDescription(descriptionGroup.range.first, description)
+        return InlineTagDescription(descriptionStart, description)
     }
 
     private data class InlineTagDescription(
         val descriptionStart: Int,
         val description: String,
     )
-    private val RETURN_WITH_INLINE_DESCRIPTION =
-        Regex("""^@return\s+\S+\s+(?<description>.+\S)\s*${'$'}""")
 }

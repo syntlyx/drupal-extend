@@ -802,6 +802,334 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         assertFalse(descriptions.contains("@param tag is missing parameter name '${'$'}parents'"))
     }
 
+    fun testArrayShapeReturnTypeDoesNotReportInlineDescription() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns applicant phone info.
+               *
+               * @param string ${'$'}type
+               *   Field type.
+               *
+               * @return array{type: string|null, number: string|null}
+               *   Phone info.
+               */
+              public function getPhone(string ${'$'}type = 'day'): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@return description must be on a continuation line"))
+        assertFalse(descriptions.contains("@return tag is missing description"))
+    }
+
+    fun testMultilineArrayShapeReturnTypeDoesNotTreatTypeLinesAsDescription() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair for the given client.
+               *
+               * @param \Drupal\nll_core\OAuth\Client\ClientContext ${'$'}client
+               *   The authenticated client context.
+               * @param bool ${'$'}silent
+               *   Whether to suppress log messages.
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string,
+               *   expires_in: int,
+               *   token_type: string
+               * }
+               *   Token response array containing access and refresh tokens.
+               */
+              public function generate(ClientContext ${'$'}client, bool ${'$'}silent = FALSE): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@return description must be indented by two spaces"))
+        assertFalse(descriptions.contains("@return description must be on a continuation line"))
+        assertFalse(descriptions.contains("@return tag is missing description"))
+    }
+
+    fun testQuickFixAddsPunctuationToMultilineArrayShapeReturnDescription() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair.
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string
+               * }
+               *   Token response array
+               */
+              public function generate(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Add @return description punctuation"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair.
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string
+               * }
+               *   Token response array.
+               */
+              public function generate(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixNormalizesMultilineArrayShapeReturnDescriptionIndentation() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair.
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string
+               * }
+               * Token response array.
+               */
+              public function generate(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Normalize @return description indentation"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair.
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string
+               * }
+               *   Token response array.
+               */
+              public function generate(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testMultilineArrayShapeReturnTypeWithoutDescriptionReportsMissingDescription() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair.
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string
+               * }
+               */
+              public function generate(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(descriptions, "@return tag is missing description")
+    }
+
+    fun testQuickFixFixesFullDocBlockWithMultilineArrayShapeReturnType() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string
+               * }
+               * Token response array
+               */
+              public function generate(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal DocBlock"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates a new token pair.
+               *
+               * @return array{
+               *   access_token: string,
+               *   refresh_token: string
+               * }
+               *   Token response array.
+               */
+              public function generate(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testDocBlockDescriptionListIndentationAllowsNestedListItems() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns a part of the name.
+               *
+               * @param string ${'$'}part
+               *   Name part.
+               *   Available options:
+               *     - first
+               *     - middle
+               *     - last
+               *     - suffix.
+               *
+               * @return string
+               *   Path of the name.
+               */
+              public function getName(string ${'$'}part): string {
+                return '';
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@param description must be indented by two spaces"))
+    }
+
     fun testQuickFixInsertsMissingParamNameAfterGenericParamType() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
@@ -1067,6 +1395,57 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
               public function build(string ${'$'}id): array {
                 return [];
               }
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixMovesInlineArrayShapeReturnDescriptionToContinuationLine() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns applicant phone info.
+               *
+               * @return array{type: string|null, number: string|null} Phone info.
+               */
+              public function getPhone(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Move @return description to continuation line"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns applicant phone info.
+               *
+               * @return array{type: string|null, number: string|null}
+               *   Phone info.
+               */
+              public function getPhone(): array {
+                return [];
+              }
+
             }
             """.trimIndent()
         )

@@ -23,8 +23,11 @@ internal object FunctionDocTagDescriptionIndentationRule : DrupalCodeStyleRule {
             val tagName = line.tagName()
             if (tagName != "param" && tagName != "return") return@forEachIndexed
 
-            descriptionLines(lines, index).forEach { descriptionLine ->
-                if (descriptionLine.hasExpectedDescriptionIndentation()) return@forEach
+            val descriptionLines = lines.tagDescriptionLines(index)
+            descriptionLines.forEachIndexed { descriptionLineIndex, descriptionLine ->
+                if (descriptionLine.hasExpectedDescriptionIndentation(descriptionLines, descriptionLineIndex)) {
+                    return@forEachIndexed
+                }
 
                 context.registerDocBlockProblem(
                     docComment,
@@ -43,29 +46,64 @@ internal object FunctionDocTagDescriptionIndentationRule : DrupalCodeStyleRule {
         return DrupalCodeStyleTextEditQuickFix("Normalize @$tagName description indentation") { _, descriptor ->
             val docComment = descriptor.psiElement as? PhpDocComment ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             val lines = docComment.drupalDocBlockLines()
-            val descriptionLine = descriptionLines(lines, tagIndex).firstOrNull {
-                !it.hasExpectedDescriptionIndentation()
+            val descriptionLines = lines.tagDescriptionLines(tagIndex)
+            val invalidDescriptionLine = descriptionLines.firstIndexedOrNull { index, line ->
+                !line.hasExpectedDescriptionIndentation(descriptionLines, index)
             } ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
+            val descriptionLine = invalidDescriptionLine.value
 
             listOf(
                 TextEdit(
                     docComment.textRange.startOffset + descriptionLine.contentStartOffset,
                     docComment.textRange.startOffset + descriptionLine.lineEndOffset,
-                    DESCRIPTION_INDENT + descriptionLine.trimmedContent
+                    descriptionLine.expectedDescriptionIndentation(descriptionLines.take(invalidDescriptionLine.index)) +
+                        descriptionLine.trimmedContent
                 )
             )
         }
     }
 
-    private fun descriptionLines(lines: List<DrupalDocBlockLine>, tagIndex: Int): List<DrupalDocBlockLine> {
-        return lines
-            .drop(tagIndex + 1)
-            .takeWhile { !it.isTag }
-            .filter { !it.isBlankContent && it.normalizedTrimmedContent().isNotBlank() }
+    private fun DrupalDocBlockLine.hasExpectedDescriptionIndentation(
+        descriptionLines: List<DrupalDocBlockLine>,
+        index: Int,
+    ): Boolean {
+        return content == expectedDescriptionIndentation(descriptionLines.take(index)) + trimmedContent
     }
 
-    private fun DrupalDocBlockLine.hasExpectedDescriptionIndentation(): Boolean {
-        return content == DESCRIPTION_INDENT + trimmedContent
+    private fun DrupalDocBlockLine.expectedDescriptionIndentation(
+        previousDescriptionLines: List<DrupalDocBlockLine>,
+    ): String {
+        val currentIndent = descriptionIndentationWidth()
+        val previousLine = previousDescriptionLines.lastOrNull()
+        if (isDocListItem() && previousLine?.normalizedTrimmedContent()?.endsWith(":") == true) {
+            return " ".repeat(previousLine.descriptionIndentationWidth() + DESCRIPTION_INDENT.length)
+        }
+
+        if (isDocListItem() && previousLine?.isDocListItem() == true) {
+            return " ".repeat(previousLine.descriptionIndentationWidth())
+        }
+
+        if (isDocListItem() && currentIndent >= DESCRIPTION_INDENT.length && currentIndent % DESCRIPTION_INDENT.length == 0) {
+            return " ".repeat(currentIndent)
+        }
+
+        return DESCRIPTION_INDENT
+    }
+
+    private fun DrupalDocBlockLine.descriptionIndentationWidth(): Int {
+        return content.takeWhile { it == ' ' }.length
+    }
+
+    private fun DrupalDocBlockLine.isDocListItem(): Boolean {
+        return trimmedContent.startsWith("- ")
+    }
+
+    private fun <T> List<T>.firstIndexedOrNull(predicate: (Int, T) -> Boolean): IndexedValue<T>? {
+        forEachIndexed { index, item ->
+            if (predicate(index, item)) return IndexedValue(index, item)
+        }
+
+        return null
     }
 
     private const val DESCRIPTION_INDENT = "  "
