@@ -47,24 +47,16 @@ internal object FunctionDocParamNameRule : DrupalCodeStyleRule {
     }
 
     private fun DrupalDocBlockLine.hasParamName(): Boolean {
-        return paramNameToken()?.let {
+        return paramTag()?.name?.let {
             it.startsWith("\$") || it.startsWith("...\$") || it.startsWith("&\$")
         } == true
     }
 
-    private fun DrupalDocBlockLine.paramNameToken(): String? {
-        val match = PARAM_TAG.find(trimmedContent) ?: return null
-        return match.groups[2]?.value
-    }
-
     private fun DrupalDocBlockLine.paramTypeEndOffset(): Int? {
-        val match = PARAM_TAG.find(trimmedContent) ?: return null
-        return trimmedContentStartOffset() + match.groups[1]!!.range.last + 1
+        return paramTag()?.let { trimmedContentStartOffset() + it.typeEndOffset }
     }
 
     private fun com.jetbrains.php.lang.psi.elements.Parameter.phpDocVariableName(): String {
         return "\$" + name.removePrefix("\$")
     }
-
-    private val PARAM_TAG = Regex("""^@param\s+(\S+)(?:\s+(\S+))?.*""")
 }

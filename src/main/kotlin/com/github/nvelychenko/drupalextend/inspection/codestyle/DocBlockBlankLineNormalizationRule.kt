@@ -14,6 +14,8 @@ internal object DocBlockBlankLineNormalizationRule : DrupalCodeStyleRule {
 
     override fun inspect(element: PsiElement, context: DrupalCodeStyleContext) {
         val docComment = element as? PhpDocComment ?: return
+        if (docComment.isInlineVariableDocBlock()) return
+
         val lines = docComment.drupalDocBlockLines()
         if (!lines.hasSemanticContent()) return
 

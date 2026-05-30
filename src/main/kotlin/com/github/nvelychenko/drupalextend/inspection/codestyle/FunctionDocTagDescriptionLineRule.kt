@@ -60,8 +60,16 @@ internal object FunctionDocTagDescriptionLineRule : DrupalCodeStyleRule {
     }
 
     private fun DrupalDocBlockLine.inlineTagDescription(): InlineTagDescription? {
+        if (tagName() == "param") {
+            val paramTag = paramTag() ?: return null
+            val descriptionStart = paramTag.descriptionStartOffset ?: return null
+            val description = paramTag.description?.trim().orEmpty()
+            if (description.isBlank()) return null
+
+            return InlineTagDescription(descriptionStart, description)
+        }
+
         val match = when (tagName()) {
-            "param" -> PARAM_WITH_INLINE_DESCRIPTION.find(trimmedContent)
             "return" -> RETURN_WITH_INLINE_DESCRIPTION.find(trimmedContent)
             else -> null
         } ?: return null
@@ -77,10 +85,6 @@ internal object FunctionDocTagDescriptionLineRule : DrupalCodeStyleRule {
         val descriptionStart: Int,
         val description: String,
     )
-
-    private val PARAM_WITH_INLINE_DESCRIPTION =
-        Regex("""^@param\s+\S+\s+(?:&?\${'$'}|\.{3}\${'$'})\S+\s+(?<description>.+\S)\s*${'$'}""")
-
     private val RETURN_WITH_INLINE_DESCRIPTION =
         Regex("""^@return\s+\S+\s+(?<description>.+\S)\s*${'$'}""")
 }

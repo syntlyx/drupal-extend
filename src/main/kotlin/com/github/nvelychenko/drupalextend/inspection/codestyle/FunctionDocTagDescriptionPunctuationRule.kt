@@ -85,14 +85,11 @@ private fun List<DrupalDocBlockLine>.firstTagDescriptionPunctuationLine(tagName:
 
 internal fun DrupalDocBlockLine.hasInlineTagDescription(): Boolean {
     return when (tagName()) {
-        "param" -> PARAM_WITH_INLINE_DESCRIPTION.matches(trimmedContent)
+        "param" -> paramTag()?.description?.isNotBlank() == true
         "return" -> RETURN_WITH_INLINE_DESCRIPTION.matches(trimmedContent)
         else -> false
     }
 }
-
-private val PARAM_WITH_INLINE_DESCRIPTION =
-    Regex("""^@param\s+\S+\s+(?:&?\${'$'}|\.{3}\${'$'})\S+\s+.+\S\s*${'$'}""")
 
 private val RETURN_WITH_INLINE_DESCRIPTION =
     Regex("""^@return\s+\S+\s+.+\S\s*${'$'}""")

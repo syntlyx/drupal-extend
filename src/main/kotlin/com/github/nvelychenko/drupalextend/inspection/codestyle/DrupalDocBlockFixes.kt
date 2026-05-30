@@ -19,6 +19,8 @@ internal object DrupalDocBlockFixes {
 internal fun PhpDocComment.fullDocBlockFixEdit(
     settings: DrupalExtendSettings,
 ): TextEdit? {
+    if (isInlineVariableDocBlock()) return null
+
     val fixedText = fullDocBlockFixText(settings) ?: return null
     if (fixedText == text) return null
 
@@ -149,7 +151,7 @@ private fun List<String>.withSummaryPunctuation(
     if (!settings.isCodeStyleDocBlockSummaryPunctuationEnabled) return this
 
     val summaryIndex = takeWhile { !it.isTag() }
-        .indexOfFirst { it.isSummaryLineContent() }
+        .indexOfLast { it.isSummaryLineContent() }
     if (summaryIndex < 0) return this
     val summary = get(summaryIndex)
     if (summary.endsWithDocBlockSentencePunctuation()) return this
@@ -241,17 +243,23 @@ private fun String.toContentEntry(previousTagGroup: String?): DocBlockContentEnt
 }
 
 private fun String.withParamName(parameterName: String): String {
-    val match = PARAM_TAG.find(this) ?: return this
-    val nameToken = match.groups[2]?.value
-    if (nameToken?.isParamName() == true) return this
+    val tag = drupalDocBlockParamTag() ?: return this
+    if (tag.name?.isParamName() == true) return this
 
-    val typeEndOffset = match.groups[1]?.range?.last?.plus(1) ?: return this
-    return substring(0, typeEndOffset) + " $parameterName" + substring(typeEndOffset)
+    return substring(0, tag.typeEndOffset) + " $parameterName" + substring(tag.typeEndOffset)
 }
 
 private fun String.splitInlineDescription(): List<String>? {
+    if (tagName() == "param") {
+        val tag = drupalDocBlockParamTag() ?: return null
+        val nameEndOffset = tag.nameEndOffset ?: return null
+        val description = tag.description?.trim() ?: return null
+        if (description.isBlank()) return null
+
+        return listOf(substring(0, nameEndOffset).trimEnd(), "  $description")
+    }
+
     val match = when (tagName()) {
-        "param" -> PARAM_WITH_INLINE_DESCRIPTION.find(this)
         "return" -> RETURN_WITH_INLINE_DESCRIPTION.find(this)
         else -> null
     } ?: return null
@@ -304,7 +312,7 @@ private fun MutableList<String>.tagDescriptionIndex(tagIndex: Int, tagName: Stri
 
 private fun String.hasInlineTagDescription(tagName: String): Boolean {
     return when (tagName) {
-        "param" -> PARAM_WITH_INLINE_DESCRIPTION.matches(this)
+        "param" -> drupalDocBlockParamTag()?.description?.isNotBlank() == true
         "return" -> RETURN_WITH_INLINE_DESCRIPTION.matches(this)
         else -> false
     }
@@ -313,11 +321,6 @@ private fun String.hasInlineTagDescription(tagName: String): Boolean {
 private fun com.jetbrains.php.lang.psi.elements.Parameter.phpDocVariableName(): String {
     return "\$" + name.removePrefix("\$")
 }
-
-private val PARAM_TAG = Regex("""^@param\s+(\S+)(?:\s+(\S+))?.*""")
-
-private val PARAM_WITH_INLINE_DESCRIPTION =
-    Regex("""^(?<tag>@param\s+\S+\s+(?:&?\${'$'}|\.{3}\${'$'})\S+)\s+(?<description>.+\S)\s*${'$'}""")
 
 private val RETURN_WITH_INLINE_DESCRIPTION =
     Regex("""^(?<tag>@return\s+\S+)\s+(?<description>.+\S)\s*${'$'}""")

@@ -14,9 +14,11 @@ internal object DocBlockSummaryPunctuationRule : DrupalCodeStyleRule {
 
     override fun inspect(element: PsiElement, context: DrupalCodeStyleContext) {
         val docComment = element as? PhpDocComment ?: return
+        if (docComment.isInlineVariableDocBlock()) return
+
         val summaryLine = docComment.drupalDocBlockLines()
             .takeWhile { !it.isTag }
-            .firstOrNull { it.isSummaryLine() }
+            .lastOrNull { it.isSummaryLine() }
             ?: return
         if (summaryLine.normalizedTrimmedContent().endsWithDocBlockSentencePunctuation()) return
 
@@ -33,7 +35,7 @@ internal object DocBlockSummaryPunctuationRule : DrupalCodeStyleRule {
             val docComment = descriptor.psiElement as? PhpDocComment ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             val summaryLine = docComment.drupalDocBlockLines()
                 .takeWhile { !it.isTag }
-                .firstOrNull {
+                .lastOrNull {
                     it.isSummaryLine() && !it.normalizedTrimmedContent().endsWithDocBlockSentencePunctuation()
                 }
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()

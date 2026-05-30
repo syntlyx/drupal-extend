@@ -14,6 +14,8 @@ internal object DocBlockTagGroupSpacingRule : DrupalCodeStyleRule {
 
     override fun inspect(element: PsiElement, context: DrupalCodeStyleContext) {
         val docComment = element as? PhpDocComment ?: return
+        if (docComment.isInlineVariableDocBlock()) return
+
         val lines = docComment.drupalDocBlockLines()
         lines.missingTagGroupSeparatorLines().forEach { line ->
             context.registerDocBlockProblem(

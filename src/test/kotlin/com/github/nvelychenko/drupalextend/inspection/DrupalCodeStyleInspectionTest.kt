@@ -594,6 +594,42 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         assertFalse(descriptions.contains("DocBlock summary should end with punctuation"))
     }
 
+    fun testDocBlockSummaryPunctuationChecksLastSummaryLine() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Invokes the method to update the application stage and returns an array
+               * containing the event and data related to the updated stage.
+               *
+               * @param \Drupal\nll_core\Application\Application ${'$'}application
+               *   The application to update the stage for.
+               *
+               * @return array
+               *   The event and data related to the updated stage.
+               */
+              public function invoke(Application ${'$'}application): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("DocBlock summary should end with punctuation"))
+    }
+
     fun testReportsDrupalDocBlockProblems() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
@@ -694,6 +730,121 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             "@param tag is missing description",
             "@return tag is missing description"
         )
+    }
+
+    fun testGenericParamTypeDoesNotReportMissingParamName() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Converts parents to an input name.
+               *
+               * @param array<int, string> ${'$'}parents
+               *   Array of form element parent names.
+               *
+               * @return string
+               *   The formatted input name.
+               */
+              public static function toFormInputName(array ${'$'}parents): string {
+                return '';
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@param tag is missing parameter name '${'$'}parents'"))
+    }
+
+    fun testQuickFixInsertsMissingParamNameAfterGenericParamType() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Converts parents to an input name.
+               *
+               * @param array<int, string>
+               *   Array of form element parent names.
+               */
+              public static function toFormInputName(array ${'$'}parents): string {
+                return '';
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Insert missing @param name"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Converts parents to an input name.
+               *
+               * @param array<int, string> ${'$'}parents
+               *   Array of form element parent names.
+               */
+              public static function toFormInputName(array ${'$'}parents): string {
+                return '';
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testInlineVarDocBlockDoesNotRequireSummary() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function updateEntity(EntityInterface ${'$'}entity, array ${'$'}data): void {
+                /** @var \Drupal\node\Entity\Node|\Drupal\paragraphs\Entity\Paragraph ${'$'}entity */
+                ${'$'}skip_fields = ['node.loan.field_loan_institution'];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("DocBlock opening line must not contain content"))
+        assertFalse(descriptions.contains("DocBlock is missing a short summary"))
     }
 
     fun testQuickFixMovesDocBlockOpeningContentToSummaryLine() {
@@ -1511,6 +1662,91 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                 switch (${'$'}items) {
                 }
                 return ${'$'}rows;
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testControlStructureSpacingAllowsForeachByReferenceValue() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(array ${'$'}array): void {
+                foreach (${'$'}array as ${'$'}key => &${'$'}value) {
+                  ${'$'}value = ${'$'}key;
+                }
+                foreach (${'$'}array as &${'$'}value) {
+                  ${'$'}value = 'changed';
+                }
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("Control structures must use Drupal spacing"))
+    }
+
+    fun testQuickFixNormalizesForeachByReferenceValueSpacing() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(array ${'$'}array): void {
+                foreach(${'$'}array as${'$'}key=>& ${'$'}value){
+                  ${'$'}value = ${'$'}key;
+                }
+                foreach(${'$'}array as & ${'$'}value){
+                  ${'$'}value = 'changed';
+                }
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(array ${'$'}array): void {
+                foreach (${'$'}array as ${'$'}key => &${'$'}value) {
+                  ${'$'}value = ${'$'}key;
+                }
+                foreach (${'$'}array as &${'$'}value) {
+                  ${'$'}value = 'changed';
+                }
               }
 
             }

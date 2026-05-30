@@ -261,6 +261,7 @@ class RoutesYamlSupportTest : BasePlatformTestCase() {
             \Drupal\Core\Url::fromRoute('my_module.missing_route');
             \Drupal\Core\Url::fromRoute('my_module.application_view');
             \Drupal\Core\Url::fromRoute('<current>');
+            \Drupal\Core\Url::fromRoute('view.reports.reports');
             """.trimIndent()
         )
 
@@ -270,6 +271,7 @@ class RoutesYamlSupportTest : BasePlatformTestCase() {
         assertContainsElements(descriptions, "Unknown route 'my_module.missing_route'")
         assertFalse(descriptions.contains("Unknown route 'my_module.application_view'"))
         assertFalse(descriptions.contains("Unknown route '<current>'"))
+        assertFalse(descriptions.contains("Unknown route 'view.reports.reports'"))
     }
 
     fun testPhpRouteInspectionAcceptsDynamicEntityRoute() {
@@ -882,6 +884,9 @@ class RoutesYamlSupportTest : BasePlatformTestCase() {
             my_module.node_add:
               title: Add content
               route_name: node.add
+            my_module.view_reports:
+              title: Reports
+              route_name: view.reports.reports
             """.trimIndent()
         )
 
@@ -891,6 +896,7 @@ class RoutesYamlSupportTest : BasePlatformTestCase() {
         assertContainsElements(descriptions, "Unknown route 'my_module.missing_route'")
         assertFalse(descriptions.contains("Unknown route '<front>'"))
         assertFalse(descriptions.contains("Unknown route 'node.add'"))
+        assertFalse(descriptions.contains("Unknown route 'view.reports.reports'"))
     }
 
     fun testRoutesYamlInspectionAcceptsLocalRouteReferences() {

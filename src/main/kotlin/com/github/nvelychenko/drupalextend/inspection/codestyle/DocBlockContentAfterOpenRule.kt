@@ -14,6 +14,8 @@ internal object DocBlockContentAfterOpenRule : DrupalCodeStyleRule {
 
     override fun inspect(element: PsiElement, context: DrupalCodeStyleContext) {
         val docComment = element as? PhpDocComment ?: return
+        if (docComment.isInlineVariableDocBlock()) return
+
         val openingLine = docComment.drupalDocBlockLines().firstOrNull() ?: return
         if (openingLine.normalizedTrimmedContent().isBlank()) return
 

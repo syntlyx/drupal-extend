@@ -55,6 +55,7 @@ object Routes {
     fun definition(project: Project, routeName: String): DrupalRoute? {
         if (!isSupportEnabled(project)) return null
         builtInRoutes[routeName]?.let { return it }
+        dynamicViewRoute(routeName)?.let { return it }
         dynamicEntityRoute(project, routeName)?.let { return it }
         return FileBasedIndex.getInstance().getValue(ROUTES_INDEX_KEY, routeName, project)
     }
@@ -141,6 +142,18 @@ object Routes {
         }
     }
 
+    private fun dynamicViewRoute(routeName: String): DrupalRoute? {
+        val match = VIEW_ROUTE.matchEntire(routeName) ?: return null
+        val viewId = match.groupValues[1]
+        val displayId = match.groupValues[2]
+
+        return DrupalRoute(
+            name = routeName,
+            path = "",
+            description = "Views display route for view '$viewId' and display '$displayId'."
+        )
+    }
+
     private fun allEntityTypeIds(project: Project): Set<String> {
         val index = FileBasedIndex.getInstance()
         return (index.getAllProjectKeys(CONTENT_ENTITY_INDEX_KEY, project)
@@ -153,6 +166,8 @@ object Routes {
         val description: String,
     )
 }
+
+private val VIEW_ROUTE = Regex("""view\.([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)""")
 
 private fun DrupalRoute.allHandlers(): List<DrupalRouteHandler> {
     if (handlers.isNotEmpty()) return handlers

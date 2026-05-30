@@ -9,6 +9,7 @@ import com.jetbrains.php.lang.psi.elements.DoWhile
 import com.jetbrains.php.lang.psi.elements.Else
 import com.jetbrains.php.lang.psi.elements.ForeachStatement
 import com.jetbrains.php.lang.psi.elements.PhpSwitch
+import com.jetbrains.php.lang.psi.elements.Variable
 
 internal object ControlStructureSpacingRule : DrupalCodeStyleRule {
     override val id: String = "control_structure_spacing"
@@ -124,15 +125,25 @@ private fun ForeachStatement.foreachAsSpacingEdits(): List<TextEdit> {
     val edits = mutableListOf<TextEdit>()
 
     val firstVariable = key ?: value
-    singleLineGapEdit(array.textRange.endOffset, firstVariable.textRange.startOffset, " as ")
+    val asGap = if (key == null && value.hasReferenceMarkerBetween(array.textRange.endOffset)) " as &" else " as "
+    singleLineGapEdit(array.textRange.endOffset, firstVariable.textRange.startOffset, asGap)
         ?.let { edits += it }
 
     if (key != null) {
-        singleLineGapEdit(key.textRange.endOffset, value.textRange.startOffset, " => ")
+        val arrowGap = if (value.hasReferenceMarkerBetween(key.textRange.endOffset)) " => &" else " => "
+        singleLineGapEdit(key.textRange.endOffset, value.textRange.startOffset, arrowGap)
             ?.let { edits += it }
     }
 
     return edits
+}
+
+private fun Variable.hasReferenceMarkerBetween(startOffset: Int): Boolean {
+    if (startOffset >= textRange.startOffset) return false
+    val gap = containingFile.text.substring(startOffset, textRange.startOffset)
+    if (gap.any { it == '\n' || it == '\r' }) return false
+
+    return gap.trimEnd().endsWith("&")
 }
 
 private fun PsiElement.elseToOpeningBraceSpacingEdit(keyword: ControlKeyword): TextEdit? {

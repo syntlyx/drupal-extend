@@ -13,6 +13,8 @@ internal object DocBlockMissingSummaryRule : DrupalCodeStyleRule {
 
     override fun inspect(element: PsiElement, context: DrupalCodeStyleContext) {
         val docComment = element as? PhpDocComment ?: return
+        if (docComment.isInlineVariableDocBlock()) return
+
         val lines = docComment.drupalDocBlockLines()
         val summaryArea = lines.takeWhile { !it.isTag }
         if (summaryArea.any { it.isSummaryLine(allowInheritDoc = true) }) return
