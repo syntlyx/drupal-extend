@@ -11,6 +11,7 @@ internal object DrupalCodeStyleRuleRegistry {
         ElseIfSyntaxRule,
         FullyQualifiedClassNameRule,
         MissingDocCommentRule,
+        FunctionDeclarationStyleRule,
         FunctionSpacingRule,
         ClassCloseBraceSpacingRule,
         OperatorSpacingRule,

@@ -92,6 +92,12 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             .flatMapTo(edits) { it.spacingFixEdits(document) }
     }
 
+    if (settings.isCodeStyleFunctionDeclarationStyleEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, Function::class.java)
+            .filterNot { it.isClosure }
+            .flatMapTo(edits) { it.functionDeclarationStyleEdits(document) }
+    }
+
     if (settings.isCodeStyleClassCloseBraceSpacingEnabled) {
         PsiTreeUtil.findChildrenOfType(this, PhpClass::class.java)
             .filterNot { it.isAnonymous }
@@ -109,7 +115,9 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
 
     if (settings.isCodeStyleCommaSpacingEnabled) {
         PsiTreeUtil.findChildrenOfType(this, ParameterList::class.java)
-            .flatMapTo(edits) { it.commaSpacingEdits() }
+            .flatMap { it.commaSpacingEdits() }
+            .filterNot { commaEdit -> edits.any { it.overlaps(commaEdit) } }
+            .toCollection(edits)
         PsiTreeUtil.findChildrenOfType(this, ArrayCreationExpression::class.java)
             .flatMapTo(edits) { it.commaSpacingEdits() }
     }

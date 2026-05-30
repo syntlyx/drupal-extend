@@ -16,6 +16,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleShortArraySyntaxEnabled = true
         project.drupalExtendSettings.isCodeStyleElseIfSyntaxEnabled = true
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = true
+        project.drupalExtendSettings.isCodeStyleFunctionDeclarationStyleEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = true
@@ -273,6 +274,157 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         }
 
         assertContainsElements(highlightedTexts, "one", "two")
+    }
+
+    fun testReportsMultilineFunctionDeclarationStyleProblems() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(string ${'$'}foo,
+             string ${'$'}bar): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "The first parameter of a multiline function declaration must be on the line after the opening parenthesis",
+            "Multiline function declaration parameters must be indented by two spaces",
+            "Multiline function declarations must have a trailing comma after the last parameter",
+            "The closing parenthesis of a multiline function declaration must be on a new line"
+        )
+    }
+
+    fun testQuickFixNormalizesMultilineFunctionDeclaration() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(string ${'$'}foo,
+             string ${'$'}bar): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Normalize multiline function declaration"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(
+                string ${'$'}foo,
+                string ${'$'}bar,
+              ): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixFixesMultilineFunctionDeclarationsInFile() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(string ${'$'}foo,
+             string ${'$'}bar): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(
+                string ${'$'}foo,
+                string ${'$'}bar,
+              ): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testValidMultilineFunctionDeclarationDoesNotReport() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function __construct(
+                private readonly iterable ${'$'}actions,
+                private readonly LockAction ${'$'}lockAction,
+              ) {}
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("The first parameter of a multiline function declaration must be on the line after the opening parenthesis"))
+        assertFalse(descriptions.contains("Multiline function declaration parameters must be indented by two spaces"))
+        assertFalse(descriptions.contains("Multiline function declarations must have a trailing comma after the last parameter"))
+        assertFalse(descriptions.contains("The closing parenthesis of a multiline function declaration must be on a new line"))
     }
 
     fun testClassCloseBraceSpacingRuleHighlightsOnlyCloseBrace() {

@@ -152,6 +152,12 @@ class DrupalConfig(
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_spacing"), true) {
                     row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_declaration_style"))
+                            .bindSelected(settings::isCodeStyleFunctionDeclarationStyleEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_spacing"))
                             .bindSelected(settings::isCodeStyleFunctionSpacingEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)

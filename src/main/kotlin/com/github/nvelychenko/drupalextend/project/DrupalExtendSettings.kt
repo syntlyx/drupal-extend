@@ -171,6 +171,12 @@ class DrupalExtendSettings :
             state.isCodeStyleMissingDocCommentsEnabled = value
         }
 
+    var isCodeStyleFunctionDeclarationStyleEnabled: Boolean
+        get() = state.isCodeStyleFunctionDeclarationStyleEnabled
+        set(value) {
+            state.isCodeStyleFunctionDeclarationStyleEnabled = value
+        }
+
     var isCodeStyleFunctionSpacingEnabled: Boolean
         get() = state.isCodeStyleFunctionSpacingEnabled
         set(value) {
@@ -255,6 +261,7 @@ class DrupalExtendSettings :
         var isCodeStyleShortArraySyntaxEnabled: Boolean by property(true)
         var isCodeStyleElseIfSyntaxEnabled: Boolean by property(true)
         var isCodeStyleMissingDocCommentsEnabled: Boolean by property(true)
+        var isCodeStyleFunctionDeclarationStyleEnabled: Boolean by property(true)
         var isCodeStyleFunctionSpacingEnabled: Boolean by property(true)
         var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)
         var isCodeStyleOperatorSpacingEnabled: Boolean by property(true)
