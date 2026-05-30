@@ -20,13 +20,13 @@ class DrupalCodeStyleInspection : LocalInspectionTool() {
         if (!settings.isCodeStyleLinterEnabled) return emptyVisitor
         if (DumbService.getInstance(project).isDumb) return emptyVisitor
 
-        val rules = DrupalCodeStyleRuleRegistry.rules.filter { it.isEnabled(settings) }
-        if (rules.isEmpty()) return emptyVisitor
+        val dispatcher = DrupalCodeStyleRuleRegistry.dispatcher(settings)
+        if (dispatcher.isEmpty) return emptyVisitor
         val context = DrupalCodeStyleContext(holder, isOnTheFly)
 
         return object : PsiElementVisitor() {
             override fun visitElement(element: PsiElement) {
-                rules.forEach { it.inspect(element, context) }
+                dispatcher.inspect(element, context)
             }
         }
     }
