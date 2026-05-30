@@ -41,6 +41,7 @@ private fun PhpDocComment.fullDocBlockFixText(
     val function = owningFunction()
     val normalizedContent = contentLines
         .withMissingParamNames(function, settings)
+        .withThrowsExceptionNamespaces(settings)
         .withInlineDescriptionsOnContinuationLines(settings)
         .withDescriptionIndentation(settings)
         .withTagDescriptionPunctuation(settings)
@@ -120,6 +121,20 @@ private fun List<String>.withInlineDescriptionsOnContinuationLines(
     }
 }
 
+private fun List<String>.withThrowsExceptionNamespaces(
+    settings: DrupalExtendSettings,
+): List<String> {
+    if (!settings.isCodeStyleDocBlockApiTagsEnabled) return this
+
+    return map { line ->
+        if (line.tagName() != "throws") return@map line
+        val tag = line.drupalDocBlockThrowsTag() ?: return@map line
+        if (tag.type.startsWith("\\")) return@map line
+
+        line.substring(0, tag.typeStartOffset) + "\\" + line.substring(tag.typeStartOffset)
+    }
+}
+
 private fun List<String>.withDescriptionIndentation(
     settings: DrupalExtendSettings,
 ): List<String> {
@@ -128,7 +143,8 @@ private fun List<String>.withDescriptionIndentation(
     return toMutableList().also { lines ->
         lines.indices.forEach { index ->
             val tagName = lines[index].tagName()
-            if (tagName != "param" && tagName != "return") return@forEach
+                ?: return@forEach
+            if (tagName !in DRUPAL_DOCBLOCK_DESCRIPTION_TAGS) return@forEach
 
             var previousDescriptionLine: String? = null
             lines.tagDescriptionIndexes(index, tagName).forEach { descriptionIndex ->
@@ -164,7 +180,8 @@ private fun List<String>.withTagDescriptionPunctuation(
     return toMutableList().also { lines ->
         lines.indices.forEach { index ->
             val tagName = lines[index].tagName()
-            if (tagName != "param" && tagName != "return") return@forEach
+                ?: return@forEach
+            if (tagName !in DRUPAL_DOCBLOCK_DESCRIPTION_TAGS) return@forEach
 
             val descriptionIndex = lines.tagDescriptionIndex(index, tagName) ?: return@forEach
             if (lines[descriptionIndex].trimEnd().endsWithDocBlockSentencePunctuation()) return@forEach
@@ -254,12 +271,23 @@ private fun String.splitInlineDescription(): List<String>? {
         return listOf(substring(0, nameEndOffset).trimEnd(), "  $description")
     }
 
-    if (tagName() != "return") return null
-    val tag = drupalDocBlockReturnTag() ?: return null
-    val description = tag.description?.trim() ?: return null
-    if (description.isBlank()) return null
+    if (tagName() == "return") {
+        val tag = drupalDocBlockReturnTag() ?: return null
+        val description = tag.description?.trim() ?: return null
+        if (description.isBlank()) return null
 
-    return listOf(substring(0, tag.typeEndOffset).trimEnd(), "  $description")
+        return listOf(substring(0, tag.typeEndOffset).trimEnd(), "  $description")
+    }
+
+    if (tagName() == "throws") {
+        val tag = drupalDocBlockThrowsTag() ?: return null
+        val description = tag.description?.trim() ?: return null
+        if (description.isBlank()) return null
+
+        return listOf(substring(0, tag.typeEndOffset).trimEnd(), "  $description")
+    }
+
+    return null
 }
 
 private fun String.tagName(): String? {
@@ -271,6 +299,7 @@ private fun String.tagGroup(): String? {
         "param" -> "param"
         "return" -> "return"
         "throws", "throw" -> "throws"
+        "deprecated", "see" -> "deprecated_see"
         null -> null
         else -> tagName
     }
@@ -316,6 +345,7 @@ private fun String.hasInlineTagDescription(tagName: String): Boolean {
     return when (tagName) {
         "param" -> drupalDocBlockParamTag()?.description?.isNotBlank() == true
         "return" -> drupalDocBlockReturnTag()?.description?.isNotBlank() == true
+        "throws" -> drupalDocBlockThrowsTag()?.description?.isNotBlank() == true
         else -> false
     }
 }
@@ -369,6 +399,7 @@ private fun String.tagTypeNestingBalance(): Int {
     return when (tagName()) {
         "param" -> drupalDocBlockParamTag()?.type?.docBlockTypeNestingBalance()
         "return" -> drupalDocBlockReturnTag()?.type?.docBlockTypeNestingBalance()
+        "throws" -> drupalDocBlockThrowsTag()?.type?.docBlockTypeNestingBalance()
         else -> null
     } ?: 0
 }

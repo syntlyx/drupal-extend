@@ -21,7 +21,8 @@ internal object FunctionDocTagDescriptionIndentationRule : DrupalCodeStyleRule {
         val lines = docComment.drupalDocBlockLines()
         lines.forEachIndexed { index, line ->
             val tagName = line.tagName()
-            if (tagName != "param" && tagName != "return") return@forEachIndexed
+                ?: return@forEachIndexed
+            if (tagName !in DRUPAL_DOCBLOCK_DESCRIPTION_TAGS) return@forEachIndexed
 
             val descriptionLines = lines.tagDescriptionLines(index)
             descriptionLines.forEachIndexed { descriptionLineIndex, descriptionLine ->

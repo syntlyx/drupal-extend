@@ -21,7 +21,8 @@ internal object FunctionDocTagDescriptionPunctuationRule : DrupalCodeStyleRule {
         val lines = docComment.drupalDocBlockLines()
         lines.forEachIndexed { index, line ->
             val tagName = line.tagName()
-            if (tagName != "param" && tagName != "return") return@forEachIndexed
+                ?: return@forEachIndexed
+            if (tagName !in DRUPAL_DOCBLOCK_DESCRIPTION_TAGS) return@forEachIndexed
 
             val descriptionLine = lines.tagDescriptionPunctuationLine(index, tagName) ?: return@forEachIndexed
             if (descriptionLine.normalizedTrimmedContent().endsWithDocBlockSentencePunctuation()) return@forEachIndexed
@@ -85,6 +86,7 @@ internal fun DrupalDocBlockLine.hasInlineTagDescription(): Boolean {
     return when (tagName()) {
         "param" -> paramTag()?.description?.isNotBlank() == true
         "return" -> returnTag()?.description?.isNotBlank() == true
+        "throws" -> throwsTag()?.description?.isNotBlank() == true
         else -> false
     }
 }

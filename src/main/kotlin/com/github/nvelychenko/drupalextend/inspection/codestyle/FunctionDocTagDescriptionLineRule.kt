@@ -69,13 +69,25 @@ internal object FunctionDocTagDescriptionLineRule : DrupalCodeStyleRule {
             return InlineTagDescription(descriptionStart, description)
         }
 
-        if (tagName() != "return") return null
-        val returnTag = returnTag() ?: return null
-        val descriptionStart = returnTag.descriptionStartOffset ?: return null
-        val description = returnTag.description?.trim().orEmpty()
-        if (description.isBlank()) return null
+        if (tagName() == "return") {
+            val returnTag = returnTag() ?: return null
+            val descriptionStart = returnTag.descriptionStartOffset ?: return null
+            val description = returnTag.description?.trim().orEmpty()
+            if (description.isBlank()) return null
 
-        return InlineTagDescription(descriptionStart, description)
+            return InlineTagDescription(descriptionStart, description)
+        }
+
+        if (tagName() == "throws") {
+            val throwsTag = throwsTag() ?: return null
+            val descriptionStart = throwsTag.descriptionStartOffset ?: return null
+            val description = throwsTag.description?.trim().orEmpty()
+            if (description.isBlank()) return null
+
+            return InlineTagDescription(descriptionStart, description)
+        }
+
+        return null
     }
 
     private data class InlineTagDescription(

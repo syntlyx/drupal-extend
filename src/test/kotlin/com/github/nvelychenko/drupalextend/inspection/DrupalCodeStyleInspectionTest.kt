@@ -34,6 +34,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionRequiredEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionLineEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionPunctuationEnabled = true
+        project.drupalExtendSettings.isCodeStyleDocBlockApiTagsEnabled = true
     }
 
     fun testReportsDrupalClassFunctionAndSpacingProblems() {
@@ -1088,6 +1089,200 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         )
+    }
+
+    fun testReportsDocBlockApiTagSyntaxProblems() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Builds rows.
+               *
+               * @throws RuntimeException Something failed
+               * @throws InvalidArgumentException
+               *
+               * @see \Drupal\example\Example::build() for extra details
+               */
+              public function build(): array {
+                return [];
+              }
+
+              /**
+               * Old build helper.
+               *
+               * @deprecated Use build() instead.
+               */
+              public function oldBuild(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "@throws description must be on a continuation line",
+            "@throws description should end with punctuation",
+            "@throws exception class must use a fully qualified namespace",
+            "@see tag must contain only one reference",
+            "@deprecated tag must use Drupal deprecation text format",
+            "@deprecated tag must be followed by @see"
+        )
+    }
+
+    fun testQuickFixNormalizesThrowsDocBlockTag() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Builds rows.
+               *
+               * @throws RuntimeException Something failed
+               */
+              public function build(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        myFixture.launchAction(myFixture.getAllQuickFixes().single {
+            it.text == "Prefix @throws exception class with \\"
+        })
+        myFixture.doHighlighting()
+        myFixture.launchAction(myFixture.getAllQuickFixes().single {
+            it.text == "Move @throws description to continuation line"
+        })
+        myFixture.doHighlighting()
+        myFixture.launchAction(myFixture.getAllQuickFixes().single {
+            it.text == "Add @throws description punctuation"
+        })
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Builds rows.
+               *
+               * @throws \RuntimeException
+               *   Something failed.
+               */
+              public function build(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixFixesFullDocBlockWithThrowsDescription() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Builds rows
+               *
+               * @throws RuntimeException Something failed
+               */
+              public function build(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal DocBlock"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Builds rows.
+               *
+               * @throws \RuntimeException
+               *   Something failed.
+               */
+              public function build(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testValidDeprecatedDocBlockTagsDoNotReport() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Old build helper.
+               *
+               * @deprecated in example:1.2.3 and is removed from example:2.0.0. Use build() instead.
+               * @see https://www.drupal.org/node/123456
+               */
+              public function oldBuild(): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@deprecated tag must use Drupal deprecation text format"))
+        assertFalse(descriptions.contains("@deprecated tag must be followed by @see"))
+        assertFalse(descriptions.contains("@see tag must contain only one reference"))
     }
 
     fun testDocBlockDescriptionListIndentationAllowsNestedListItems() {

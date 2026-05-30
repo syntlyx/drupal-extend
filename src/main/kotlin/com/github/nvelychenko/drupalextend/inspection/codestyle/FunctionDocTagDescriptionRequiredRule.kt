@@ -19,7 +19,7 @@ internal object FunctionDocTagDescriptionRequiredRule : DrupalCodeStyleRule {
         val lines = docComment.drupalDocBlockLines()
         lines.forEachIndexed { index, line ->
             val tagName = line.tagName()
-            if (tagName != "param" && tagName != "return") return@forEachIndexed
+            if (tagName !in REQUIRED_DESCRIPTION_TAGS) return@forEachIndexed
             if (line.hasInlineDescription()) return@forEachIndexed
             if (lines.tagDescriptionLines(index).isNotEmpty()) return@forEachIndexed
 
@@ -38,4 +38,6 @@ internal object FunctionDocTagDescriptionRequiredRule : DrupalCodeStyleRule {
             else -> false
         }
     }
+
+    private val REQUIRED_DESCRIPTION_TAGS = setOf("param", "return")
 }

@@ -28,5 +28,6 @@ internal object DrupalCodeStyleRuleRegistry {
         FunctionDocTagDescriptionIndentationRule,
         FunctionDocTagDescriptionLineRule,
         FunctionDocTagDescriptionPunctuationRule,
+        DocBlockApiTagSyntaxRule,
     )
 }

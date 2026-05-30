@@ -117,6 +117,12 @@ class DrupalExtendSettings :
             state.isCodeStyleDocBlockTagDescriptionPunctuationEnabled = value
         }
 
+    var isCodeStyleDocBlockApiTagsEnabled: Boolean
+        get() = state.isCodeStyleDocBlockApiTagsEnabled
+        set(value) {
+            state.isCodeStyleDocBlockApiTagsEnabled = value
+        }
+
     var isCodeStyleClassFileNameEnabled: Boolean
         get() = state.isCodeStyleClassFileNameEnabled
         set(value) {
@@ -240,6 +246,7 @@ class DrupalExtendSettings :
         var isCodeStyleDocBlockTagDescriptionRequiredEnabled: Boolean by property(true)
         var isCodeStyleDocBlockTagDescriptionLineEnabled: Boolean by property(true)
         var isCodeStyleDocBlockTagDescriptionPunctuationEnabled: Boolean by property(true)
+        var isCodeStyleDocBlockApiTagsEnabled: Boolean by property(true)
         var isCodeStyleClassFileNameEnabled: Boolean by property(true)
         var isCodeStyleClassNameEnabled: Boolean by property(true)
         var isCodeStyleFunctionNameEnabled: Boolean by property(true)

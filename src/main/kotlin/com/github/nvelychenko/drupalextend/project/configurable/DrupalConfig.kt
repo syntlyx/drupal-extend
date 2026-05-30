@@ -254,6 +254,12 @@ class DrupalConfig(
                             .bindSelected(settings::isCodeStyleDocBlockTagDescriptionPunctuationEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_api_tags"))
+                            .bindSelected(settings::isCodeStyleDocBlockApiTagsEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
                 }
             }
 

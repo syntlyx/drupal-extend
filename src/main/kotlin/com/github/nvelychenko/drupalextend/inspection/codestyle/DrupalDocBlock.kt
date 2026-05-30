@@ -72,6 +72,7 @@ internal fun DrupalDocBlockLine.tagGroup(): String? {
         "param" -> "param"
         "return" -> "return"
         "throws", "throw" -> "throws"
+        "deprecated", "see" -> "deprecated_see"
         null -> null
         else -> tagName
     }
@@ -89,9 +90,26 @@ internal data class DrupalDocBlockParamTag(
 
 internal data class DrupalDocBlockReturnTag(
     val type: String,
+    val typeStartOffset: Int,
     val typeEndOffset: Int,
     val description: String?,
     val descriptionStartOffset: Int?,
+)
+
+internal data class DrupalDocBlockThrowsTag(
+    val type: String,
+    val typeStartOffset: Int,
+    val typeEndOffset: Int,
+    val description: String?,
+    val descriptionStartOffset: Int?,
+)
+
+internal data class DrupalDocBlockSeeTag(
+    val reference: String?,
+    val referenceStartOffset: Int?,
+    val referenceEndOffset: Int?,
+    val extraText: String?,
+    val extraTextStartOffset: Int?,
 )
 
 internal fun DrupalDocBlockLine.paramTag(): DrupalDocBlockParamTag? {
@@ -102,8 +120,16 @@ internal fun DrupalDocBlockLine.returnTag(): DrupalDocBlockReturnTag? {
     return trimmedContent.drupalDocBlockReturnTag()
 }
 
+internal fun DrupalDocBlockLine.throwsTag(): DrupalDocBlockThrowsTag? {
+    return trimmedContent.drupalDocBlockThrowsTag()
+}
+
+internal fun DrupalDocBlockLine.seeTag(): DrupalDocBlockSeeTag? {
+    return trimmedContent.drupalDocBlockSeeTag()
+}
+
 internal fun List<DrupalDocBlockLine>.tagDescriptionLines(tagIndex: Int): List<DrupalDocBlockLine> {
-    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() in setOf("param", "return") } ?: return emptyList()
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() in DRUPAL_DOCBLOCK_DESCRIPTION_TAGS } ?: return emptyList()
     val continuationLines = tagContinuationLines(tagIndex)
     val descriptionStartIndex = continuationDescriptionStartIndex(tagLine, continuationLines)
 
@@ -152,23 +178,50 @@ internal fun String.drupalDocBlockParamTag(): DrupalDocBlockParamTag? {
 }
 
 internal fun String.drupalDocBlockReturnTag(): DrupalDocBlockReturnTag? {
-    val tagMatch = Regex("""^@return(?:\s+|$)""").find(this) ?: return null
-    val typeStart = tagMatch.range.last + 1
-    if (typeStart >= length) return null
-
-    val tokens = topLevelDocBlockTokens(typeStart)
-    val typeRange = tokens.firstOrNull() ?: return null
-    val typeEndOffset = typeRange.endInclusive + 1
-    val descriptionStart = tokens
-        .getOrNull(1)
-        ?.start
-    val description = descriptionStart?.let { substring(it).trim() }?.takeIf { it.isNotBlank() }
+    val tag = drupalDocBlockTypedTag("return") ?: return null
 
     return DrupalDocBlockReturnTag(
-        type = substring(typeStart, typeEndOffset).trim(),
-        typeEndOffset = typeEndOffset,
-        description = description,
-        descriptionStartOffset = descriptionStart,
+        type = tag.type,
+        typeStartOffset = tag.typeStartOffset,
+        typeEndOffset = tag.typeEndOffset,
+        description = tag.description,
+        descriptionStartOffset = tag.descriptionStartOffset,
+    )
+}
+
+internal fun String.drupalDocBlockThrowsTag(): DrupalDocBlockThrowsTag? {
+    val tag = drupalDocBlockTypedTag("throws") ?: return null
+
+    return DrupalDocBlockThrowsTag(
+        type = tag.type,
+        typeStartOffset = tag.typeStartOffset,
+        typeEndOffset = tag.typeEndOffset,
+        description = tag.description,
+        descriptionStartOffset = tag.descriptionStartOffset,
+    )
+}
+
+internal fun String.drupalDocBlockSeeTag(): DrupalDocBlockSeeTag? {
+    val tagMatch = Regex("""^@see(?:\s+|$)""").find(this) ?: return null
+    val referenceStart = (tagMatch.range.last + 1)
+        .let { skipWhitespace(it) }
+        .takeIf { it < length }
+    val referenceRange = referenceStart?.let { start ->
+        val end = indexOfFirstAfter(start) { it.isWhitespace() } ?: length
+        start until end
+    }
+    val extraTextStart = referenceRange
+        ?.endInclusive
+        ?.plus(1)
+        ?.let { skipWhitespace(it) }
+        ?.takeIf { it < length }
+
+    return DrupalDocBlockSeeTag(
+        reference = referenceRange?.let { substring(it) },
+        referenceStartOffset = referenceRange?.start,
+        referenceEndOffset = referenceRange?.endInclusive?.plus(1),
+        extraText = extraTextStart?.let { substring(it).trim() }?.takeIf { it.isNotBlank() },
+        extraTextStartOffset = extraTextStart,
     )
 }
 
@@ -303,6 +356,7 @@ private fun DrupalDocBlockLine.tagTypeNestingBalance(): Int {
     return when (tagName()) {
         "param" -> paramTag()?.type?.docBlockTypeNestingBalance()
         "return" -> returnTag()?.type?.docBlockTypeNestingBalance()
+        "throws" -> throwsTag()?.type?.docBlockTypeNestingBalance()
         else -> null
     } ?: 0
 }
@@ -333,6 +387,44 @@ private fun String.skipWhitespace(startOffset: Int): Int {
     return offset
 }
 
+private data class DrupalDocBlockTypedTag(
+    val type: String,
+    val typeStartOffset: Int,
+    val typeEndOffset: Int,
+    val description: String?,
+    val descriptionStartOffset: Int?,
+)
+
+private fun String.drupalDocBlockTypedTag(tagName: String): DrupalDocBlockTypedTag? {
+    val tagMatch = Regex("""^@$tagName(?:\s+|$)""").find(this) ?: return null
+    val typeStart = tagMatch.range.last + 1
+    if (typeStart >= length) return null
+
+    val tokens = topLevelDocBlockTokens(typeStart)
+    val typeRange = tokens.firstOrNull() ?: return null
+    val typeEndOffset = typeRange.endInclusive + 1
+    val descriptionStart = tokens
+        .getOrNull(1)
+        ?.start
+    val description = descriptionStart?.let { substring(it).trim() }?.takeIf { it.isNotBlank() }
+
+    return DrupalDocBlockTypedTag(
+        type = substring(typeStart, typeEndOffset).trim(),
+        typeStartOffset = typeStart,
+        typeEndOffset = typeEndOffset,
+        description = description,
+        descriptionStartOffset = descriptionStart,
+    )
+}
+
+private fun String.indexOfFirstAfter(startOffset: Int, predicate: (Char) -> Boolean): Int? {
+    for (index in startOffset until length) {
+        if (predicate(this[index])) return index
+    }
+
+    return null
+}
+
 private fun String.isParamNameToken(): Boolean {
     return startsWith("\$") || startsWith("...\$") || startsWith("&\$") || startsWith("&...\$")
 }
@@ -340,3 +432,5 @@ private fun String.isParamNameToken(): Boolean {
 private fun String.docBlockTagName(): String? {
     return Regex("""^@([A-Za-z_][\w\\-]*)""").find(this)?.groupValues?.get(1)
 }
+
+internal val DRUPAL_DOCBLOCK_DESCRIPTION_TAGS = setOf("param", "return", "throws")
