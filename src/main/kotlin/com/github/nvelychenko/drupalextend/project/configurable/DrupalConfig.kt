@@ -136,6 +136,12 @@ class DrupalConfig(
                     }
 
                     row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_multiline_array_style"))
+                            .bindSelected(settings::isCodeStyleMultilineArrayStyleEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_elseif_syntax"))
                             .bindSelected(settings::isCodeStyleElseIfSyntaxEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)

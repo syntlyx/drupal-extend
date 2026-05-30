@@ -133,6 +133,11 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             .flatMapTo(edits) { it.commaSpacingEdits() }
     }
 
+    if (settings.isCodeStyleMultilineArrayStyleEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, ArrayCreationExpression::class.java)
+            .flatMapTo(edits) { it.multilineArrayStyleEdits(document) }
+    }
+
     if (settings.isCodeStyleControlStructureSpacingEnabled) {
         PsiTreeUtil.collectElements(this) { element ->
             element is ControlStatement || element is PhpSwitch || element is Else

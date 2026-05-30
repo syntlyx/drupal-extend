@@ -165,6 +165,12 @@ class DrupalExtendSettings :
             state.isCodeStyleShortArraySyntaxEnabled = value
         }
 
+    var isCodeStyleMultilineArrayStyleEnabled: Boolean
+        get() = state.isCodeStyleMultilineArrayStyleEnabled
+        set(value) {
+            state.isCodeStyleMultilineArrayStyleEnabled = value
+        }
+
     var isCodeStyleElseIfSyntaxEnabled: Boolean
         get() = state.isCodeStyleElseIfSyntaxEnabled
         set(value) {
@@ -266,6 +272,7 @@ class DrupalExtendSettings :
         var isCodeStyleConstantCasingEnabled: Boolean by property(true)
         var isCodeStyleClosingPhpTagEnabled: Boolean by property(true)
         var isCodeStyleShortArraySyntaxEnabled: Boolean by property(true)
+        var isCodeStyleMultilineArrayStyleEnabled: Boolean by property(true)
         var isCodeStyleElseIfSyntaxEnabled: Boolean by property(true)
         var isCodeStyleMissingDocCommentsEnabled: Boolean by property(true)
         var isCodeStyleFunctionDeclarationStyleEnabled: Boolean by property(true)

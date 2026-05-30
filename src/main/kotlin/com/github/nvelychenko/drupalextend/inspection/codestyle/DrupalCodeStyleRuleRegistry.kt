@@ -29,6 +29,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(ConstantCasingRule, Target.CONSTANT_REFERENCE),
         register(ClosingPhpTagRule, Target.PHP_FILE),
         register(ShortArraySyntaxRule, Target.ARRAY_CREATION),
+        register(MultilineArrayStyleRule, Target.ARRAY_CREATION),
         register(ElseIfSyntaxRule, Target.ELSE),
         register(FullyQualifiedClassNameRule, Target.CLASS_REFERENCE),
         register(MissingDocCommentRule, Target.PHP_CLASS, Target.FUNCTION),

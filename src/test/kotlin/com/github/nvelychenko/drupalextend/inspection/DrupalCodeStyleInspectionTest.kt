@@ -15,6 +15,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleConstantCasingEnabled = true
         project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
         project.drupalExtendSettings.isCodeStyleShortArraySyntaxEnabled = true
+        project.drupalExtendSettings.isCodeStyleMultilineArrayStyleEnabled = true
         project.drupalExtendSettings.isCodeStyleElseIfSyntaxEnabled = true
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionDeclarationStyleEnabled = true
@@ -2236,6 +2237,136 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         )
+    }
+
+    fun testReportsMultilineArrayStyleProblems() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(): array {
+              return [
+                'one' => 1,
+                'two' => 2];
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "Multiline arrays must have a trailing comma after the last element",
+            "The closing bracket of a multiline array must be on a new line"
+        )
+    }
+
+    fun testQuickFixNormalizesMultilineArrayStyle() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(): array {
+              return [
+                'one' => 1,
+                'two' => 2];
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Normalize multiline array style"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(): array {
+              return [
+                'one' => 1,
+                'two' => 2,
+              ];
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixFixesMultilineArrayStyleInFile() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(): array {
+              return [
+                'items' => [
+                  'one' => 1
+                ]
+              ];
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(): array {
+              return [
+                'items' => [
+                  'one' => 1,
+                ],
+              ];
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testValidMultilineArrayStyleDoesNotReport() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(): array {
+              ${'$'}inline = ['one', 'two'];
+              return [
+                'one' => 1,
+                'two' => 2,
+              ];
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("Multiline arrays must have a trailing comma after the last element"))
+        assertFalse(descriptions.contains("The closing bracket of a multiline array must be on a new line"))
     }
 
     fun testQuickFixConvertsElseIfToElseif() {
