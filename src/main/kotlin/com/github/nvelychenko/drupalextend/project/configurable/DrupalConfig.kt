@@ -108,6 +108,12 @@ class DrupalConfig(
                             .bindSelected(settings::isCodeStyleFunctionNameEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_member_visibility"))
+                            .bindSelected(settings::isCodeStyleMemberVisibilityEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_php_syntax"), true) {

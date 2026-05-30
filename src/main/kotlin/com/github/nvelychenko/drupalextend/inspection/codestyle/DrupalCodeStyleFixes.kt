@@ -21,6 +21,8 @@ import com.jetbrains.php.lang.psi.elements.ControlStatement
 import com.jetbrains.php.lang.psi.elements.Else
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.ParameterList
+import com.jetbrains.php.lang.psi.elements.Method
+import com.jetbrains.php.lang.psi.elements.PhpClassFieldsList
 import com.jetbrains.php.lang.psi.elements.PhpClass
 import com.jetbrains.php.lang.psi.elements.PhpSwitch
 
@@ -84,6 +86,15 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
 
     if (settings.isCodeStyleConstantCasingEnabled) {
         edits += constantCasingEdits()
+    }
+
+    if (settings.isCodeStyleMemberVisibilityEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, Method::class.java)
+            .mapNotNullTo(edits) { it.memberVisibilityEdit() }
+        PsiTreeUtil.findChildrenOfType(this, PhpClassFieldsList::class.java)
+            .mapNotNullTo(edits) { it.memberVisibilityEdit() }
+        PsiTreeUtil.findChildrenOfType(this, PhpClass::class.java)
+            .flatMapTo(edits) { it.classConstantVisibilityEdits() }
     }
 
     if (settings.isCodeStyleFunctionSpacingEnabled) {

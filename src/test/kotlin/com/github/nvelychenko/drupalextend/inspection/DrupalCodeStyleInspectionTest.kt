@@ -11,6 +11,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = true
         project.drupalExtendSettings.isCodeStyleClassNameEnabled = true
         project.drupalExtendSettings.isCodeStyleFunctionNameEnabled = true
+        project.drupalExtendSettings.isCodeStyleMemberVisibilityEnabled = true
         project.drupalExtendSettings.isCodeStyleConstantCasingEnabled = true
         project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
         project.drupalExtendSettings.isCodeStyleShortArraySyntaxEnabled = true
@@ -155,6 +156,121 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             it.description == "Method name should use camelCase" &&
             myFixture.file.text.substring(it.startOffset, it.endOffset) == "__toString"
         })
+    }
+
+    fun testReportsMissingMemberVisibilityProblems() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              function build(): void {}
+
+              static function helper(): void {}
+
+              var ${'$'}legacy;
+
+              const TYPE = 'example';
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "Class methods must declare visibility",
+            "Class properties must declare visibility",
+            "Class constants must declare visibility"
+        )
+    }
+
+    fun testQuickFixAddsPublicMemberVisibilityInFile() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              function build(): void {}
+
+              static function helper(): void {}
+
+              var ${'$'}legacy;
+
+              const TYPE = 'example';
+
+              final const VERSION = 1;
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(): void {}
+
+              public static function helper(): void {}
+
+              public ${'$'}legacy;
+
+              public const TYPE = 'example';
+
+              final public const VERSION = 1;
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testExplicitMemberVisibilityDoesNotReport() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(): void {}
+
+              protected static function helper(): void {}
+
+              private ${'$'}legacy;
+
+              public const TYPE = 'example';
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("Class methods must declare visibility"))
+        assertFalse(descriptions.contains("Class properties must declare visibility"))
+        assertFalse(descriptions.contains("Class constants must declare visibility"))
     }
 
     fun testQuickFixNormalizesDrupalConstantCasing() {

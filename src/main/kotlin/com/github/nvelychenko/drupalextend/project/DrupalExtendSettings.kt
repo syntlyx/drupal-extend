@@ -141,6 +141,12 @@ class DrupalExtendSettings :
             state.isCodeStyleFunctionNameEnabled = value
         }
 
+    var isCodeStyleMemberVisibilityEnabled: Boolean
+        get() = state.isCodeStyleMemberVisibilityEnabled
+        set(value) {
+            state.isCodeStyleMemberVisibilityEnabled = value
+        }
+
     var isCodeStyleConstantCasingEnabled: Boolean
         get() = state.isCodeStyleConstantCasingEnabled
         set(value) {
@@ -256,6 +262,7 @@ class DrupalExtendSettings :
         var isCodeStyleClassFileNameEnabled: Boolean by property(true)
         var isCodeStyleClassNameEnabled: Boolean by property(true)
         var isCodeStyleFunctionNameEnabled: Boolean by property(true)
+        var isCodeStyleMemberVisibilityEnabled: Boolean by property(true)
         var isCodeStyleConstantCasingEnabled: Boolean by property(true)
         var isCodeStyleClosingPhpTagEnabled: Boolean by property(true)
         var isCodeStyleShortArraySyntaxEnabled: Boolean by property(true)
