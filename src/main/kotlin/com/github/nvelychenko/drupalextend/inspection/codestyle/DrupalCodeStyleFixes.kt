@@ -13,6 +13,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
+import com.jetbrains.php.lang.parser.PhpElementTypes
 import com.jetbrains.php.lang.psi.elements.ArrayHashElement
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.AssignmentExpression
@@ -122,6 +123,13 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             element is ControlStatement || element is PhpSwitch || element is Else
         }
             .flatMapTo(edits) { it.blockBlankLineEdits(document) }
+    }
+
+    if (settings.isCodeStyleCastSpacingEnabled) {
+        PsiTreeUtil.collectElements(this) { element ->
+            element.node.elementType == PhpElementTypes.CAST_EXPRESSION
+        }
+            .mapNotNullTo(edits) { it.castSpacingEdit() }
     }
 
     if (settings.isCodeStyleOperatorSpacingEnabled) {

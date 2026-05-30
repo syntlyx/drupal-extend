@@ -23,6 +23,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleBlockBlankLinesEnabled = true
+        project.drupalExtendSettings.isCodeStyleCastSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleOperatorSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = true
@@ -2776,6 +2777,87 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         )
+    }
+
+    fun testQuickFixNormalizesCastSpacing() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(mixed ${'$'}id): int {
+                ${'$'}one = (int)${'$'}id;
+                ${'$'}two = (bool)  ${'$'}id;
+                ${'$'}three = (string)	${'$'}id;
+                return (int) ${'$'}one;
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val highlights = myFixture.doHighlighting()
+        val descriptions = highlights.mapNotNull { it.description }
+        assertContainsElements(descriptions, "Casts must be followed by a single space")
+        val highlightedTexts = highlights.filter {
+            it.description == "Casts must be followed by a single space"
+        }.map {
+            myFixture.file.text.substring(it.startOffset, it.endOffset)
+        }
+        assertContainsElements(highlightedTexts, "(int)", "(bool)", "(string)")
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              public function build(mixed ${'$'}id): int {
+                ${'$'}one = (int) ${'$'}id;
+                ${'$'}two = (bool) ${'$'}id;
+                ${'$'}three = (string) ${'$'}id;
+                return (int) ${'$'}one;
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testValidCastSpacingDoesNotReport() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              public function build(mixed ${'$'}id): int {
+                return (int) ${'$'}id;
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("Casts must be followed by a single space"))
     }
 
     fun testQuickFixNormalizesCommaSpacing() {

@@ -19,6 +19,7 @@ import com.jetbrains.php.lang.psi.elements.PhpClass
 import com.jetbrains.php.lang.psi.elements.PhpClassFieldsList
 import com.jetbrains.php.lang.psi.elements.PhpSwitch
 import com.jetbrains.php.lang.psi.elements.PhpUseList
+import com.jetbrains.php.lang.parser.PhpElementTypes
 
 internal object DrupalCodeStyleRuleRegistry {
     private val registrations = listOf(
@@ -38,6 +39,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(FunctionSpacingRule, Target.FUNCTION),
         register(ClassCloseBraceSpacingRule, Target.PHP_CLASS),
         register(BlockBlankLineRule, Target.FUNCTION, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),
+        register(CastSpacingRule, Target.CAST_EXPRESSION),
         register(OperatorSpacingRule, Target.OPERATOR),
         register(CommaSpacingRule, Target.ARRAY_CREATION, Target.PARAMETER_LIST),
         register(ControlStructureSpacingRule, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),
@@ -73,6 +75,7 @@ internal object DrupalCodeStyleRuleRegistry {
             arrayCreationRules = enabledRegistrations.rulesFor(Target.ARRAY_CREATION),
             parameterListRules = enabledRegistrations.rulesFor(Target.PARAMETER_LIST),
             operatorRules = enabledRegistrations.rulesFor(Target.OPERATOR),
+            castExpressionRules = enabledRegistrations.rulesFor(Target.CAST_EXPRESSION),
             controlStatementRules = enabledRegistrations.rulesFor(Target.CONTROL_STATEMENT),
             elseRules = enabledRegistrations.rulesFor(Target.ELSE),
             switchRules = enabledRegistrations.rulesFor(Target.SWITCH),
@@ -107,6 +110,7 @@ private enum class DrupalCodeStyleRuleTarget {
     ARRAY_CREATION,
     PARAMETER_LIST,
     OPERATOR,
+    CAST_EXPRESSION,
     CONTROL_STATEMENT,
     ELSE,
     SWITCH,
@@ -138,6 +142,7 @@ internal class DrupalCodeStyleRuleDispatcher(
     private val arrayCreationRules: List<DrupalCodeStyleRule>,
     private val parameterListRules: List<DrupalCodeStyleRule>,
     private val operatorRules: List<DrupalCodeStyleRule>,
+    private val castExpressionRules: List<DrupalCodeStyleRule>,
     private val controlStatementRules: List<DrupalCodeStyleRule>,
     private val elseRules: List<DrupalCodeStyleRule>,
     private val switchRules: List<DrupalCodeStyleRule>,
@@ -155,6 +160,7 @@ internal class DrupalCodeStyleRuleDispatcher(
         arrayCreationRules,
         parameterListRules,
         operatorRules,
+        castExpressionRules,
         controlStatementRules,
         elseRules,
         switchRules,
@@ -176,6 +182,14 @@ internal class DrupalCodeStyleRuleDispatcher(
             is AssignmentExpression -> operatorRules.inspect(element, context)
             is ArrayHashElement -> operatorRules.inspect(element, context)
             is BinaryExpression -> operatorRules.inspect(element, context)
+            else -> {
+                if (element.node.elementType == PhpElementTypes.CAST_EXPRESSION) {
+                    castExpressionRules.inspect(element, context)
+                }
+            }
+        }
+
+        when (element) {
             is Else -> elseRules.inspect(element, context)
             is ControlStatement -> controlStatementRules.inspect(element, context)
             is PhpSwitch -> switchRules.inspect(element, context)
