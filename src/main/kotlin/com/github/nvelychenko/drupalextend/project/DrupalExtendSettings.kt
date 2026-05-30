@@ -201,6 +201,12 @@ class DrupalExtendSettings :
             state.isCodeStyleUseStatementSortingEnabled = value
         }
 
+    var isCodeStyleFullyQualifiedClassNameEnabled: Boolean
+        get() = state.isCodeStyleFullyQualifiedClassNameEnabled
+        set(value) {
+            state.isCodeStyleFullyQualifiedClassNameEnabled = value
+        }
+
     var configDirectory: String
         get() = state.configDirectory ?: DEFAULT_CONFIG_SYNC_DIRECTORY
         set(value) {
@@ -248,6 +254,7 @@ class DrupalExtendSettings :
         var isCodeStyleCommaSpacingEnabled: Boolean by property(true)
         var isCodeStyleControlStructureSpacingEnabled: Boolean by property(true)
         var isCodeStyleUseStatementSortingEnabled: Boolean by property(true)
+        var isCodeStyleFullyQualifiedClassNameEnabled: Boolean by property(true)
     }
 
 }

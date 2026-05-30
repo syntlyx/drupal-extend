@@ -9,6 +9,7 @@ internal object DrupalCodeStyleRuleRegistry {
         ClosingPhpTagRule,
         ShortArraySyntaxRule,
         ElseIfSyntaxRule,
+        FullyQualifiedClassNameRule,
         MissingDocCommentRule,
         FunctionSpacingRule,
         ClassCloseBraceSpacingRule,

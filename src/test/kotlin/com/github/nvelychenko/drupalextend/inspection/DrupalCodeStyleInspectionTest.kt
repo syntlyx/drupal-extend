@@ -22,6 +22,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleUseStatementSortingEnabled = true
+        project.drupalExtendSettings.isCodeStyleFullyQualifiedClassNameEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockTagGroupSpacingEnabled = true
@@ -1559,6 +1560,122 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             final class Example {
               public function build(): Alpha {
                 return new Alpha();
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixImportsFullyQualifiedClassName() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            final class Example {
+              public function cache(): \Drupal\Core\Cache\CacheBackendInterface {
+                return \Drupal::cache();
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val highlights = myFixture.doHighlighting()
+        assertContainsElements(
+            highlights.mapNotNull { it.description },
+            "Fully qualified class names must be imported with use statements"
+        )
+        val highlight = highlights.single {
+            it.description == "Fully qualified class names must be imported with use statements"
+        }
+        assertEquals(
+            "\\Drupal\\Core\\Cache\\CacheBackendInterface",
+            myFixture.file.text.substring(highlight.startOffset, highlight.endOffset)
+        )
+
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Import class and shorten reference"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\Core\Cache\CacheBackendInterface;
+
+            final class Example {
+              public function cache(): CacheBackendInterface {
+                return \Drupal::cache();
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixImportsFullyQualifiedClassNamesInFile() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\Core\Cache\CacheBackendInterface;
+
+            final class Example {
+              public function build(\Drupal\Core\StringTranslation\TranslatableMarkup ${'$'}label): \Drupal\Core\Url {
+                return \Drupal\Core\Url::fromRoute('example.route');
+              }
+
+              public function cache(): \Drupal\Core\Cache\CacheBackendInterface {
+                return \Drupal::cache();
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\Core\Cache\CacheBackendInterface;
+            use Drupal\Core\StringTranslation\TranslatableMarkup;
+            use Drupal\Core\Url;
+
+            final class Example {
+              public function build(TranslatableMarkup ${'$'}label): Url {
+                return Url::fromRoute('example.route');
+              }
+
+              public function cache(): CacheBackendInterface {
+                return \Drupal::cache();
               }
 
             }

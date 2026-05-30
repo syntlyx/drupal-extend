@@ -126,8 +126,13 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             .mapNotNullTo(edits) { it.elseIfSyntaxEdit() }
     }
 
+    if (settings.isCodeStyleFullyQualifiedClassNameEnabled) {
+        edits += fullyQualifiedClassNameUseEdits()
+    }
+
     if (settings.isCodeStyleUseStatementSortingEnabled) {
         edits += sortUseStatementEdits()
+            .filterNot { sortEdit -> edits.any { it.overlaps(sortEdit) } }
     }
 
     if (settings.isCodeStyleClosingPhpTagEnabled) {
@@ -135,6 +140,10 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
     }
 
     return edits.distinctBy { Triple(it.startOffset, it.endOffset, it.text) }
+}
+
+private fun TextEdit.overlaps(other: TextEdit): Boolean {
+    return startOffset < other.endOffset && other.startOffset < endOffset
 }
 
 private fun Function.spacingFixEdits(document: Document): List<TextEdit> {

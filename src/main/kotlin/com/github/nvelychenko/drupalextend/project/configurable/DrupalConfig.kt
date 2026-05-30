@@ -134,10 +134,18 @@ class DrupalConfig(
                             .bindSelected(settings::isCodeStyleElseIfSyntaxEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
+                }
 
+                collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_imports"), true) {
                     row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_use_statement_sorting"))
                             .bindSelected(settings::isCodeStyleUseStatementSortingEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_fully_qualified_class_name"))
+                            .bindSelected(settings::isCodeStyleFullyQualifiedClassNameEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }
