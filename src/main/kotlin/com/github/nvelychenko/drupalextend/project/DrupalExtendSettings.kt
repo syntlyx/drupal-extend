@@ -159,6 +159,12 @@ class DrupalExtendSettings :
             state.isCodeStyleClosingPhpTagEnabled = value
         }
 
+    var isCodeStyleFileWhitespaceEnabled: Boolean
+        get() = state.isCodeStyleFileWhitespaceEnabled
+        set(value) {
+            state.isCodeStyleFileWhitespaceEnabled = value
+        }
+
     var isCodeStyleShortArraySyntaxEnabled: Boolean
         get() = state.isCodeStyleShortArraySyntaxEnabled
         set(value) {
@@ -271,6 +277,7 @@ class DrupalExtendSettings :
         var isCodeStyleMemberVisibilityEnabled: Boolean by property(true)
         var isCodeStyleConstantCasingEnabled: Boolean by property(true)
         var isCodeStyleClosingPhpTagEnabled: Boolean by property(true)
+        var isCodeStyleFileWhitespaceEnabled: Boolean by property(true)
         var isCodeStyleShortArraySyntaxEnabled: Boolean by property(true)
         var isCodeStyleMultilineArrayStyleEnabled: Boolean by property(true)
         var isCodeStyleElseIfSyntaxEnabled: Boolean by property(true)

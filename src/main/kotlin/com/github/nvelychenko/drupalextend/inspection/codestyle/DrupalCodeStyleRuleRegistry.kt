@@ -28,6 +28,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(MemberVisibilityRule, Target.PHP_CLASS, Target.METHOD, Target.CLASS_FIELDS),
         register(ConstantCasingRule, Target.CONSTANT_REFERENCE),
         register(ClosingPhpTagRule, Target.PHP_FILE),
+        register(FileWhitespaceRule, Target.PHP_FILE),
         register(ShortArraySyntaxRule, Target.ARRAY_CREATION),
         register(MultilineArrayStyleRule, Target.ARRAY_CREATION),
         register(ElseIfSyntaxRule, Target.ELSE),

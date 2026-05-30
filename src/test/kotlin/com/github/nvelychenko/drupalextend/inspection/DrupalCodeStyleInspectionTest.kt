@@ -14,6 +14,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleMemberVisibilityEnabled = true
         project.drupalExtendSettings.isCodeStyleConstantCasingEnabled = true
         project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
+        project.drupalExtendSettings.isCodeStyleFileWhitespaceEnabled = false
         project.drupalExtendSettings.isCodeStyleShortArraySyntaxEnabled = true
         project.drupalExtendSettings.isCodeStyleMultilineArrayStyleEnabled = true
         project.drupalExtendSettings.isCodeStyleElseIfSyntaxEnabled = true
@@ -355,6 +356,81 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         )
+    }
+
+    fun testReportsFileWhitespaceProblems() {
+        project.drupalExtendSettings.isCodeStyleFileWhitespaceEnabled = true
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            "<?php\n\nfunction example_build(): array {  \n  return [];\n}\n\n\n"
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "Lines must not have trailing whitespace",
+            "Files must end with exactly one newline"
+        )
+    }
+
+    fun testQuickFixNormalizesFileWhitespace() {
+        project.drupalExtendSettings.isCodeStyleFileWhitespaceEnabled = true
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            "<?php\n\nfunction example_build(): array {  \n  return [];\n}\n\n\n"
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Normalize file whitespace"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult("<?php\n\nfunction example_build(): array {\n  return [];\n}\n")
+    }
+
+    fun testQuickFixFixesFileWhitespaceInFile() {
+        project.drupalExtendSettings.isCodeStyleFileWhitespaceEnabled = true
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            "<?php\n\nfunction example_build(): array {  \n  return [];\n}\n\n\n"
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult("<?php\n\nfunction example_build(): array {\n  return [];\n}\n")
+    }
+
+    fun testValidFileWhitespaceDoesNotReport() {
+        project.drupalExtendSettings.isCodeStyleFileWhitespaceEnabled = true
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            "<?php\n\nfunction example_build(): array {\n  return [];\n}\n"
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("Lines must not have trailing whitespace"))
+        assertFalse(descriptions.contains("Files must end with exactly one newline"))
     }
 
     fun testFunctionSpacingRulesHighlightOnlyFunctionName() {

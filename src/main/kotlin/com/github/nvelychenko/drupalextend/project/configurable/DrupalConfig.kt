@@ -130,6 +130,12 @@ class DrupalConfig(
                     }
 
                     row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_file_whitespace"))
+                            .bindSelected(settings::isCodeStyleFileWhitespaceEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_short_array_syntax"))
                             .bindSelected(settings::isCodeStyleShortArraySyntaxEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)

@@ -159,8 +159,11 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             .filterNot { sortEdit -> edits.any { it.overlaps(sortEdit) } }
     }
 
-    if (settings.isCodeStyleClosingPhpTagEnabled) {
-        closingPhpTagEdit()?.let { edits += it }
+    val closingPhpTagEdit = if (settings.isCodeStyleClosingPhpTagEnabled) closingPhpTagEdit() else null
+    closingPhpTagEdit?.let { edits += it }
+
+    if (settings.isCodeStyleFileWhitespaceEnabled && closingPhpTagEdit == null) {
+        edits += fileWhitespaceEdits(document)
     }
 
     return edits.distinctBy { Triple(it.startOffset, it.endOffset, it.text) }
