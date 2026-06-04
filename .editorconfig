@@ -1,0 +1,33 @@
+# Single code style for the whole repo. See CLAUDE.md "Code style".
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+max_line_length = 120
+# IntelliJ Kotlin: never collapse imports into wildcards.
+ij_kotlin_name_count_to_use_star_import = 2147483647
+ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
+ij_kotlin_packages_to_use_import_on_demand = unset
+ij_kotlin_imports_layout = *
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_continuation_indent_size = 4
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.{json,md}]
+indent_size = 2
+
+[*.xml]
+indent_size = 4
+
+[{Makefile,*.mk}]
+indent_style = tab
