@@ -77,7 +77,6 @@ object DrupalFieldPlugins {
                 DrupalFieldPluginDefinition(
                     kind = kind,
                     id = id,
-                    fqn = phpClass.fqn,
                     defaultWidget = attribute.stringArgument("default_widget"),
                     defaultFormatter = attribute.stringArgument("default_formatter"),
                 )
@@ -97,7 +96,6 @@ object DrupalFieldPlugins {
                 DrupalFieldPluginDefinition(
                     kind = kind,
                     id = id,
-                    fqn = phpClass.fqn,
                     defaultWidget = getPhpDocParameter(tagText, "default_widget"),
                     defaultFormatter = getPhpDocParameter(tagText, "default_formatter"),
                 )

@@ -6,7 +6,6 @@ import kotlinx.serialization.Serializable
 data class DrupalFieldPluginDefinition(
     val kind: String,
     val id: String,
-    val fqn: String,
     val defaultWidget: String? = null,
     val defaultFormatter: String? = null,
 )

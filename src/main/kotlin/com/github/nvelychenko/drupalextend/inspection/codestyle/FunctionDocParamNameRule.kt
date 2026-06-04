@@ -3,7 +3,9 @@ package com.github.nvelychenko.drupalextend.inspection.codestyle
 import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.intellij.psi.PsiElement
+import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
 import com.jetbrains.php.lang.psi.elements.Function
+import com.jetbrains.php.lang.psi.elements.Parameter
 
 internal object FunctionDocParamNameRule : DrupalCodeStyleRule {
     override val id: String = "docblock_missing_param_name"
@@ -38,7 +40,7 @@ internal object FunctionDocParamNameRule : DrupalCodeStyleRule {
 
     private fun insertMissingParamNameFix(paramIndex: Int, parameterName: String): DrupalCodeStyleTextEditQuickFix {
         return DrupalCodeStyleTextEditQuickFix("Insert missing @param name") { _, descriptor ->
-            val docComment = descriptor.psiElement as? com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
+            val docComment = descriptor.psiElement as? PhpDocComment
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             val lines = docComment.drupalDocBlockLines()
             val lineIndex = lines.indices
@@ -53,7 +55,7 @@ internal object FunctionDocParamNameRule : DrupalCodeStyleRule {
         }
     }
 
-    private fun com.jetbrains.php.lang.psi.elements.Parameter.phpDocVariableName(): String {
+    private fun Parameter.phpDocVariableName(): String {
         return "\$" + name.removePrefix("\$")
     }
 }

@@ -75,9 +75,7 @@ object Services {
         owner.ownerClassFqn?.let { return it }
 
         val ownerServiceId = owner.ownerServiceId ?: return null
-        return className(project, ownerServiceId)
-            ?.takeIf { it.isNotBlank() }
-            ?: ownerServiceId.takeIf { it.contains("\\") }
+        return className(project, ownerServiceId)?.takeIf { it.isNotBlank() }
     }
 
     fun factoryOwnerClassName(project: Project, factoryMethod: ServicesYaml.ServiceFactoryMethod): String? {

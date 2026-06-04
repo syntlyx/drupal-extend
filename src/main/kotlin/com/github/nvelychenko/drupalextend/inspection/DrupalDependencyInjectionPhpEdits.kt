@@ -225,6 +225,18 @@ private fun interParameterSeparator(existingParameters: Array<out PsiElement>): 
         if (between != null && between.contains('\n')) {
             return ",$between"
         }
+    } else if (existingParameters.size == 1) {
+        // A single existing parameter on its own line: mirror the one-per-line layout instead of
+        // inlining the new parameter onto the closing-paren line.
+        val param = existingParameters[0]
+        val fileText = param.containingFile?.text
+        val lineStart = fileText?.lastIndexOf('\n', param.textRange.startOffset - 1) ?: -1
+        if (fileText != null && lineStart >= 0) {
+            val indent = fileText.substring(lineStart + 1, param.textRange.startOffset)
+            if (indent.isNotEmpty() && indent.isBlank()) {
+                return ",\n$indent"
+            }
+        }
     }
     return ", "
 }

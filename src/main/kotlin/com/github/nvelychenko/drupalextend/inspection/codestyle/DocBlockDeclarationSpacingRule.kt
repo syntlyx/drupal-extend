@@ -4,6 +4,7 @@ import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
 
@@ -52,9 +53,9 @@ internal fun PhpDocComment.declarationSpacingEdit(document: Document): TextEdit?
     return document.removeBlankLinesAfterEdit(endLine)
 }
 
-private fun PhpDocComment.closingLineRange(): com.intellij.openapi.util.TextRange? {
+private fun PhpDocComment.closingLineRange(): TextRange? {
     val closingLine = drupalDocBlockLines().lastOrNull { it.isClosingLine() } ?: return null
-    return com.intellij.openapi.util.TextRange(closingLine.lineStartOffset, closingLine.lineEndOffset)
+    return TextRange(closingLine.lineStartOffset, closingLine.lineEndOffset)
 }
 
 private fun String.isDocumentedDeclarationLine(): Boolean {

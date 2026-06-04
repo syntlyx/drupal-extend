@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- Field plugin support: Field/Widget/Formatter plugin classes (attribute and legacy annotation forms) are indexed, and default field plugin classes referenced through field configuration are recognised as implicitly used, so they are no longer reported as unused.
+- Procedural hook support: hook implementations in `.module`, `.install`, and `.theme` files (and their parameters) are recognised as implicitly used and no longer reported as unused/dead.
+- DocBlock code-style rule "DocBlock must be immediately followed by attributes or the documented declaration", with a quick fix that removes blank lines between a docblock and the declaration it documents.
+
 ### Fixed
 
 - Resolving whether a method is implicitly used as a service factory (used by every method during every highlighting pass) no longer parses every `*.services.yml` file in the project on each call. Service factory methods are now served from a dedicated file-based index, removing a per-method, per-pass whole-project PSI sweep.

@@ -82,7 +82,7 @@ class FieldPluginConfigUsageIndex : FileBasedIndexExtension<String, String>() {
                 fileName.endsWith(".yml")
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<String> = EnumeratorStringDescriptor.INSTANCE
 
