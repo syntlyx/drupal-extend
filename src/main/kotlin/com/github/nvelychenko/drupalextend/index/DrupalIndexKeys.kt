@@ -3,6 +3,7 @@ package com.github.nvelychenko.drupalextend.index
 import com.github.nvelychenko.drupalextend.index.types.ContentEntity
 import com.github.nvelychenko.drupalextend.index.types.DrupalContentEntity
 import com.github.nvelychenko.drupalextend.index.types.DrupalField
+import com.github.nvelychenko.drupalextend.index.types.DrupalFieldPluginDefinition
 import com.github.nvelychenko.drupalextend.index.types.DrupalFieldType
 import com.github.nvelychenko.drupalextend.index.types.DrupalRoute
 import com.github.nvelychenko.drupalextend.index.types.DrupalTheme
@@ -23,6 +24,12 @@ val FIELDS_INDEX_KEY: ID<String, DrupalField> =
 
 val FIELD_TYPE_INDEX_KEY: ID<String, DrupalFieldType> =
     ID.create("com.github.nvelychenko.drupalextend.index.field_type")
+
+val FIELD_PLUGIN_DEFINITION_INDEX_KEY: ID<String, DrupalFieldPluginDefinition> =
+    ID.create("com.github.nvelychenko.drupalextend.index.field_plugin_definition")
+
+val FIELD_PLUGIN_CONFIG_USAGE_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.field_plugin_config_usage")
 
 val HOOK_ATTRIBUTES_INDEX_KEY: ID<String, String> =
     ID.create("com.github.nvelychenko.drupalextend.index.hook_attributes")

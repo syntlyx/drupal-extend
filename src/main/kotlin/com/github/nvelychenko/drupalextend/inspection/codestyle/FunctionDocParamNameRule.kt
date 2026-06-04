@@ -17,16 +17,21 @@ internal object FunctionDocParamNameRule : DrupalCodeStyleRule {
         if (function.isClosure) return
 
         val docComment = function.docComment ?: return
-        val paramLines = docComment.drupalDocBlockLines().filter { it.tagName() == "param" }
-        paramLines.forEachIndexed { index, line ->
-            if (line.hasParamName()) return@forEachIndexed
-            val parameterName = function.parameters.getOrNull(index)?.phpDocVariableName() ?: return@forEachIndexed
+        val lines = docComment.drupalDocBlockLines()
+        var paramIndex = 0
+        lines.forEachIndexed { lineIndex, line ->
+            if (line.tagName() != "param") return@forEachIndexed
+
+            val currentParamIndex = paramIndex
+            paramIndex++
+            if (lines.paramTagHasName(lineIndex)) return@forEachIndexed
+            val parameterName = function.parameters.getOrNull(currentParamIndex)?.phpDocVariableName() ?: return@forEachIndexed
 
             context.registerDocBlockProblem(
                 docComment,
                 line,
                 "@param tag is missing parameter name '$parameterName'",
-                insertMissingParamNameFix(index, parameterName)
+                insertMissingParamNameFix(currentParamIndex, parameterName)
             )
         }
     }
@@ -35,25 +40,17 @@ internal object FunctionDocParamNameRule : DrupalCodeStyleRule {
         return DrupalCodeStyleTextEditQuickFix("Insert missing @param name") { _, descriptor ->
             val docComment = descriptor.psiElement as? com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-            val line = docComment.drupalDocBlockLines()
-                .filter { it.tagName() == "param" }
+            val lines = docComment.drupalDocBlockLines()
+            val lineIndex = lines.indices
+                .filter { lines[it].tagName() == "param" }
                 .getOrNull(paramIndex)
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-            if (line.hasParamName()) return@DrupalCodeStyleTextEditQuickFix emptyList()
+            if (lines.paramTagHasName(lineIndex)) return@DrupalCodeStyleTextEditQuickFix emptyList()
 
-            val insertOffset = line.paramTypeEndOffset() ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
+            val insertOffset = lines.paramTagNameInsertOffset(lineIndex)
+                ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             listOf(TextEdit(docComment.textRange.startOffset + insertOffset, " $parameterName"))
         }
-    }
-
-    private fun DrupalDocBlockLine.hasParamName(): Boolean {
-        return paramTag()?.name?.let {
-            it.startsWith("\$") || it.startsWith("...\$") || it.startsWith("&\$")
-        } == true
-    }
-
-    private fun DrupalDocBlockLine.paramTypeEndOffset(): Int? {
-        return paramTag()?.let { trimmedContentStartOffset() + it.typeEndOffset }
     }
 
     private fun com.jetbrains.php.lang.psi.elements.Parameter.phpDocVariableName(): String {

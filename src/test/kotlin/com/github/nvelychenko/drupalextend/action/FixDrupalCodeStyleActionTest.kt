@@ -2,6 +2,7 @@ package com.github.nvelychenko.drupalextend.action
 
 import com.github.nvelychenko.drupalextend.inspection.codestyle.DrupalCodeStyleFileFixer
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
@@ -10,6 +11,10 @@ class FixDrupalCodeStyleActionTest : BasePlatformTestCase() {
         super.setUp()
         project.drupalExtendSettings.isEnabled = true
         project.drupalExtendSettings.isCodeStyleLinterEnabled = true
+    }
+
+    fun testActionUpdateRunsInBackgroundThread() {
+        assertEquals(ActionUpdateThread.BGT, FixDrupalCodeStyleAction().actionUpdateThread)
     }
 
     fun testReformatsAndAppliesDrupalCodeStyleFixes() {

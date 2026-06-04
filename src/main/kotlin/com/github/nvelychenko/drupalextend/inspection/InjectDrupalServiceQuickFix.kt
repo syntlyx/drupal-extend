@@ -26,32 +26,59 @@ internal class InjectDrupalServiceQuickFix(
         val phpClass = serviceCall.targetClassForInjection() ?: return
         val psiFile = methodReference.containingFile ?: return
         val document = PsiDocumentManager.getInstance(project).getDocument(psiFile) ?: return
-        val classBodyStartOffset = phpClass.classBodyStartOffset() ?: return
+        val anchorOffset = phpClass.serviceInjectionAnchorOffset() ?: return
         val edits = mutableListOf<TextEdit>()
         val constructor = phpClass.ownConstructor
         val imports = PhpImportPlanner(document.text, phpClass)
         val serviceType = imports.typeName(serviceCall.serviceClass)
-        val shouldAddCreateMethod = constructor == null
-                && phpClass.findOwnMethodByName("create") == null
+        val memberIndent = phpClass.memberIndent()
+        val bodyIndent = "$memberIndent$memberIndent"
+        // Generate a create() override whenever the class is an injection target and has no own
+        // create(): without one, an added required constructor parameter has nothing supplying it.
+        val shouldAddCreateMethod = phpClass.findOwnMethodByName("create") == null
                 && phpClass.isContainerInjectionTarget()
-        val containerType = if (shouldAddCreateMethod) imports.typeName(CONTAINER_INTERFACE) else null
+        // The no-constructor path folds create() into the property+constructor text; an existing
+        // constructor needs create() emitted as a standalone member.
+        val createTypeForNewConstructor = if (shouldAddCreateMethod && constructor == null) {
+            imports.typeName(CONTAINER_INTERFACE)
+        } else {
+            null
+        }
 
+        val accessMemberName = serviceCall.propertyName
         if (phpClass.findOwnFieldByName(serviceCall.propertyName, false) == null) {
             if (constructor == null) {
                 edits += TextEdit(
-                    classBodyStartOffset,
-                    classBodyStartOffset,
-                    serviceCall.newPropertyAndConstructorText(serviceType, containerType)
+                    anchorOffset,
+                    anchorOffset,
+                    serviceCall.newPropertyAndConstructorText(serviceType, createTypeForNewConstructor, memberIndent, bodyIndent)
                 )
+            } else if (constructor.usesConstructorPromotion()) {
+                // Promoted property name == camelCase propertyName, so accessMemberName stays as-is.
+                constructor.parameterInsertionEdit(serviceCall, serviceType, promoted = true)?.let { edits += it }
             } else {
                 edits += TextEdit(
-                    classBodyStartOffset,
-                    classBodyStartOffset,
-                    serviceCall.newPropertyText(serviceType)
+                    anchorOffset,
+                    anchorOffset,
+                    serviceCall.newPropertyText(serviceType, memberIndent)
                 )
-                constructor.parameterInsertionEdit(serviceCall, serviceType)?.let { edits += it }
-                constructor.assignmentInsertionEdit(serviceCall)?.let { edits += it }
+                constructor.parameterInsertionEdit(serviceCall, serviceType, promoted = false)?.let { edits += it }
+                constructor.assignmentInsertionEdit(serviceCall, constructor.bodyStatementIndent())?.let { edits += it }
             }
+        }
+
+        if (shouldAddCreateMethod && constructor != null) {
+            // Existing constructor + no own create(): emit a create() override that supplies the new
+            // service through the container and leaves clearly-marked placeholders for the existing
+            // constructor arguments (we can't infer their container source). Place it right after the
+            // constructor — the conventional spot and an unambiguous offset.
+            val containerType = imports.typeName(CONTAINER_INTERFACE)
+            val existingParameterNames = constructor.parameters.mapNotNull { it.name.takeIf { name -> name.isNotBlank() } }
+            edits += TextEdit(
+                constructor.textRange.endOffset,
+                constructor.textRange.endOffset,
+                serviceCall.newCreateMethodText(containerType, memberIndent, bodyIndent, existingParameterNames)
+            )
         }
 
         phpClass.findOwnMethodByName("create")
@@ -62,7 +89,7 @@ internal class InjectDrupalServiceQuickFix(
         edits += TextEdit(
             methodReference.textRange.startOffset,
             methodReference.textRange.endOffset,
-            $$"$this->$${serviceCall.propertyName}"
+            $$"$this->$$accessMemberName"
         )
 
         edits.applyTo(document)

@@ -162,6 +162,41 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         })
     }
 
+    fun testPropertyHooksAreNotTreatedAsFunctions() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "ValueTrait.php",
+            """
+            <?php
+
+            /**
+             * Provides a stored value.
+             */
+            trait ValueTrait {
+              /**
+               * Stored value.
+               *
+               * @var Value
+               */
+              protected Value ${'$'}value {
+                set(Value ${'$'}value) {
+                  ${'$'}this->value = ${'$'}value;
+                }
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("Method name should use camelCase"))
+        assertFalse(descriptions.contains("Missing function doc comment"))
+        assertFalse(descriptions.contains("Expected 1 blank line before function; 0 found"))
+        assertFalse(descriptions.contains("Expected 1 blank line after function; 0 found"))
+    }
+
     fun testReportsMissingMemberVisibilityProblems() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
@@ -687,6 +722,70 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun testQuickFixAddsSummaryPunctuationBeforeClosingMarkerOnSameLine() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Builds the vehicle list<caret> */
+            final class Example {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Add DocBlock summary punctuation"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            /**
+             * Builds the vehicle list. */
+            final class Example {}
+            """.trimIndent()
+        )
+    }
+
+    fun testFullDocBlockFixKeepsCustomTagsTogether() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Runs a worker<caret>
+             *
+             * @command lv:run
+             * @aliases lv-run
+             * @option group Group id.
+             * @usage drush lv:run
+             *   Run it.
+             */
+            final class Example {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal DocBlock"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertTrue("Summary punctuation should be fixed", result.contains("Runs a worker."))
+        assertFalse(
+            "Umbrella fix must not insert blank lines between custom (Drush) tags",
+            Regex("""@(command|aliases|option)\b.*\n\s*\*\s*\n\s*\*\s*@""").containsMatchIn(result)
+        )
+    }
+
     fun testQuickFixAddsParamAndReturnDescriptionPunctuation() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
@@ -1134,7 +1233,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                * Invokes the method to update the application stage and returns an array
                * containing the event and data related to the updated stage.
                *
-               * @param \Drupal\nll_core\Application\Application ${'$'}application
+               * @param \Drupal\my_module\Application\Application ${'$'}application
                *   The application to update the stage for.
                *
                * @return array
@@ -1219,6 +1318,45 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         assertContainsElements(descriptions, "DocBlock is missing a short summary")
     }
 
+    fun testFileDocBlockDescriptionCountsAsSummary() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "my_module.module",
+            """
+            <?php
+
+            /**
+             * @file
+             * My module implementation.
+             */
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("DocBlock is missing a short summary"))
+    }
+
+    fun testReportsMissingFileDocBlockSummary() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "my_module.module",
+            """
+            <?php
+
+            /**
+             * @file
+             */
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(descriptions, "DocBlock is missing a short summary")
+    }
+
     fun testReportsMissingParamAndReturnDescriptions() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
@@ -1256,6 +1394,84 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun testDocBlockDescriptionIndentationAcceptsDrupalBulletList() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "nll_core.module",
+            """
+            <?php
+
+            /**
+             * Controls access to a node.
+             *
+             * @param \Drupal\node\NodeInterface ${'$'}node
+             *   Either a node entity or the machine name of the content type on which to
+             *   perform the access check.
+             * @param string ${'$'}op
+             *   The operation to be performed. Possible values:
+             *   - "create"
+             *   - "delete"
+             *   - "update"
+             *   - "view".
+             * @param \Drupal\Core\Session\AccountInterface ${'$'}account
+             *   The user object to perform the access check operation on.
+             *
+             * @return \Drupal\Core\Access\AccessResultInterface
+             *   The access result.
+             */
+            function nll_core_node_access(${'$'}node, string ${'$'}op, ${'$'}account) {}
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@param description must be indented by two spaces"))
+    }
+
+    fun testDocBlockDescriptionIndentationAcceptsWrappedDrupalBulletItems() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            interface SelectInterface {}
+
+            final class Example {
+              /**
+               * Applies a set of filters to a query object.
+               *
+               * @param SelectInterface ${'$'}query
+               *   The query object to which the filters will be applied.
+               * @param array ${'$'}filters
+               *   An associative array of filters where each key represents a column, and
+               *   the value is an array containing the filter specifications. Each filter
+               *   specification can include the following keys:
+               *   - type: (string) The type of filter (e.g., 'string', 'select', 'boolean',
+               *     'numeric_range', 'date_range'). Defaults to 'string'.
+               *   - value: (mixed) The value or values to filter by. The expected format
+               *     varies based on the filter type.
+               */
+              public function applyFilters(SelectInterface ${'$'}query, array ${'$'}filters): void {}
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@param description must be indented by two spaces"))
+    }
+
     fun testGenericParamTypeDoesNotReportMissingParamName() {
         project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
@@ -1289,6 +1505,53 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             .mapNotNull { it.description }
 
         assertFalse(descriptions.contains("@param tag is missing parameter name '${'$'}parents'"))
+    }
+
+    fun testMultilineArrayShapeParamTypeWithNameOnClosingLineDoesNotReportMissingNameOrDescription() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Generates an audit report for the given application data.
+               *
+               * This method processes the application information, retrieves related logs,
+               * notifications, and other relevant data, and generates a PDF report. The
+               * generated report is returned as a decoded binary string.
+               *
+               * @param array{
+               *   application: \Drupal\nll_core\Application\Application,
+               *   manager: \Drupal\nll_core\Application\ApplicationManager,
+               *   utilities: \Drupal\nll_core\Utilities\UtilitiesManager,
+               *   renderer: \Drupal\Core\Render\RendererInterface,
+               *   fs: \Drupal\Core\File\FileSystemInterface,
+               *   mailLogRepository: \Drupal\nll_core\MailManager\MailLogRepository,
+               *   db: \Drupal\nll_core\MailManager\Archive\MailLogArchiveInterface,
+               *   pathResolver: \Drupal\Core\Extension\ExtensionPathResolver
+               * } ${'$'}info
+               *
+               * @return string|null
+               *   The generated audit report as a decoded binary string.
+               */
+              public function generateAuditReport(array ${'$'}info): ?string {
+                return NULL;
+              }
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("@param tag is missing parameter name '${'$'}info'"))
+        assertFalse(descriptions.contains("@param tag is missing description"))
     }
 
     fun testArrayShapeReturnTypeDoesNotReportInlineDescription() {
@@ -1342,7 +1605,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
               /**
                * Generates a new token pair for the given client.
                *
-               * @param \Drupal\nll_core\OAuth\Client\ClientContext ${'$'}client
+               * @param \Drupal\my_module\OAuth\Client\ClientContext ${'$'}client
                *   The authenticated client context.
                * @param bool ${'$'}silent
                *   Whether to suppress log messages.
@@ -2232,6 +2495,127 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                */
               public function test(): string {
                 return 'test2';
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testReportsBlankLineBetweenDocBlockAndDeclaration() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns stored value.
+               *
+               * @return Value
+               *   Stored value.
+               */
+
+              protected function value(): Value {
+                return ${'$'}this->value;
+              }
+
+              /**
+               * Stored value.
+               *
+               * @var Value
+               */
+
+              protected Value ${'$'}value;
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+        val message = "DocBlock must be immediately followed by attributes or the documented declaration"
+
+        assertEquals(2, descriptions.count { it == message })
+    }
+
+    fun testAllowsDocBlockImmediatelyFollowedByAttribute() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns stored value.
+               *
+               * @return Value
+               *   Stored value.
+               */
+              #[ExampleAttribute]
+              protected function value(): Value {
+                return ${'$'}this->value;
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(
+            descriptions.contains("DocBlock must be immediately followed by attributes or the documented declaration")
+        )
+    }
+
+    fun testQuickFixRemovesBlankLineBetweenDocBlockAndDeclaration() {
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns stored value.
+               *
+               * @return Value
+               *   Stored value.
+               */
+
+              protected function value(): Value {
+                return ${'$'}this->value;
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Remove blank line after DocBlock"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Returns stored value.
+               *
+               * @return Value
+               *   Stored value.
+               */
+              protected function value(): Value {
+                return ${'$'}this->value;
               }
 
             }
@@ -3225,5 +3609,73 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent()
         )
+    }
+
+    fun testDrushAnnotationTagsDoNotTriggerTagGroupSpacingWarning() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * List vault loans.
+               *
+               * @command lv:loans
+               * @aliases lv-loans
+               * @option status Filter by loan status.
+               * @option limit Maximum number of results.
+               * @usage lv:loans --status=active
+               *   List all active loans.
+               */
+              public function loans(): void {}
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("DocBlock tag groups must be separated by a blank line"))
+    }
+
+    fun testParamImmediatelyFollowedByReturnStillReportsTagGroupSpacingWarning() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            final class Example {
+              /**
+               * Finds a loan by ID.
+               *
+               * @param string ${'$'}id
+               *   The loan ID.
+               * @return array
+               *   The loan data.
+               */
+              public function find(string ${'$'}id): array {
+                return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(descriptions, "DocBlock tag groups must be separated by a blank line")
     }
 }

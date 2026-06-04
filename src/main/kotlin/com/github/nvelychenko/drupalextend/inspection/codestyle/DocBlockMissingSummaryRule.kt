@@ -16,7 +16,7 @@ internal object DocBlockMissingSummaryRule : DrupalCodeStyleRule {
         if (docComment.isInlineVariableDocBlock()) return
 
         val lines = docComment.drupalDocBlockLines()
-        val summaryArea = lines.takeWhile { !it.isTag }
+        val summaryArea = lines.docBlockSummaryLines()
         if (summaryArea.any { it.isSummaryLine(allowInheritDoc = true) }) return
 
         val anchor = lines.firstOrNull { it.isTag } ?: lines.firstOrNull() ?: return

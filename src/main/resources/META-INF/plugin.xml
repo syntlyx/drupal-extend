@@ -19,6 +19,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldTypeIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldPluginDefinitionIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldPluginConfigUsageIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ConfigEntityIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ThemeIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldsIndex"/>
@@ -30,6 +32,7 @@
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ServicesIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.RoutesIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.LinksIndex"/>
+        <fileType name="PHP" extensions="install"/>
 
         <psi.referenceContributor
                 implementation="com.github.nvelychenko.drupalextend.reference.DrupalReferenceContributor"
@@ -59,6 +62,9 @@
         <gotoTargetPresentationProvider
                 implementation="com.github.nvelychenko.drupalextend.reference.DrupalYamlTargetPresentationProvider"/>
         <implicitUsageProvider implementation="com.github.nvelychenko.drupalextend.usage.DrupalImplicitUsageProvider"/>
+        <lang.inspectionSuppressor
+                language="PHP"
+                implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalPhpInspectionSuppressor"/>
 
         <annotator language="PHP" implementationClass="com.github.nvelychenko.drupalextend.psi.RenderElementAnnotator"/>
         <localInspection language="yaml"
@@ -135,6 +141,7 @@
     <extensions defaultExtensionNs="com.intellij.json">
         <catalog.exclusion implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaCatalogExclusion"/>
         <jsonSchemaGotoDeclarationSuppressor implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaGotoDeclarationSuppressor"/>
+        <jsonSchemaGotoDeclarationSuppressor implementation="com.github.nvelychenko.drupalextend.schema.DrupalRoutesSchemaGotoDeclarationSuppressor"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.jetbrains.php">

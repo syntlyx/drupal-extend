@@ -102,11 +102,13 @@ private fun List<String>.withMissingParamNames(
     if (!settings.isCodeStyleDocBlockMissingParamNameEnabled || function == null) return this
 
     var paramIndex = 0
-    return map { line ->
-        if (line.tagName() != "param") return@map line
+    return mapIndexed { index, line ->
+        if (line.tagName() != "param") return@mapIndexed line
 
         val parameterName = function.parameters.getOrNull(paramIndex)?.phpDocVariableName()
         paramIndex++
+        if (hasParamNameAt(index)) return@mapIndexed line
+
         parameterName?.let { line.withParamName(it) } ?: line
     }
 }
@@ -261,6 +263,38 @@ private fun String.withParamName(parameterName: String): String {
     return substring(0, tag.typeEndOffset) + " $parameterName" + substring(tag.typeEndOffset)
 }
 
+private fun List<String>.hasParamNameAt(index: Int): Boolean {
+    val line = getOrNull(index)?.takeIf { it.tagName() == "param" } ?: return false
+    if (line.drupalDocBlockParamTag()?.name?.isParamName() == true) return true
+
+    return multilineParamName(index)?.isParamName() == true
+}
+
+private fun List<String>.multilineParamName(index: Int): String? {
+    var typeBalance = getOrNull(index)
+        ?.drupalDocBlockParamTag()
+        ?.type
+        ?.docBlockTypeNestingBalance()
+        ?: return null
+    if (typeBalance <= 0) return null
+
+    ((index + 1) until size).forEach { lineIndex ->
+        val line = get(lineIndex)
+        if (line.isTag() || line.isBlank()) return null
+
+        val result = line.trim().consumeDocBlockTypeLine(typeBalance)
+        typeBalance = result.balance
+        val typeEndOffset = result.typeEndOffset ?: return@forEach
+        return line.trim()
+            .substring(typeEndOffset)
+            .trimStart()
+            .split(Regex("""\s+"""), limit = 2)
+            .first()
+    }
+
+    return null
+}
+
 private fun String.splitInlineDescription(): List<String>? {
     if (tagName() == "param") {
         val tag = drupalDocBlockParamTag() ?: return null
@@ -301,7 +335,9 @@ private fun String.tagGroup(): String? {
         "throws", "throw" -> "throws"
         "deprecated", "see" -> "deprecated_see"
         null -> null
-        else -> tagName
+        // Mirror DrupalDocBlockLine.tagGroup(): all custom/unknown tags share one "other" group so
+        // the umbrella fix does not insert blank lines between e.g. Drush @command/@option/@usage.
+        else -> "other"
     }
 }
 
@@ -363,11 +399,15 @@ private fun String.expectedDescriptionIndentation(previousDescriptionLine: Strin
     val previousIndent = previousDescriptionLine?.descriptionIndentationWidth() ?: DESCRIPTION_INDENT.length
     val trimmed = trim()
 
-    if (trimmed.startsWith("- ") && previousDescriptionLine?.trimEnd()?.endsWith(":") == true) {
-        return " ".repeat(previousIndent + DESCRIPTION_INDENT.length)
+    if (trimmed.startsWith("- ") && previousDescriptionLine?.trimStart()?.startsWith("- ") == true) {
+        return " ".repeat(previousIndent)
     }
 
-    if (trimmed.startsWith("- ") && previousDescriptionLine?.trimStart()?.startsWith("- ") == true) {
+    if (trimmed.startsWith("- ") && previousDescriptionLine?.trimEnd()?.endsWith(":") == true) {
+        if (currentIndent == previousIndent || currentIndent == previousIndent + DESCRIPTION_INDENT.length) {
+            return " ".repeat(currentIndent)
+        }
+
         return " ".repeat(previousIndent)
     }
 

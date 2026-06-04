@@ -254,6 +254,319 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun testQuickFixKeepsTraitUseFirstWhenInjectingNewConstructor() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addSampleService()
+        addStringTranslationTrait()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            use Drupal\Core\StringTranslation\StringTranslationTrait;
+
+            class ExampleController {
+              use StringTranslationTrait;
+
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        val traitOffset = result.indexOf("use StringTranslationTrait;")
+        val propertyOffset = result.indexOf($$"protected SampleManager $sampleManager;")
+        val constructorOffset = result.indexOf("public function __construct(")
+        assertTrue("Expected trait use to remain present", traitOffset >= 0)
+        assertTrue("Expected injected property to be present", propertyOffset >= 0)
+        assertTrue("Expected injected constructor to be present", constructorOffset >= 0)
+        assertTrue("Expected trait use to stay before the injected property", traitOffset < propertyOffset)
+        assertTrue("Expected trait use to stay before the injected constructor", traitOffset < constructorOffset)
+    }
+
+    fun testQuickFixAddsPromotedParameterToExistingPromotedConstructor() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addSampleService()
+        addFooService()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            class ExampleController {
+              public function __construct(private Foo $foo) {}
+
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertContainsText(result, $$"__construct(private Foo $foo, protected SampleManager $sampleManager)")
+        assertContainsText(result, $$"$label = $this->sampleManager->label();")
+        assertFalse(
+            "Promoted constructor must not get a separate property field",
+            result.contains($$"protected SampleManager $sampleManager;")
+        )
+        assertFalse(
+            "Promoted constructor must not get a separate assignment",
+            result.contains($$"$this->sampleManager = $sample_manager;")
+        )
+    }
+
+    fun testQuickFixAppendsParameterToMultilineClassicConstructorWithTrailingComma() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addSampleService()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            class ExampleController {
+              protected string $label;
+
+              public function __construct(
+                string $label,
+              ) {
+                $this->label = $label;
+              }
+
+              public function build(): array {
+                $value = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $value];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertFalse("Must not produce a double comma", result.contains(",,"))
+        assertContainsText(result, $$"protected SampleManager $sampleManager;")
+        assertContainsText(result, $$"string $label,")
+        assertContainsText(result, $$"SampleManager $sample_manager,")
+        assertContainsText(result, $$"$this->sampleManager = $sample_manager;")
+        assertContainsText(result, $$"$value = $this->sampleManager->label();")
+    }
+
+    fun testQuickFixPlacesMembersInBodyWhenClassAttributeContainsBrace() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addSampleService()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            #[\Some\Attr('{x}')]
+            class ExampleController {
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        // The injected members must land inside the class body, never inside the attribute.
+        val attributeOffset = result.indexOf("#[\\Some\\Attr('{x}')]")
+        val classBraceOffset = result.indexOf("class ExampleController {")
+        val propertyOffset = result.indexOf($$"protected SampleManager $sampleManager;")
+        val constructorOffset = result.indexOf("public function __construct(")
+        assertTrue("Expected attribute to remain present", attributeOffset >= 0)
+        assertTrue("Expected class declaration to remain present", classBraceOffset >= 0)
+        assertTrue("Expected injected property to be present", propertyOffset >= 0)
+        assertTrue("Expected injected constructor to be present", constructorOffset >= 0)
+        assertTrue("Property must be inside the class body, after the opening brace", propertyOffset > classBraceOffset)
+        assertTrue("Constructor must be inside the class body, after the opening brace", constructorOffset > classBraceOffset)
+        // The attribute must be left untouched (no member text injected into it).
+        assertContainsText(result, "#[\\Some\\Attr('{x}')]\nclass ExampleController {")
+    }
+
+    fun testQuickFixGeneratesCreateForExistingParameterlessConstructor() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addControllerBaseClass()
+        addContainerInterface()
+        addSampleService()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            use Drupal\Core\Controller\ControllerBase;
+
+            class ExampleController extends ControllerBase {
+              public function __construct() {
+              }
+
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertContainsText(result, "use Symfony\\Component\\DependencyInjection\\ContainerInterface;")
+        assertContainsText(result, $$"public function __construct(SampleManager $sample_manager) {")
+        assertContainsText(result, "public static function create(ContainerInterface \$container): static {")
+        assertContainsText(result, "return new static(")
+        assertContainsText(result, $$"$container->get('my_module.sample_manager'),")
+        // Parameterless constructor → clean create(), no TODO placeholders.
+        assertFalse("Parameterless constructor must not produce a TODO", result.contains("TODO"))
+        assertFalse("Parameterless constructor must not produce a null placeholder", result.contains("null /*"))
+        assertContainsText(result, $$"$label = $this->sampleManager->label();")
+    }
+
+    fun testQuickFixGeneratesCreateWithTodoForExistingConstructorWithParam() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addControllerBaseClass()
+        addContainerInterface()
+        addSampleService()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            use Drupal\Core\Controller\ControllerBase;
+
+            class ExampleController extends ControllerBase {
+              protected string $label;
+
+              public function __construct(string $label) {
+                $this->label = $label;
+              }
+
+              public function build(): array {
+                $value = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $value];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertContainsText(result, $$"__construct(string $label, SampleManager $sample_manager) {")
+        assertContainsText(result, "public static function create(ContainerInterface \$container): static {")
+        assertContainsText(result, "// TODO: provide the existing constructor arguments through the container.")
+        assertContainsText(result, $$"null /* TODO: provide $label */,")
+        assertContainsText(result, $$"$container->get('my_module.sample_manager'),")
+        assertContainsText(result, $$"$value = $this->sampleManager->label();")
+    }
+
+    fun testQuickFixAddsTodoToIndirectCreateBody() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addControllerBaseClass()
+        addContainerInterface()
+        addSampleService()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            use Drupal\Core\Controller\ControllerBase;
+
+            class ExampleController extends ControllerBase {
+              protected string $label;
+
+              public function __construct(string $label) {
+                $this->label = $label;
+              }
+
+              public static function create(\Symfony\Component\DependencyInjection\ContainerInterface $container): static {
+                $instance = new static('Sample');
+                return $instance;
+              }
+
+              public function build(): array {
+                $value = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $value];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertContainsText(result, $$"__construct(string $label, SampleManager $sample_manager) {")
+        assertContainsText(
+            result,
+            $$"// TODO: pass $container->get('my_module.sample_manager') to the constructor call below."
+        )
+        // The indirect construction body must be left untouched.
+        assertContainsText(result, $$"$instance = new static('Sample');")
+        assertContainsText(result, $$"return $instance;")
+        assertContainsText(result, $$"$value = $this->sampleManager->label();")
+    }
+
     private fun assertCreateMethodQuickFix(constructorCall: String, expectedReturn: String) {
         myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
         addDrupalClass()
@@ -406,6 +719,32 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
             services:
               my_module.sample_manager:
                 class: Drupal\my_module\SampleManager
+            """.trimIndent()
+        )
+    }
+
+    private fun addStringTranslationTrait() {
+        myFixture.addFileToProject(
+            "core/lib/Drupal/Core/StringTranslation/StringTranslationTrait.php",
+            $$"""
+            <?php
+
+            namespace Drupal\Core\StringTranslation;
+
+            trait StringTranslationTrait {}
+            """.trimIndent()
+        )
+    }
+
+    private fun addFooService() {
+        myFixture.addFileToProject(
+            "modules/custom/my_module/src/Foo.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module;
+
+            class Foo {}
             """.trimIndent()
         )
     }

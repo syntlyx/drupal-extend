@@ -17,7 +17,7 @@ internal object DocBlockSummaryPunctuationRule : DrupalCodeStyleRule {
         if (docComment.isInlineVariableDocBlock()) return
 
         val summaryLine = docComment.drupalDocBlockLines()
-            .takeWhile { !it.isTag }
+            .docBlockSummaryLines()
             .lastOrNull { it.isSummaryLine() }
             ?: return
         if (summaryLine.normalizedTrimmedContent().endsWithDocBlockSentencePunctuation()) return
@@ -34,13 +34,13 @@ internal object DocBlockSummaryPunctuationRule : DrupalCodeStyleRule {
         return DrupalCodeStyleTextEditQuickFix("Add DocBlock summary punctuation") { _, descriptor ->
             val docComment = descriptor.psiElement as? PhpDocComment ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             val summaryLine = docComment.drupalDocBlockLines()
-                .takeWhile { !it.isTag }
+                .docBlockSummaryLines()
                 .lastOrNull {
                     it.isSummaryLine() && !it.normalizedTrimmedContent().endsWithDocBlockSentencePunctuation()
                 }
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
 
-            listOf(TextEdit(docComment.textRange.startOffset + summaryLine.contentEndOffset(), "."))
+            listOf(TextEdit(docComment.textRange.startOffset + summaryLine.normalizedContentEndOffset(), "."))
         }
     }
 }

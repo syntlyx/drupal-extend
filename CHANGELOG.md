@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- "Inject Drupal service into constructor" quick fix now inserts the injected property/constructor after any class-level trait `use` statements instead of before them (which produced invalid PHP).
+- "Inject Drupal service into constructor" quick fix now matches the existing constructor's style: when the constructor already uses constructor property promotion it adds a promoted parameter (no separate field/assignment); for classic constructors it appends the new parameter cleanly after the last existing parameter, preserving trailing commas and multiline signatures (no more `$foo,, $bar`). Indentation is inferred from the surrounding code.
+- Custom/unknown docblock tags (e.g. Drush annotations such as `@command`, `@aliases`, `@option`, `@usage`) no longer trigger spurious "DocBlock tag groups must be separated by a blank line" warnings. All non-standard tags are now treated as a single `other` group, so a run of mixed custom annotations is not required to be separated by blank lines. Standard groups (`@param`, `@return`, `@throws`, `@deprecated`/`@see`) are unaffected. The umbrella "Fix Drupal DocBlock" fix now follows the same grouping and no longer inserts blank lines between custom tags.
+- "Add DocBlock summary punctuation" fix no longer inserts the period after the closing `*/` (corrupting the comment) when the summary text shares its line with the comment's closing marker.
+- "Inject Drupal service into constructor" quick fix now locates the class body's opening brace via PSI instead of a raw text scan, so a class-level PHP 8 attribute whose argument contains a `{` (e.g. `#[Some\Attr('{token}')]`) no longer causes the injected property/constructor to be placed inside the attribute, producing unparseable PHP.
+- "Inject Drupal service into constructor" quick fix now generates a `create()` override for container-injection targets that already have a constructor but no own `create()` (previously the added constructor parameter had nothing supplying it, causing a runtime `ArgumentCountError`). Existing constructor arguments are emitted as clearly-marked `null /* TODO: provide $<name> */` placeholders; a parameterless constructor yields a clean `create()` with no TODO.
+- "Inject Drupal service into constructor" quick fix no longer silently leaves an own `create()` unchanged when it builds the instance indirectly (e.g. `$x = new static(...); return $x;`). It now inserts a `// TODO` pointing at the constructor call to wire the new service, while still adding the constructor parameter.
+
 ## [0.7.1] - 2026-03-12
 
 ### Fixed

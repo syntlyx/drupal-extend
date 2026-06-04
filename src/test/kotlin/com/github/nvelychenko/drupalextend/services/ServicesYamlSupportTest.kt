@@ -15,6 +15,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.indexing.FileBasedIndex
+import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.PhpClass
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -156,6 +157,37 @@ class ServicesYamlSupportTest : BasePlatformTestCase() {
             ?: error("Expected PHP class")
 
         assertTrue(DrupalImplicitUsageProvider().isImplicitUsage(phpClass))
+    }
+
+    fun testFactoryServiceMethodIsImplicitUsage() {
+        val classFile = myFixture.addFileToProject(
+            "modules/custom/my_module/src/ClientFactory.php",
+            """
+            <?php
+            namespace Drupal\my_module;
+
+            class ClientFactory {
+              public function dynamoDbClient() {}
+            }
+            """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.services.yml",
+            """
+            services:
+              aws.client_factory:
+                class: Drupal\my_module\ClientFactory
+              aws.dynamodb_client:
+                class: Aws\DynamoDb\DynamoDbClient
+                factory: ['@aws.client_factory', 'dynamoDbClient']
+            """.trimIndent()
+        )
+
+        val phpClass = PsiTreeUtil.findChildOfType(classFile, PhpClass::class.java)
+            ?: error("Expected PHP class")
+        val method = phpClass.findMethodByName("dynamoDbClient") ?: error("Expected factory method")
+
+        assertTrue(DrupalImplicitUsageProvider().isImplicitUsage(method))
     }
 
     fun testServicesYamlInspectionReportsUnknownReferencesClassesAndDuplicates() {
@@ -439,6 +471,36 @@ class ServicesYamlSupportTest : BasePlatformTestCase() {
         val resolvedKey = PsiTreeUtil.getParentOfType(reference.resolve(), YAMLKeyValue::class.java, false)
         assertEquals("config.factory", resolvedKey?.keyText)
         assertEquals("config.factory", reference.rangeInElement.substring(reference.element.text))
+    }
+
+    fun testYamlServiceFactoryMethodReferenceResolvesToPhpMethod() {
+        myFixture.addFileToProject(
+            "modules/custom/my_module/src/ClientFactory.php",
+            """
+            <?php
+            namespace Drupal\my_module;
+
+            class ClientFactory {
+              public function dynamoDbClient() {}
+            }
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "my_module.services.yml",
+            """
+            services:
+              aws.client_factory:
+                class: Drupal\my_module\ClientFactory
+              aws.dynamodb_client:
+                class: Aws\DynamoDb\DynamoDbClient
+                factory: ['@aws.client_factory', 'dynamoDb<caret>Client']
+            """.trimIndent()
+        )
+
+        val resolved = myFixture.getReferenceAtCaretPositionWithAssertion().resolve()
+
+        assertTrue(resolved is Method)
+        assertEquals("dynamoDbClient", (resolved as Method).name)
     }
 
     fun testYamlServiceDocumentationShowsClassAndDeclaration() {

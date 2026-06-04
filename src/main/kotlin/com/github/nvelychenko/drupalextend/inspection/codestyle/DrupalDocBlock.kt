@@ -17,6 +17,14 @@ internal data class DrupalDocBlockLine(
         return contentStartOffset + content.trimEnd().length
     }
 
+    /**
+     * End offset of the content excluding a trailing docblock closing marker, so text edits
+     * anchored here land before the marker even when content shares its line with the close.
+     */
+    fun normalizedContentEndOffset(): Int {
+        return contentStartOffset + content.trimEnd().removeSuffix("*/").trimEnd().length
+    }
+
     fun trimmedContentStartOffset(): Int {
         return contentStartOffset + content.indexOfFirst { !it.isWhitespace() }.coerceAtLeast(0)
     }
@@ -54,6 +62,15 @@ internal fun DrupalDocBlockLine.isSummaryLine(allowInheritDoc: Boolean = false):
     return true
 }
 
+internal fun List<DrupalDocBlockLine>.docBlockSummaryLines(): List<DrupalDocBlockLine> {
+    val firstContentIndex = indexOfFirst { !it.isOpeningLine() && !it.isClosingLine() && !it.isBlankContent }
+    if (getOrNull(firstContentIndex)?.tagName() == "file") {
+        return drop(firstContentIndex + 1).takeWhile { !it.isTag }
+    }
+
+    return takeWhile { !it.isTag }
+}
+
 internal fun String.endsWithDocBlockSentencePunctuation(): Boolean {
     return lastOrNull() in setOf('.', '!', '?', ':')
 }
@@ -74,7 +91,7 @@ internal fun DrupalDocBlockLine.tagGroup(): String? {
         "throws", "throw" -> "throws"
         "deprecated", "see" -> "deprecated_see"
         null -> null
-        else -> tagName
+        else -> "other"
     }
 }
 
@@ -136,6 +153,37 @@ internal fun List<DrupalDocBlockLine>.tagDescriptionLines(tagIndex: Int): List<D
     return continuationLines
         .drop(descriptionStartIndex)
         .filter { !it.isBlankContent && it.normalizedTrimmedContent().isNotBlank() }
+}
+
+internal fun List<DrupalDocBlockLine>.paramTagHasName(tagIndex: Int): Boolean {
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == "param" } ?: return false
+    if (tagLine.paramTag()?.name?.isParamNameToken() == true) return true
+
+    return multilineParamTagName(tagIndex) != null
+}
+
+internal fun List<DrupalDocBlockLine>.paramTagNameInsertOffset(tagIndex: Int): Int? {
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == "param" } ?: return null
+    val inlineTypeEndOffset = tagLine.paramTag()?.typeEndOffset
+    if (inlineTypeEndOffset != null && tagLine.tagTypeNestingBalance() <= 0) {
+        return tagLine.trimmedContentStartOffset() + inlineTypeEndOffset
+    }
+
+    val multilineTypeEnd = multilineParamTypeEnd(tagIndex) ?: return null
+    val line = getOrNull(multilineTypeEnd.lineIndex) ?: return null
+
+    return line.trimmedContentStartOffset() + multilineTypeEnd.offsetInTrimmedContent
+}
+
+internal fun List<DrupalDocBlockLine>.paramTagHasDescription(tagIndex: Int): Boolean {
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == "param" } ?: return false
+    if (tagLine.paramTag()?.description?.isNotBlank() == true) return true
+    if (tagDescriptionLines(tagIndex).isNotEmpty()) return true
+
+    val multilineName = multilineParamTagName(tagIndex) ?: return false
+    if (!multilineName.description.isNullOrBlank()) return true
+
+    return multilineName.lineIndex > tagIndex + 1
 }
 
 internal fun List<DrupalDocBlockLine>.tagContinuationLines(tagIndex: Int): List<DrupalDocBlockLine> {
@@ -352,6 +400,52 @@ private fun continuationDescriptionStartIndex(
     return continuationLines.size
 }
 
+private data class MultilineParamTagName(
+    val lineIndex: Int,
+    val name: String,
+    val description: String?,
+)
+
+private data class MultilineParamTypeEnd(
+    val lineIndex: Int,
+    val offsetInTrimmedContent: Int,
+)
+
+private fun List<DrupalDocBlockLine>.multilineParamTagName(tagIndex: Int): MultilineParamTagName? {
+    val typeEnd = multilineParamTypeEnd(tagIndex) ?: return null
+    val line = getOrNull(typeEnd.lineIndex) ?: return null
+    val textAfterType = line.normalizedTrimmedContent()
+        .substring(typeEnd.offsetInTrimmedContent)
+        .trimStart()
+    val nameRange = textAfterType.topLevelDocBlockTokens(0).firstOrNull() ?: return null
+    val name = textAfterType.substring(nameRange)
+    if (!name.isParamNameToken()) return null
+
+    val descriptionStart = textAfterType
+        .skipWhitespace(nameRange.endInclusive + 1)
+        .takeIf { it < textAfterType.length }
+    val description = descriptionStart?.let { textAfterType.substring(it).trim() }?.takeIf { it.isNotBlank() }
+
+    return MultilineParamTagName(typeEnd.lineIndex, name, description)
+}
+
+private fun List<DrupalDocBlockLine>.multilineParamTypeEnd(tagIndex: Int): MultilineParamTypeEnd? {
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == "param" } ?: return null
+    var typeBalance = tagLine.tagTypeNestingBalance()
+    if (typeBalance <= 0) return null
+
+    for (lineIndex in (tagIndex + 1) until size) {
+        val line = get(lineIndex)
+        if (line.isTag || line.isBlankContent) return null
+
+        val result = line.normalizedTrimmedContent().consumeDocBlockTypeLine(typeBalance)
+        typeBalance = result.balance
+        result.typeEndOffset?.let { return MultilineParamTypeEnd(lineIndex, it) }
+    }
+
+    return null
+}
+
 private fun DrupalDocBlockLine.tagTypeNestingBalance(): Int {
     return when (tagName()) {
         "param" -> paramTag()?.type?.docBlockTypeNestingBalance()
@@ -376,6 +470,26 @@ internal fun String.docBlockTypeClosingCount(maxCount: Int): Int {
     }
 
     return count
+}
+
+internal data class DocBlockTypeLineResult(
+    val balance: Int,
+    val typeEndOffset: Int?,
+)
+
+internal fun String.consumeDocBlockTypeLine(initialBalance: Int): DocBlockTypeLineResult {
+    var balance = initialBalance
+    forEachIndexed { index, char ->
+        when (char) {
+            '<', '{', '[', '(' -> balance++
+            '>', '}', ']', ')' -> {
+                if (balance > 0) balance--
+                if (balance <= 0) return DocBlockTypeLineResult(balance, index + 1)
+            }
+        }
+    }
+
+    return DocBlockTypeLineResult(balance, null)
 }
 
 private fun String.skipWhitespace(startOffset: Int): Int {

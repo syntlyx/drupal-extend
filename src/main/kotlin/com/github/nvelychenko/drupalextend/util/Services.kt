@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.indexing.FileBasedIndex
+import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 
 object Services {
@@ -57,6 +58,28 @@ object Services {
             }
     }
 
+    fun referencesMethod(project: Project, classFqn: String, methodName: String): Boolean {
+        if (!isSupportEnabled(project)) return false
+
+        val expectedClass = classFqn.normalizeServiceClassFqn()
+
+        return serviceFiles(project)
+            .flatMap { ServicesYaml.serviceFactoryMethods(it) }
+            .any { factoryMethod ->
+                factoryMethod.methodName == methodName &&
+                        factoryOwnerClassName(project, factoryMethod)?.normalizeServiceClassFqn() == expectedClass
+            }
+    }
+
+    fun factoryOwnerClassName(project: Project, factoryMethod: ServicesYaml.ServiceFactoryMethod): String? {
+        factoryMethod.ownerClassFqn?.let { return it }
+
+        val ownerServiceId = factoryMethod.ownerServiceId ?: return null
+        return className(project, ownerServiceId)
+            ?.takeIf { it.isNotBlank() }
+            ?: ownerServiceId.takeIf { it.contains("\\") }
+    }
+
     fun definition(project: Project, serviceId: String): YAMLKeyValue? {
         var serviceDefinition: YAMLKeyValue? = null
         val psiManager = PsiManager.getInstance(project)
@@ -70,5 +93,16 @@ object Services {
             .processValues(SERVICES_INDEX_KEY, serviceId, null, processor, GlobalSearchScope.allScope(project))
 
         return serviceDefinition
+    }
+
+    private fun serviceFiles(project: Project): List<YAMLFile> {
+        val index = FileBasedIndex.getInstance()
+        val scope = GlobalSearchScope.allScope(project)
+        val psiManager = PsiManager.getInstance(project)
+
+        return index.getAllProjectKeys(SERVICES_INDEX_KEY, project)
+            .flatMap { index.getContainingFiles(SERVICES_INDEX_KEY, it, scope) }
+            .distinct()
+            .mapNotNull { psiManager.findFile(it) as? YAMLFile }
     }
 }

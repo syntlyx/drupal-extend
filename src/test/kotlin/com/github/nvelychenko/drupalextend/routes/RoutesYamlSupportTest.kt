@@ -7,6 +7,7 @@ import com.github.nvelychenko.drupalextend.documentation.RoutesYamlDocumentation
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.reference.DrupalUsageTargetProvider
 import com.github.nvelychenko.drupalextend.reference.RoutesYamlGotoDeclarationHandler
+import com.github.nvelychenko.drupalextend.schema.DrupalRoutesSchemaGotoDeclarationSuppressor
 import com.github.nvelychenko.drupalextend.usage.DrupalImplicitUsageProvider
 import com.github.nvelychenko.drupalextend.util.RoutingYaml
 import com.intellij.codeInsight.completion.CompletionType
@@ -74,6 +75,34 @@ class RoutesYamlSupportTest : BasePlatformTestCase() {
         assertEquals("/application/{application}", route?.path)
         assertEquals("Drupal\\my_module\\Controller\\ApplicationController", route?.handlerClass)
         assertEquals("view", route?.handlerMethod)
+    }
+
+    fun testRouteDefinitionKeySuppressesJsonSchemaGotoDeclaration() {
+        myFixture.configureByText(
+            "my_module.routing.yml",
+            """
+            my_module.application_<caret>view:
+              path: '/application/{application}'
+            """.trimIndent()
+        )
+
+        val suppressor = DrupalRoutesSchemaGotoDeclarationSuppressor()
+
+        assertTrue(suppressor.shouldSuppressGtd(myFixture.elementAtCaret))
+    }
+
+    fun testRouteNestedKeyDoesNotSuppressJsonSchemaGotoDeclaration() {
+        myFixture.configureByText(
+            "my_module.routing.yml",
+            """
+            my_module.application_view:
+              pa<caret>th: '/application/{application}'
+            """.trimIndent()
+        )
+
+        val suppressor = DrupalRoutesSchemaGotoDeclarationSuppressor()
+
+        assertFalse(suppressor.shouldSuppressGtd(myFixture.elementAtCaret))
     }
 
     fun testRouteHandlersAreImplicitUsages() {

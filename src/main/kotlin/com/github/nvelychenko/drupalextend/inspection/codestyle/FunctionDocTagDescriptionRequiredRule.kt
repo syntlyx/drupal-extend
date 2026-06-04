@@ -20,6 +20,7 @@ internal object FunctionDocTagDescriptionRequiredRule : DrupalCodeStyleRule {
         lines.forEachIndexed { index, line ->
             val tagName = line.tagName()
             if (tagName !in REQUIRED_DESCRIPTION_TAGS) return@forEachIndexed
+            if (tagName == "param" && lines.paramTagHasDescription(index)) return@forEachIndexed
             if (line.hasInlineDescription()) return@forEachIndexed
             if (lines.tagDescriptionLines(index).isNotEmpty()) return@forEachIndexed
 

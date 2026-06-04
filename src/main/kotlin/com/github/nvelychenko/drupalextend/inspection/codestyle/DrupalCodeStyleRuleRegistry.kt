@@ -17,6 +17,7 @@ import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.ParameterList
 import com.jetbrains.php.lang.psi.elements.PhpClass
 import com.jetbrains.php.lang.psi.elements.PhpClassFieldsList
+import com.jetbrains.php.lang.psi.elements.PhpPropertyHook
 import com.jetbrains.php.lang.psi.elements.PhpSwitch
 import com.jetbrains.php.lang.psi.elements.PhpUseList
 import com.jetbrains.php.lang.parser.PhpElementTypes
@@ -48,6 +49,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(DocBlockBlankLineBeforeTagsRule, Target.DOC_BLOCK),
         register(DocBlockTagGroupSpacingRule, Target.DOC_BLOCK),
         register(DocBlockBlankLineNormalizationRule, Target.DOC_BLOCK),
+        register(DocBlockDeclarationSpacingRule, Target.DOC_BLOCK),
         register(DocBlockContentAfterOpenRule, Target.DOC_BLOCK),
         register(DocBlockMissingSummaryRule, Target.DOC_BLOCK),
         register(FunctionDocParamNameRule, Target.FUNCTION),
@@ -171,6 +173,7 @@ internal class DrupalCodeStyleRuleDispatcher(
         when (element) {
             is PhpFile -> fileRules.inspect(element, context)
             is PhpClass -> classRules.inspect(element, context)
+            is PhpPropertyHook -> Unit
             is Method -> methodRules.inspect(element, context)
             is Function -> functionRules.inspect(element, context)
             is PhpClassFieldsList -> classFieldRules.inspect(element, context)

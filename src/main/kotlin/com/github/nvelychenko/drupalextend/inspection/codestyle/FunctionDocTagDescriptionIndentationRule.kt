@@ -76,11 +76,16 @@ internal object FunctionDocTagDescriptionIndentationRule : DrupalCodeStyleRule {
     ): String {
         val currentIndent = descriptionIndentationWidth()
         val previousLine = previousDescriptionLines.lastOrNull()
-        if (isDocListItem() && previousLine?.normalizedTrimmedContent()?.endsWith(":") == true) {
-            return " ".repeat(previousLine.descriptionIndentationWidth() + DESCRIPTION_INDENT.length)
+        if (isDocListItem() && previousLine?.isDocListItem() == true) {
+            return " ".repeat(previousLine.descriptionIndentationWidth())
         }
 
-        if (isDocListItem() && previousLine?.isDocListItem() == true) {
+        if (isDocListItem() && previousLine?.normalizedTrimmedContent()?.endsWith(":") == true) {
+            val previousIndent = previousLine.descriptionIndentationWidth()
+            if (currentIndent == previousIndent || currentIndent == previousIndent + DESCRIPTION_INDENT.length) {
+                return " ".repeat(currentIndent)
+            }
+
             return " ".repeat(previousLine.descriptionIndentationWidth())
         }
 
@@ -88,7 +93,33 @@ internal object FunctionDocTagDescriptionIndentationRule : DrupalCodeStyleRule {
             return " ".repeat(currentIndent)
         }
 
+        val listItemContinuationIndentation = listItemContinuationIndentation(previousDescriptionLines)
+        if (listItemContinuationIndentation != null) {
+            return listItemContinuationIndentation
+        }
+
         return DESCRIPTION_INDENT
+    }
+
+    private fun DrupalDocBlockLine.listItemContinuationIndentation(
+        previousDescriptionLines: List<DrupalDocBlockLine>,
+    ): String? {
+        val currentIndent = descriptionIndentationWidth()
+        if (currentIndent < DESCRIPTION_INDENT.length * 2) return null
+
+        val listItemIndent = currentIndent - DESCRIPTION_INDENT.length
+        previousDescriptionLines.asReversed().forEach { previousLine ->
+            val previousIndent = previousLine.descriptionIndentationWidth()
+            if (previousLine.isDocListItem() && previousIndent == listItemIndent) {
+                return " ".repeat(currentIndent)
+            }
+
+            if (previousIndent <= listItemIndent) {
+                return null
+            }
+        }
+
+        return null
     }
 
     private fun DrupalDocBlockLine.descriptionIndentationWidth(): Int {

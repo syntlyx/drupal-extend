@@ -6,9 +6,11 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.yaml.psi.YAMLKeyValue
+import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
+import org.jetbrains.yaml.psi.YAMLSequenceItem
 import org.jetbrains.yaml.psi.YAMLValue
 
 object ServicesYaml {
@@ -64,6 +66,11 @@ object ServicesYaml {
         val startOffset = valueStart + serviceIdStart
 
         return TextRange(startOffset, startOffset + serviceId.length)
+    }
+
+    fun scalarTextValueRange(scalar: YAMLScalar, textValue: String): TextRange {
+        val valueStart = scalar.text.indexOf(textValue).takeIf { it >= 0 } ?: 0
+        return TextRange(valueStart, valueStart + textValue.length)
     }
 
     fun isKey(scalar: YAMLScalar): Boolean {
@@ -130,6 +137,108 @@ object ServicesYaml {
         )
     }
 
+    fun serviceFactoryMethods(yamlFile: YAMLFile?): List<ServiceFactoryMethod> {
+        val servicesMapping = servicesMapping(PsiTreeUtil.findChildOfType(yamlFile, YAMLMapping::class.java))
+            ?: return emptyList()
+
+        return servicesMapping.keyValues
+            .mapNotNull(::serviceFactoryMethod)
+    }
+
+    fun serviceFactoryMethod(serviceDefinition: YAMLKeyValue): ServiceFactoryMethod? {
+        if (!isServiceDefinition(serviceDefinition)) return null
+
+        val serviceMapping = serviceDefinition.value as? YAMLMapping ?: return null
+        val factoryValue = serviceMapping.keyValues.firstOrNull { it.keyText == "factory" }?.value
+            ?: return null
+
+        return when (factoryValue) {
+            is YAMLSequence -> factorySequenceMethod(factoryValue)
+            is YAMLScalar -> factoryScalarMethod(factoryValue)
+            else -> null
+        }
+    }
+
+    fun serviceFactoryMethodFromMethodScalar(scalar: YAMLScalar): ServiceFactoryMethod? {
+        return factorySequenceMethodFromScalar(scalar)
+            ?: factoryScalarMethod(scalar)
+    }
+
+    private fun factorySequenceMethodFromScalar(scalar: YAMLScalar): ServiceFactoryMethod? {
+        val sequenceItem = scalar.parent as? YAMLSequenceItem ?: return null
+        if (sequenceItem.value != scalar) return null
+
+        val sequence = sequenceItem.parent as? YAMLSequence ?: return null
+        return factorySequenceMethod(sequence, scalar)
+    }
+
+    private fun factorySequenceMethod(
+        sequence: YAMLSequence,
+        expectedMethodScalar: YAMLScalar? = null
+    ): ServiceFactoryMethod? {
+        val factoryKey = sequence.parent as? YAMLKeyValue ?: return null
+        if (!isServiceFactoryKey(factoryKey, sequence)) return null
+
+        val scalars = sequence.items
+            .mapNotNull { it.value as? YAMLScalar }
+        if (scalars.size < 2) return null
+
+        val methodScalar = scalars[1]
+        if (expectedMethodScalar != null && methodScalar != expectedMethodScalar) return null
+
+        val ownerValue = scalars[0].textValue.trim()
+        val methodName = methodScalar.textValue.trim()
+        if (methodName.isBlank() || methodName.contains("%")) return null
+
+        val ownerServiceId = serviceIdFromReferenceValue(ownerValue)
+        val ownerClassFqn = if (ownerServiceId == null) ownerValue.toFactoryClassFqn() else null
+        if (ownerServiceId == null && ownerClassFqn == null) return null
+
+        return ServiceFactoryMethod(
+            ownerServiceId = ownerServiceId,
+            ownerClassFqn = ownerClassFqn,
+            methodName = methodName,
+            methodTextRange = scalarTextValueRange(methodScalar, methodName),
+        )
+    }
+
+    private fun factoryScalarMethod(scalar: YAMLScalar): ServiceFactoryMethod? {
+        val factoryKey = scalar.parent as? YAMLKeyValue ?: return null
+        if (!isServiceFactoryKey(factoryKey, scalar)) return null
+
+        val textValue = scalar.textValue.trim()
+        val classFqn = textValue.substringBefore("::").toFactoryClassFqn() ?: return null
+        val methodName = textValue.substringAfter("::", "").trim()
+        if (methodName.isBlank() || methodName.contains("%")) return null
+
+        val valueRange = scalarTextValueRange(scalar, textValue)
+        val methodStart = textValue.indexOf("::") + 2
+
+        return ServiceFactoryMethod(
+            ownerServiceId = null,
+            ownerClassFqn = classFqn,
+            methodName = methodName,
+            methodTextRange = TextRange(
+                valueRange.startOffset + methodStart,
+                valueRange.startOffset + methodStart + methodName.length
+            ),
+        )
+    }
+
+    private fun isServiceFactoryKey(keyValue: YAMLKeyValue, value: YAMLValue): Boolean {
+        return keyValue.keyText == "factory"
+                && keyValue.value == value
+                && keyValue.keyPath.startsWith("services.")
+    }
+
+    private fun String.toFactoryClassFqn(): String? {
+        val classFqn = trim().substringBefore("::").trim()
+        if (classFqn.isBlank()) return null
+        if (classFqn.startsWith("@") || classFqn.contains("%")) return null
+
+        return classFqn
+    }
+
     fun serviceDefinitionFromKeyElement(element: PsiElement): YAMLKeyValue? {
         if (!isServicesFileName(element.containingFile?.virtualFile?.name)) return null
 
@@ -151,5 +260,12 @@ object ServicesYaml {
     data class ServiceArgument(
         val value: YAMLValue,
         val textValue: String?,
+    )
+
+    data class ServiceFactoryMethod(
+        val ownerServiceId: String?,
+        val ownerClassFqn: String?,
+        val methodName: String,
+        val methodTextRange: TextRange,
     )
 }

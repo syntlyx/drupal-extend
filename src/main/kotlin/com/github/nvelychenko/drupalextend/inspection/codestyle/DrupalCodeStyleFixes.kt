@@ -85,6 +85,11 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
     PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
         .mapNotNullTo(edits) { it.fullDocBlockFixEdit(settings) }
 
+    if (settings.isCodeStyleDocBlockBlankLineNormalizationEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
+            .mapNotNullTo(edits) { it.declarationSpacingEdit(document) }
+    }
+
     if (settings.isCodeStyleConstantCasingEnabled) {
         edits += constantCasingEdits()
     }
