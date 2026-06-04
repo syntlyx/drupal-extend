@@ -249,6 +249,78 @@ class DrupalImplicitUsageProviderTest : BasePlatformTestCase() {
         assertTrue(usageProvider.isImplicitUsage(formatterFile.phpClass("LoanDebtSettlementAccountsDefaultFormatter")))
     }
 
+    fun testFactoryMethodIsImplicitUsageViaInlineClassFactory() {
+        val classFile = myFixture.addFileToProject(
+            "modules/custom/my_module/src/ConsumerFactory.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            class ConsumerFactory {
+              public static function create() {}
+
+              public function unrelated() {}
+            }
+            """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.services.yml",
+            """
+            services:
+              sample.consumer:
+                class: Drupal\my_module\Consumer
+                factory: Drupal\my_module\ConsumerFactory::create
+            """.trimIndent()
+        )
+
+        val phpClass = classFile.phpClass("ConsumerFactory")
+        val usageProvider = DrupalImplicitUsageProvider()
+
+        val createMethod = phpClass.findMethodByName("create") ?: error("Expected create method")
+        val unrelatedMethod = phpClass.findMethodByName("unrelated") ?: error("Expected unrelated method")
+
+        assertTrue(usageProvider.isImplicitUsage(createMethod))
+        assertFalse(usageProvider.isImplicitUsage(unrelatedMethod))
+    }
+
+    fun testFactoryMethodIsImplicitUsageViaServiceReferenceFactory() {
+        val classFile = myFixture.addFileToProject(
+            "modules/custom/my_module/src/ClientFactory.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            class ClientFactory {
+              public function dynamoDbClient() {}
+
+              public function unrelated() {}
+            }
+            """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.services.yml",
+            """
+            services:
+              aws.client_factory:
+                class: Drupal\my_module\ClientFactory
+              aws.dynamodb_client:
+                class: Aws\DynamoDb\DynamoDbClient
+                factory: ['@aws.client_factory', 'dynamoDbClient']
+            """.trimIndent()
+        )
+
+        val phpClass = classFile.phpClass("ClientFactory")
+        val usageProvider = DrupalImplicitUsageProvider()
+
+        val factoryMethod = phpClass.findMethodByName("dynamoDbClient") ?: error("Expected factory method")
+        val unrelatedMethod = phpClass.findMethodByName("unrelated") ?: error("Expected unrelated method")
+
+        assertTrue(usageProvider.isImplicitUsage(factoryMethod))
+        assertFalse(usageProvider.isImplicitUsage(unrelatedMethod))
+    }
+
     private fun PsiFile.phpFunction(name: String): PhpFunction {
         return PsiTreeUtil.findChildrenOfType(this, PhpFunction::class.java)
             .firstOrNull { it.name == name }

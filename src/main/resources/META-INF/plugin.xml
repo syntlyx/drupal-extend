@@ -30,6 +30,7 @@
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.LibrariesIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.PermissionsIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ServicesIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ServiceFactoryIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.RoutesIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.LinksIndex"/>
         <fileType name="PHP" extensions="install"/>

@@ -6,6 +6,8 @@
 
 ### Fixed
 
+- Resolving whether a method is implicitly used as a service factory (used by every method during every highlighting pass) no longer parses every `*.services.yml` file in the project on each call. Service factory methods are now served from a dedicated file-based index, removing a per-method, per-pass whole-project PSI sweep.
+
 - "Inject Drupal service into constructor" quick fix now inserts the injected property/constructor after any class-level trait `use` statements instead of before them (which produced invalid PHP).
 - "Inject Drupal service into constructor" quick fix now matches the existing constructor's style: when the constructor already uses constructor property promotion it adds a promoted parameter (no separate field/assignment); for classic constructors it appends the new parameter cleanly after the last existing parameter, preserving trailing commas and multiline signatures (no more `$foo,, $bar`). Indentation is inferred from the surrounding code.
 - Custom/unknown docblock tags (e.g. Drush annotations such as `@command`, `@aliases`, `@option`, `@usage`) no longer trigger spurious "DocBlock tag groups must be separated by a blank line" warnings. All non-standard tags are now treated as a single `other` group, so a run of mixed custom annotations is not required to be separated by blank lines. Standard groups (`@param`, `@return`, `@throws`, `@deprecated`/`@see`) are unaffected. The umbrella "Fix Drupal DocBlock" fix now follows the same grouping and no longer inserts blank lines between custom tags.

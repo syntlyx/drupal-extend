@@ -17,6 +17,7 @@ fun clearPluginIndexes() {
         LIBRARIES_INDEX_KEY,
         PERMISSIONS_INDEX_KEY,
         SERVICES_INDEX_KEY,
+        SERVICE_FACTORY_INDEX_KEY,
         ROUTES_INDEX_KEY,
         LINKS_INDEX_KEY,
     ).forEach { FileBasedIndex.getInstance().requestRebuild(it) }

@@ -3,13 +3,13 @@ package com.github.nvelychenko.drupalextend.util
 import com.github.nvelychenko.drupalextend.index.*
 import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.getValue
+import com.github.nvelychenko.drupalextend.index.types.DrupalServiceFactoryOwner
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.yml.YAMLKeyValueFinder
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.indexing.FileBasedIndex
-import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 
 object Services {
@@ -63,21 +63,28 @@ object Services {
 
         val expectedClass = classFqn.normalizeServiceClassFqn()
 
-        return serviceFiles(project)
-            .flatMap { ServicesYaml.serviceFactoryMethods(it) }
-            .any { factoryMethod ->
-                factoryMethod.methodName == methodName &&
-                        factoryOwnerClassName(project, factoryMethod)?.normalizeServiceClassFqn() == expectedClass
+        return FileBasedIndex.getInstance()
+            .getValues(SERVICE_FACTORY_INDEX_KEY, methodName, GlobalSearchScope.allScope(project))
+            .flatMap { it.owners }
+            .any { owner ->
+                factoryOwnerClassName(project, owner)?.normalizeServiceClassFqn() == expectedClass
             }
     }
 
-    fun factoryOwnerClassName(project: Project, factoryMethod: ServicesYaml.ServiceFactoryMethod): String? {
-        factoryMethod.ownerClassFqn?.let { return it }
+    fun factoryOwnerClassName(project: Project, owner: DrupalServiceFactoryOwner): String? {
+        owner.ownerClassFqn?.let { return it }
 
-        val ownerServiceId = factoryMethod.ownerServiceId ?: return null
+        val ownerServiceId = owner.ownerServiceId ?: return null
         return className(project, ownerServiceId)
             ?.takeIf { it.isNotBlank() }
             ?: ownerServiceId.takeIf { it.contains("\\") }
+    }
+
+    fun factoryOwnerClassName(project: Project, factoryMethod: ServicesYaml.ServiceFactoryMethod): String? {
+        return factoryOwnerClassName(
+            project,
+            DrupalServiceFactoryOwner(factoryMethod.ownerClassFqn, factoryMethod.ownerServiceId),
+        )
     }
 
     fun definition(project: Project, serviceId: String): YAMLKeyValue? {
@@ -93,16 +100,5 @@ object Services {
             .processValues(SERVICES_INDEX_KEY, serviceId, null, processor, GlobalSearchScope.allScope(project))
 
         return serviceDefinition
-    }
-
-    private fun serviceFiles(project: Project): List<YAMLFile> {
-        val index = FileBasedIndex.getInstance()
-        val scope = GlobalSearchScope.allScope(project)
-        val psiManager = PsiManager.getInstance(project)
-
-        return index.getAllProjectKeys(SERVICES_INDEX_KEY, project)
-            .flatMap { index.getContainingFiles(SERVICES_INDEX_KEY, it, scope) }
-            .distinct()
-            .mapNotNull { psiManager.findFile(it) as? YAMLFile }
     }
 }
