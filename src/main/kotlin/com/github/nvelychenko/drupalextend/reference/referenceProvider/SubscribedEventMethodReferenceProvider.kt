@@ -18,13 +18,15 @@ import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 class SubscribedEventMethodReferenceProvider : PsiReferenceProvider() {
 
     override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<PsiReference> {
-        if (!element.project.drupalExtendSettings.isEnabled) return emptyArray()
-
+        // Pure-PSI gates first; the settings service lookup runs only for literals inside a
+        // getSubscribedEvents method (this provider sees every string literal).
         val literal = element as? StringLiteralExpression ?: return emptyArray()
         if (literal.contents.isEmpty()) return emptyArray()
 
         val method = PsiTreeUtil.getParentOfType(literal, Method::class.java) ?: return emptyArray()
         if (method.name != SUBSCRIBED_EVENTS_METHOD) return emptyArray()
+
+        if (!literal.project.drupalExtendSettings.isEnabled) return emptyArray()
 
         val phpClass = method.containingClass ?: return emptyArray()
         // Only the class's own getSubscribedEvents registers its own handler methods.

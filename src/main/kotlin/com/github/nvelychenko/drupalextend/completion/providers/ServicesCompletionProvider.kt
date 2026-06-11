@@ -1,5 +1,6 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.util.Configs
 import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.getServiceMethodReference
 import com.github.nvelychenko.drupalextend.util.isContainerGetCall
@@ -40,6 +41,11 @@ class ServicesCompletionProvider : CompletionProvider<CompletionParameters>() {
                 serviceResultSet.addElement(lookupElement)
             }
 
-        completionResultSet.stopHere()
+        // A receiver can satisfy both the container heuristic and the config-factory heuristic
+        // (e.g. `$configFactoryContainer->get('…')`). stopHere() would silently starve the
+        // config-name provider registered after this one, so let the result set stay open then.
+        if (!Configs.isConfigNameCall(methodReference)) {
+            completionResultSet.stopHere()
+        }
     }
 }

@@ -143,7 +143,7 @@ services), while still understanding legacy annotations and procedural code.</p>
                          implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalPluginAttributeInspection"/>
         <localInspection language="PHP"
                          shortName="DrupalTranslationPlaceholder"
-                         displayName="Translation placeholder/argument mismatch"
+                         displayName="Drupal translation placeholder/argument mismatch"
                          groupName="Drupal Extend"
                          enabledByDefault="true"
                          level="WARNING"

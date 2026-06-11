@@ -68,6 +68,9 @@ class FormStateValueCompletionProvider : CompletionProvider<CompletionParameters
     private fun formKeys(literal: StringLiteralExpression): Set<String> {
         val phpClass = PsiTreeUtil.getParentOfType(literal, PhpClass::class.java)
         if (phpClass != null) {
+            // Contract: only keys written via $form['…'] in THIS class's own file are
+            // collected, so the containing-file dependency is exactly right. Keys added by
+            // parent classes or traits in other files are intentionally out of scope.
             return CachedValuesManager.getCachedValue(phpClass) {
                 CachedValueProvider.Result.create(collectFormKeys(phpClass), phpClass.containingFile)
             }

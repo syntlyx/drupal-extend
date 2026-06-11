@@ -11,16 +11,16 @@ import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
 class ConfigObjectReferenceProvider : PsiReferenceProvider() {
     override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<PsiReference> {
-        val project = element.project
-
-        if (!Configs.isSupportEnabled(project)) return PsiReference.EMPTY_ARRAY
-
+        // Pure-PSI gates first; the settings service lookup runs only for literals that are
+        // actually in a config-name position (this provider sees every string literal).
         val literal = element as? StringLiteralExpression ?: return PsiReference.EMPTY_ARRAY
         if (literal.contents.isEmpty()) return PsiReference.EMPTY_ARRAY
 
         if (!isConfigNameArgument(literal) && !Configs.isSettingsConfigOverrideName(literal)) {
             return PsiReference.EMPTY_ARRAY
         }
+
+        if (!Configs.isSupportEnabled(literal.project)) return PsiReference.EMPTY_ARRAY
 
         return arrayOf(ConfigObjectReference(literal, literal.contents, literal.contentRange()))
     }

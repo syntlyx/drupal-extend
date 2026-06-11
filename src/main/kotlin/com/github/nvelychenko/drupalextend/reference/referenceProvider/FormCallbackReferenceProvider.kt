@@ -30,8 +30,9 @@ import com.jetbrains.php.lang.psi.elements.Variable
 class FormCallbackReferenceProvider : PsiReferenceProvider() {
 
     override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<PsiReference> {
-        if (!element.project.drupalExtendSettings.isEnabled) return PsiReference.EMPTY_ARRAY
-
+        // Cast + shape gates first: highlighting feeds every string literal in the file through
+        // here, so the settings service lookup happens only for literals that pass the cheap
+        // pure-PSI checks.
         val literal = element as? StringLiteralExpression ?: return PsiReference.EMPTY_ARRAY
         val contents = literal.contents
         if (contents.isEmpty()) return PsiReference.EMPTY_ARRAY
@@ -40,6 +41,8 @@ class FormCallbackReferenceProvider : PsiReferenceProvider() {
         // chain leads into an ArrayCreationExpression) or the RHS of an `$x[...][] = '...'` assign.
         // Everything else (the common case) is rejected before any walking.
         if (!underCallbackKey(literal)) return PsiReference.EMPTY_ARRAY
+
+        if (!literal.project.drupalExtendSettings.isEnabled) return PsiReference.EMPTY_ARRAY
 
         val reference = buildReference(literal, contents) ?: return PsiReference.EMPTY_ARRAY
         return arrayOf(reference)
@@ -51,9 +54,11 @@ class FormCallbackReferenceProvider : PsiReferenceProvider() {
      * `$form['#submit'][] = '::m'`. At most a handful of parent hops, no tree scans.
      */
     private fun underCallbackKey(literal: StringLiteralExpression): Boolean {
-        // Shape A/B: literal is a value inside an array creation.
+        // Shape A/B: literal is a value inside an array creation — at most three hops away
+        // (value wrapper, optional hash element, array). A bounded climb instead of
+        // getParentOfType, which would walk to the file root for every ordinary literal.
         val arrayValue = literal.parent
-        val containingArray = PsiTreeUtil.getParentOfType(arrayValue, ArrayCreationExpression::class.java)
+        val containingArray = boundedEnclosingArrayCreation(literal)
         if (containingArray != null) {
             return arrayUnderCallbackKey(containingArray)
         }
@@ -67,6 +72,19 @@ class FormCallbackReferenceProvider : PsiReferenceProvider() {
         }
 
         return false
+    }
+
+    private fun boundedEnclosingArrayCreation(literal: StringLiteralExpression): ArrayCreationExpression? {
+        var node: PsiElement? = literal.parent
+        repeat(3) {
+            when (node) {
+                is ArrayCreationExpression -> return node
+                null -> return null
+                else -> node = node?.parent
+            }
+        }
+
+        return node as? ArrayCreationExpression
     }
 
     /**

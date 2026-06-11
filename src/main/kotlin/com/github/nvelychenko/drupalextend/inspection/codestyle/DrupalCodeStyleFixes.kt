@@ -91,12 +91,19 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
         fileDocCommentEdit()?.let { edits += it }
     }
 
+    // The @file insertion above may target the same top docblock the umbrella fix rewrites —
+    // overlapping edits corrupt the document, so later sources always filter against earlier
+    // ones (applyTo also drops overlaps defensively). The skipped fix converges on the next run.
     PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
-        .mapNotNullTo(edits) { it.fullDocBlockFixEdit(settings) }
+        .mapNotNull { it.fullDocBlockFixEdit(settings) }
+        .filterNot { docBlockEdit -> edits.any { it.overlaps(docBlockEdit) } }
+        .toCollection(edits)
 
-    if (settings.isCodeStyleDocBlockBlankLineNormalizationEnabled) {
+    if (settings.isCodeStyleDocBlockDeclarationSpacingEnabled) {
         PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
-            .mapNotNullTo(edits) { it.declarationSpacingEdit(document) }
+            .mapNotNull { it.declarationSpacingEdit(document) }
+            .filterNot { spacingEdit -> edits.any { it.overlaps(spacingEdit) } }
+            .toCollection(edits)
     }
 
     if (settings.isCodeStyleDocBlockSummaryLengthEnabled) {

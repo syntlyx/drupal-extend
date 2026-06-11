@@ -12,7 +12,7 @@ internal object DocBlockDeclarationSpacingRule : DrupalCodeStyleRule {
     override val id: String = "docblock_declaration_spacing"
 
     override fun isEnabled(settings: DrupalExtendSettings): Boolean {
-        return settings.isCodeStyleDocBlockBlankLineNormalizationEnabled
+        return settings.isCodeStyleDocBlockDeclarationSpacingEnabled
     }
 
     override fun inspect(element: PsiElement, context: DrupalCodeStyleContext) {

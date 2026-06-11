@@ -577,6 +577,18 @@ class DrupalExtendSettings :
             codeStyleFunctionDocMissingTagsSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
         }
 
+    var codeStyleDocBlockDeclarationSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockDeclarationSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockDeclarationSpacingSeverity = value.name
+        }
+
+    var isCodeStyleDocBlockDeclarationSpacingEnabled: Boolean
+        get() = codeStyleDocBlockDeclarationSpacingSeverity != DrupalCodeStyleSeverity.OFF
+        set(value) {
+            codeStyleDocBlockDeclarationSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
     var drupalCoreVersion: String
         get() = state.drupalCoreVersion.orEmpty()
         set(value) {
@@ -587,6 +599,7 @@ class DrupalExtendSettings :
         // @todo Once we will implement balloon make it false by default
         var isEnabled: Boolean by property(true)
         var drupalCoreVersion by string()
+        var codeStyleDocBlockDeclarationSpacingSeverity by string()
         var codeStyleFunctionDocMissingTagsSeverity by string()
         var codeStylePropertyNameSeverity by string()
         var codeStyleScopeKeywordSpacingSeverity by string()

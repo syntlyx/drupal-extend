@@ -10,7 +10,7 @@
 
     <localInspection language="PHP"
                      shortName="DrupalUnknownHook"
-                     displayName="Unknown hook name in #[Hook] attribute"
+                     displayName="Drupal unknown hook name in #[Hook] attribute"
                      groupName="Drupal Extend"
                      enabledByDefault="true"
                      level="WEAK WARNING"

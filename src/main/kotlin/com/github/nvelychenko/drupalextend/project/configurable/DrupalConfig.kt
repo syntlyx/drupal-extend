@@ -317,6 +317,12 @@ class DrupalConfig(
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_declaration_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockDeclarationSpacingSeverity }, { settings.codeStyleDocBlockDeclarationSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
                     row(DrupalExtendBundle.message("settings.drupal_extend.code_style_doc_block_short_types")) {
                         comboBox(DrupalCodeStyleSeverity.entries)
                             .bindItem({ settings.codeStyleDocBlockShortTypesSeverity }, { settings.codeStyleDocBlockShortTypesSeverity = it ?: DrupalCodeStyleSeverity.OFF })

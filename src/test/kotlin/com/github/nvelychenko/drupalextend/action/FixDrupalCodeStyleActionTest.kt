@@ -11,6 +11,12 @@ class FixDrupalCodeStyleActionTest : BasePlatformTestCase() {
         super.setUp()
         project.drupalExtendSettings.isEnabled = true
         project.drupalExtendSettings.isCodeStyleLinterEnabled = true
+        // The light fixture shares the settings service across test classes; per-rule tests
+        // disable rules globally, so pin every rule this test's assertions depend on.
+        project.drupalExtendSettings.isCodeStyleConstantCasingEnabled = true
+        project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
     }
 
     fun testActionUpdateRunsInBackgroundThread() {

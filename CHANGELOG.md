@@ -38,6 +38,9 @@
 
 ### Fixed
 
+- The file-wide "Fix Drupal code style" could corrupt a procedural file's top docblock when the `@file`-tag insertion and the umbrella docblock rewrite both targeted it: overlapping edits are now filtered at the aggregator AND dropped defensively in the edit applier (the skipped fix converges on the next run).
+- Service-id completion no longer hides config-name completion on receivers that look like both a container and a config factory (e.g. `$configFactoryContainer->get('…')`).
+- The "DocBlock must be immediately followed by the documented declaration" rule got its own settings entry — it was silently sharing the blank-line-normalization rule's toggle and severity.
 - "Inject Drupal service into constructor" quick fix no longer generates a `create()` override for classes whose `create()` comes from Drupal's `AutowireTrait` (used directly or inherited, e.g. via `ControllerBase` on Drupal 10.2+) — that would have replaced working autowiring with TODO placeholders. The injected constructor parameter now carries an `#[Autowire(service: '...')]` attribute instead, so the trait resolves it by service id.
 - Fixed an `ArrayIndexOutOfBoundsException` in permission references/completion when `AccessResult::allowedIfHasPermission()` is called with a single argument (normal while typing).
 - Fixed a crash in hook indexing and gutter line markers on a bare `#[Hook]` attribute with no arguments (normal while typing).

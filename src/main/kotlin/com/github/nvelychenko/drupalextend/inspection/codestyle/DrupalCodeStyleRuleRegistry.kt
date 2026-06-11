@@ -54,7 +54,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(DocBlockBlankLineBeforeTagsRule, { it.codeStyleDocBlockBlankLineBeforeTagsSeverity }, Target.DOC_BLOCK),
         register(DocBlockTagGroupSpacingRule, { it.codeStyleDocBlockTagGroupSpacingSeverity }, Target.DOC_BLOCK),
         register(DocBlockBlankLineNormalizationRule, { it.codeStyleDocBlockBlankLineNormalizationSeverity }, Target.DOC_BLOCK),
-        register(DocBlockDeclarationSpacingRule, { it.codeStyleDocBlockBlankLineNormalizationSeverity }, Target.DOC_BLOCK),
+        register(DocBlockDeclarationSpacingRule, { it.codeStyleDocBlockDeclarationSpacingSeverity }, Target.DOC_BLOCK),
         register(DocBlockContentAfterOpenRule, { it.codeStyleDocBlockContentAfterOpenSeverity }, Target.DOC_BLOCK),
         register(DocBlockMissingSummaryRule, { it.codeStyleDocBlockMissingSummarySeverity }, Target.DOC_BLOCK),
         register(FunctionDocParamNameRule, { it.codeStyleDocBlockMissingParamNameSeverity }, Target.FUNCTION),
