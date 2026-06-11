@@ -5,6 +5,7 @@ import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.documentation.ServicesYamlDocumentationProvider
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.reference.DrupalUsageTargetProvider
+import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceReference
 import com.github.nvelychenko.drupalextend.usage.DrupalImplicitUsageProvider
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.codeInsight.completion.CompletionType
@@ -17,6 +18,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.PhpClass
+import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
@@ -360,6 +362,106 @@ class ServicesYamlSupportTest : BasePlatformTestCase() {
         assertFalse(descriptions.any { it.startsWith("Missing constructor argument") })
         assertFalse(descriptions.any { it.startsWith("Too many constructor arguments") })
         assertFalse(descriptions.any { it.startsWith("Constructor argument") })
+    }
+
+    fun testAutowireAttributeServiceCompletionSuggestsIndexedServices() {
+        addAutowireAttributeClass()
+        myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.services.yml",
+            """
+            services:
+              application.view.manager:
+                class: Drupal\my_module\Application\ApplicationView
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "Consumer.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
+            class Consumer {
+              public function __construct(
+                #[Autowire(service: 'applica<caret>')] protected object $viewManager,
+              ) {}
+            }
+            """.trimIndent()
+        )
+
+        val lookupElements = myFixture.complete(CompletionType.BASIC)
+        if (lookupElements == null) {
+            // The single match was auto-inserted.
+            assertTrue(myFixture.file.text.contains("#[Autowire(service: 'application.view.manager')]"))
+            return
+        }
+
+        assertContainsElements(lookupElements.map { it.lookupString }, "application.view.manager")
+    }
+
+    fun testAutowireAttributeServiceReferenceIsProvided() {
+        addAutowireAttributeClass()
+        myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.services.yml",
+            """
+            services:
+              application.view.manager:
+                class: Drupal\my_module\Application\ApplicationView
+            """.trimIndent()
+        )
+        val file = myFixture.configureByText(
+            "Consumer.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
+            class Consumer {
+              public function __construct(
+                #[Autowire(service: 'application.view.manager')] protected object $viewManager,
+                #[Autowire('application.view.manager')] protected object $positional,
+                #[Autowire(value: 'not.a.service')] protected object $other,
+              ) {}
+            }
+            """.trimIndent()
+        )
+
+        val literals = PsiTreeUtil.findChildrenOfType(file, StringLiteralExpression::class.java)
+            .filter { it.contents == "application.view.manager" }
+        assertSize(2, literals)
+        literals.forEach { literal ->
+            assertTrue(
+                "service id arguments must get a service reference",
+                literal.references.any { it is ServiceReference }
+            )
+        }
+
+        val valueArgument = PsiTreeUtil.findChildrenOfType(file, StringLiteralExpression::class.java)
+            .single { it.contents == "not.a.service" }
+        assertFalse(
+            "other named arguments must not get a service reference",
+            valueArgument.references.any { it is ServiceReference }
+        )
+    }
+
+    private fun addAutowireAttributeClass() {
+        myFixture.addFileToProject(
+            "vendor/symfony/dependency-injection/Attribute/Autowire.php",
+            $$"""
+            <?php
+
+            namespace Symfony\Component\DependencyInjection\Attribute;
+
+            #[\Attribute(\Attribute::TARGET_PARAMETER)]
+            class Autowire {
+              public function __construct(mixed $value = null, ?string $service = null) {}
+            }
+            """.trimIndent()
+        )
     }
 
     fun testPhpDrupalServiceCompletionSuggestsIndexedServices() {

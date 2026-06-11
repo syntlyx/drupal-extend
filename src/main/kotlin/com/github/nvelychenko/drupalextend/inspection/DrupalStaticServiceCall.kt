@@ -14,9 +14,12 @@ private const val CURRENT_ROUTE_MATCH_SERVICE_ID = "current_route_match"
 private const val CURRENT_ROUTE_MATCH_TYPE = "\\Drupal\\Core\\Routing\\RouteMatchInterface"
 private const val CURRENT_USER_SERVICE_ID = "current_user"
 private const val CURRENT_USER_TYPE = "\\Drupal\\Core\\Session\\AccountProxyInterface"
+private const val CLASS_RESOLVER_SERVICE_ID = "class_resolver"
+private const val CLASS_RESOLVER_TYPE = "\\Drupal\\Core\\DependencyInjection\\ClassResolverInterface"
 private val PREFERRED_SERVICE_PROPERTY_NAMES = mapOf(
     CURRENT_ROUTE_MATCH_SERVICE_ID to "routeMatch",
     CURRENT_USER_SERVICE_ID to "currentUser",
+    CLASS_RESOLVER_SERVICE_ID to "classResolver",
 )
 
 internal data class DrupalStaticServiceCall(
@@ -44,12 +47,14 @@ internal data class DrupalStaticServiceCall(
                 "service" -> methodReference.firstStringArgument()?.contents?.trim()?.takeIf { it.isNotBlank() }
                 "routeMatch" -> CURRENT_ROUTE_MATCH_SERVICE_ID
                 "currentUser" -> CURRENT_USER_SERVICE_ID
+                "classResolver" -> CLASS_RESOLVER_SERVICE_ID
                 else -> null
             } ?: return null
 
             val serviceClass = when (methodReference.name) {
                 "routeMatch" -> serviceClassOrFallback(project, serviceId, CURRENT_ROUTE_MATCH_TYPE)
                 "currentUser" -> serviceClassOrFallback(project, serviceId, CURRENT_USER_TYPE)
+                "classResolver" -> serviceClassOrFallback(project, serviceId, CLASS_RESOLVER_TYPE)
                 else -> Services.className(project, serviceId)?.normalizeServiceClassFqn()
             }?.takeIf { it.isNotBlank() } ?: return null
             val propertyName = propertyNameFor(serviceId, serviceClass, methodReference.name)

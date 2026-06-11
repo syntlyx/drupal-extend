@@ -54,6 +54,19 @@ object Patterns {
     }
 
     /**
+     * #[SomeAttribute('blabla')]
+     *                    ↑
+     */
+    val STRING_INSIDE_ATTRIBUTE_PARAMETER: Capture<StringLiteralExpression> by lazy {
+        psiElement(StringLiteralExpression::class.java)
+            .withParent(
+                psiElement(PhpElementTypes.PARAMETER_LIST)
+                    .withParent(psiElement(PhpStubElementTypes.ATTRIBUTE))
+            )
+            .withLanguage(phpLanguage)
+    }
+
+    /**
      * $method->get('d
      *     ↑
      */

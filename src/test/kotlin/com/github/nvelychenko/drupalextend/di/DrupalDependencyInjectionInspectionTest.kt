@@ -97,6 +97,44 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun testInspectionUsesKnownFallbackForClassResolver() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        myFixture.addFileToProject(
+            "core/lib/Drupal/Core/DependencyInjection/ClassResolverInterface.php",
+            $$"""
+            <?php
+
+            namespace Drupal\Core\DependencyInjection;
+
+            interface ClassResolverInterface {}
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            class ExampleController {
+              public function build(): array {
+                $instance = \Drupal::classResolver()->getInstanceFromDefinition('foo');
+                return ['#markup' => 'x'];
+              }
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertContainsElements(
+            descriptions,
+            "Use constructor injection for service 'class_resolver'"
+        )
+    }
+
     fun testInspectionSkipsStaticMethodsAndExistingInjectedField() {
         myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
         addDrupalClass()
@@ -728,6 +766,7 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
               public static function service(string $id): object {}
               public static function routeMatch(): \Drupal\Core\Routing\RouteMatchInterface {}
               public static function currentUser(): \Drupal\Core\Session\AccountProxyInterface {}
+              public static function classResolver(): \Drupal\Core\DependencyInjection\ClassResolverInterface {}
             }
             """.trimIndent()
         )

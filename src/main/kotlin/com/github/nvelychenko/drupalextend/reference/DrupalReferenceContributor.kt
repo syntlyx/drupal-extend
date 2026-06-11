@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.reference
 
 import com.github.nvelychenko.drupalextend.patterns.Patterns.SIMPLE_ARRAY_VALUE_ASSIGNMENT
+import com.github.nvelychenko.drupalextend.patterns.Patterns.STRING_INSIDE_ATTRIBUTE_PARAMETER
 import com.github.nvelychenko.drupalextend.patterns.Patterns.STRING_INSIDE_METHOD_PARAMETER
 import com.github.nvelychenko.drupalextend.patterns.Patterns.STRING_IN_SIMPLE_ARRAY_VALUE
 import com.github.nvelychenko.drupalextend.reference.referenceProvider.*
@@ -21,6 +22,10 @@ class DrupalReferenceContributor : PsiReferenceContributor() {
         // \Drupal::service('database')
         //                  ↑
         registrar.registerReferenceProvider(STRING_INSIDE_METHOD_PARAMETER, ServicesReferenceProvider())
+
+        // #[Autowire(service: 'database')]
+        //                     ↑
+        registrar.registerReferenceProvider(STRING_INSIDE_ATTRIBUTE_PARAMETER, AutowireServiceReferenceProvider())
 
         // Url::fromRoute('entity.node.canonical')
         //                ↑

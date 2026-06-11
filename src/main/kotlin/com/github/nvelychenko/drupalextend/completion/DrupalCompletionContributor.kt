@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.completion
 
 import com.github.nvelychenko.drupalextend.completion.providers.*
+import com.github.nvelychenko.drupalextend.patterns.Patterns.HOOK_ATTRIBUTE_PARAMETER_STRING_LITERAL
 import com.github.nvelychenko.drupalextend.patterns.Patterns.LEAF_STRING_IN_SIMPLE_ARRAY_VALUE
 import com.github.nvelychenko.drupalextend.patterns.Patterns.STRING_INSIDE_ARRAY_METHOD
 import com.github.nvelychenko.drupalextend.patterns.Patterns.STRING_LEAF_IN_ARRAY_KEY_OR_ONLY_VALUE
@@ -28,6 +29,10 @@ class DrupalCompletionContributor : CompletionContributor() {
         // \Drupal::service('da|
         // $container->get('da|
         extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, ServicesCompletionProvider())
+
+        // #[Autowire(service: 'da|
+        // (the pattern matches any attribute's string parameter; the provider narrows to Autowire)
+        extend(CompletionType.BASIC, HOOK_ATTRIBUTE_PARAMETER_STRING_LITERAL, AutowireServiceCompletionProvider())
 
         // Url::fromRoute('entity.node.canonical')
         // Link::createFromRoute('entity.node.canonical')
