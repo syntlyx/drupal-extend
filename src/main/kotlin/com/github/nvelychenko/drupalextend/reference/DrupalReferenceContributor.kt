@@ -29,6 +29,13 @@ class DrupalReferenceContributor : PsiReferenceContributor() {
         //                     ↑
         registrar.registerReferenceProvider(STRING_INSIDE_ATTRIBUTE_PARAMETER, AutowireServiceReferenceProvider())
 
+        // \Drupal::config('system.site')  /  settings.php: $config['system.site']
+        // (the provider narrows to config-name positions itself)
+        registrar.registerReferenceProvider(
+            psiElement(StringLiteralExpression::class.java),
+            ConfigObjectReferenceProvider()
+        )
+
         // Url::fromRoute('entity.node.canonical')
         //                ↑
         registrar.registerReferenceProvider(STRING_INSIDE_METHOD_PARAMETER, RoutesReferenceProvider())

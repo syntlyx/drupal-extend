@@ -33,6 +33,7 @@
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ServiceFactoryIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.RoutesIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.LinksIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ConfigObjectIndex"/>
         <fileType name="PHP" extensions="install"/>
 
         <psi.referenceContributor
@@ -173,6 +174,7 @@
 
     <extensions defaultExtensionNs="com.jetbrains.php">
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.EntityStorageTypeProvider"/>
+        <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.ConfigObjectTypeProvider"/>
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.EntityFromStorageTypeProvider"/>
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.StaticContentEntityTypeProvider"/>
         <typeProvider4 implementation="com.github.nvelychenko.drupalextend.type.FieldItemListTypeProvider"/>

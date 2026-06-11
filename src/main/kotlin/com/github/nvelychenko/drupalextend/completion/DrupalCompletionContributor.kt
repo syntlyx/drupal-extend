@@ -15,6 +15,7 @@ import com.intellij.patterns.PlatformPatterns.or
 import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.psi.PsiElement
 import com.jetbrains.php.lang.PhpLanguage
+import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
 
 class DrupalCompletionContributor : CompletionContributor() {
@@ -33,6 +34,16 @@ class DrupalCompletionContributor : CompletionContributor() {
         // #[Autowire(service: 'da|
         // (the pattern matches any attribute's string parameter; the provider narrows to Autowire)
         extend(CompletionType.BASIC, HOOK_ATTRIBUTE_PARAMETER_STRING_LITERAL, AutowireServiceCompletionProvider())
+
+        // \Drupal::config('system.si|   $this->config('…')   configFactory()->getEditable('…')
+        extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, ConfigNameCompletionProvider())
+
+        // \Drupal::config('system.site')->get('page.fr|
+        extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, ConfigKeyCompletionProvider())
+
+        // settings.php: $config['system.si|']['…']  /  $settings['hash_s|']
+        // (broad string pattern; the provider bails immediately outside settings*.php files)
+        extend(CompletionType.BASIC, psiElement().withParent(StringLiteralExpression::class.java), SettingsPhpCompletionProvider())
 
         // Url::fromRoute('entity.node.canonical')
         // Link::createFromRoute('entity.node.canonical')

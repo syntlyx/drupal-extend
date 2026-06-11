@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.index.types.ContentEntity
+import com.github.nvelychenko.drupalextend.index.types.DrupalConfigObject
 import com.github.nvelychenko.drupalextend.index.types.DrupalContentEntity
 import com.github.nvelychenko.drupalextend.index.types.DrupalField
 import com.github.nvelychenko.drupalextend.index.types.DrupalFieldPluginDefinition
@@ -13,6 +14,9 @@ import com.intellij.util.indexing.ID
 
 val CONFIG_ENTITY_INDEX_KEY: ID<String, String> =
     ID.create("com.github.nvelychenko.drupalextend.index.config_types")
+
+val CONFIG_OBJECT_INDEX_KEY: ID<String, DrupalConfigObject> =
+    ID.create("com.github.nvelychenko.drupalextend.index.config_objects")
 
 val CONTENT_ENTITY_INDEX_KEY: ID<String, DrupalContentEntity> =
     ID.create("com.github.nvelychenko.drupalextend.index.content_types")

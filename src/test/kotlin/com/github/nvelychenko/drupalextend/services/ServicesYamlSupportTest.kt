@@ -855,8 +855,10 @@ class ServicesYamlSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
+        // Not a container get → no SERVICE reference. (A config-factory get('…') IS a config
+        // object name position, so a ConfigObjectReference here is expected behavior.)
         val reference = myFixture.file.findReferenceAt(myFixture.caretOffset - 1)
-        assertNull(reference)
+        assertFalse(reference is ServiceReference)
     }
 
     fun testYamlClassCompletionSuggestsPhpClasses() {
