@@ -129,6 +129,30 @@ class DrupalConfig(
                             .bindSelected(settings::isCodeStyleElseIfSyntaxEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_else_placement"))
+                            .bindSelected(settings::isCodeStyleElsePlacementEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_string_quotes"))
+                            .bindSelected(settings::isCodeStyleStringQuotesEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_inline_comment"))
+                            .bindSelected(settings::isCodeStyleInlineCommentEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_discouraged_functions"))
+                            .bindSelected(settings::isCodeStyleDiscouragedFunctionsEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_imports"), true) {

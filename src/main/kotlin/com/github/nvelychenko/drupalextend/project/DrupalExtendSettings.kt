@@ -253,6 +253,30 @@ class DrupalExtendSettings :
             state.isCodeStyleFileDocCommentEnabled = value
         }
 
+    var isCodeStyleElsePlacementEnabled: Boolean
+        get() = state.isCodeStyleElsePlacementEnabled
+        set(value) {
+            state.isCodeStyleElsePlacementEnabled = value
+        }
+
+    var isCodeStyleStringQuotesEnabled: Boolean
+        get() = state.isCodeStyleStringQuotesEnabled
+        set(value) {
+            state.isCodeStyleStringQuotesEnabled = value
+        }
+
+    var isCodeStyleInlineCommentEnabled: Boolean
+        get() = state.isCodeStyleInlineCommentEnabled
+        set(value) {
+            state.isCodeStyleInlineCommentEnabled = value
+        }
+
+    var isCodeStyleDiscouragedFunctionsEnabled: Boolean
+        get() = state.isCodeStyleDiscouragedFunctionsEnabled
+        set(value) {
+            state.isCodeStyleDiscouragedFunctionsEnabled = value
+        }
+
     var drupalCoreVersion: String
         get() = state.drupalCoreVersion.orEmpty()
         set(value) {
@@ -263,6 +287,10 @@ class DrupalExtendSettings :
         // @todo Once we will implement balloon make it false by default
         var isEnabled: Boolean by property(true)
         var drupalCoreVersion by string()
+        var isCodeStyleElsePlacementEnabled: Boolean by property(true)
+        var isCodeStyleStringQuotesEnabled: Boolean by property(true)
+        var isCodeStyleInlineCommentEnabled: Boolean by property(true)
+        var isCodeStyleDiscouragedFunctionsEnabled: Boolean by property(true)
         var isEntityReferenceTypeResolverEnabled: Boolean by property(false)
         var isServicesCompletionEnabled: Boolean by property(true)
         var isRoutesCompletionEnabled: Boolean by property(true)
