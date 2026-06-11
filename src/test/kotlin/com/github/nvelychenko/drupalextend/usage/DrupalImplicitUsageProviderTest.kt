@@ -321,6 +321,85 @@ class DrupalImplicitUsageProviderTest : BasePlatformTestCase() {
         assertFalse(usageProvider.isImplicitUsage(unrelatedMethod))
     }
 
+    fun testHookAttributeMethodsAndTheirClassAreImplicitUsage() {
+        addHookAttributeClasses()
+        val file = myFixture.configureByText(
+            "MyModuleHooks.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Hook;
+
+            use Drupal\Core\Hook\Attribute\Hook;
+            use Drupal\Core\Hook\Attribute\RemoveHook;
+            use Drupal\Core\Hook\Attribute\ReorderHook;
+
+            class MyModuleHooks {
+
+              #[Hook('node_view')]
+              public function nodeView(): void {}
+
+              #[ReorderHook('node_view')]
+              public function reorder(): void {}
+
+              #[RemoveHook('node_view')]
+              public function remove(): void {}
+
+              public function helper(): void {}
+            }
+            """.trimIndent()
+        )
+        val phpClass = file.phpClass("MyModuleHooks")
+        val usageProvider = DrupalImplicitUsageProvider()
+
+        assertTrue(usageProvider.isImplicitUsage(phpClass.findMethodByName("nodeView")!!))
+        assertTrue(usageProvider.isImplicitUsage(phpClass.findMethodByName("reorder")!!))
+        assertTrue(usageProvider.isImplicitUsage(phpClass.findMethodByName("remove")!!))
+        assertFalse(usageProvider.isImplicitUsage(phpClass.findMethodByName("helper")!!))
+        assertTrue("Class hosting hook methods must be implicitly used", usageProvider.isImplicitUsage(phpClass))
+    }
+
+    fun testLegacyHookFunctionIsImplicitUsage() {
+        addHookAttributeClasses()
+        // A .php file and a name outside the modulename_hookname convention: only the
+        // attribute marks this function as a BC shim invoked by the hook system.
+        val file = myFixture.configureByText(
+            "consumer.php",
+            $$"""
+            <?php
+
+            use Drupal\Core\Hook\Attribute\LegacyHook;
+
+            #[LegacyHook]
+            function my_custom_legacy_shim(): void {}
+
+            function plain_helper(): void {}
+            """.trimIndent()
+        )
+        val usageProvider = DrupalImplicitUsageProvider()
+
+        assertTrue(usageProvider.isImplicitUsage(file.phpFunction("my_custom_legacy_shim")))
+        assertFalse(usageProvider.isImplicitUsage(file.phpFunction("plain_helper")))
+    }
+
+    private fun addHookAttributeClasses() {
+        for (name in listOf("Hook", "LegacyHook", "ReorderHook", "RemoveHook")) {
+            myFixture.addFileToProject(
+                "core/lib/Drupal/Core/Hook/Attribute/$name.php",
+                $$"""
+                <?php
+
+                namespace Drupal\Core\Hook\Attribute;
+
+                #[\Attribute]
+                class $$name {
+                  public function __construct(...$arguments) {}
+                }
+                """.trimIndent()
+            )
+        }
+    }
+
     private fun PsiFile.phpFunction(name: String): PhpFunction {
         return PsiTreeUtil.findChildrenOfType(this, PhpFunction::class.java)
             .firstOrNull { it.name == name }

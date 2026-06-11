@@ -7,6 +7,14 @@
     <codeInsight.lineMarkerProvider language="PHP" implementationClass="com.github.nvelychenko.drupalextend.lineMarker.DrupalHookDocLineMarkerProvider" />
 
     <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.HookAttributesIndex"/>
+
+    <localInspection language="PHP"
+                     shortName="DrupalUnknownHook"
+                     displayName="Unknown hook name in #[Hook] attribute"
+                     groupName="Drupal Extend"
+                     enabledByDefault="true"
+                     level="WEAK WARNING"
+                     implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalUnknownHookInspection"/>
 </extensions>
 
 </idea-plugin>

@@ -6,6 +6,9 @@
 
 ### Added
 
+- New inspection "Unknown hook name in `#[Hook]` attribute": flags hook names that match no known Drupal hook (from the Drupal plugin's hook index and `*.api.php` docs). Dynamic hook patterns (`hook_form_FORM_ID_alter`-style placeholders) are recognized, so concrete implementations like `form_node_edit_form_alter` are not reported.
+- Config entity type inference: `\Drupal::entityTypeManager()->getStorage('view')` now resolves to the config entity storage, and `->load()` / `->loadMultiple()` on it resolve to the config entity class — matching what already worked for content entities.
+- The full Drupal 11.x hook-attribute family — `#[Hook]`, `#[LegacyHook]`, `#[ReorderHook]`, `#[RemoveHook]` — now marks its methods/functions (and the classes hosting them) as implicitly used, so OOP hook implementations and BC shims are no longer reported as unused.
 - Field plugin support: Field/Widget/Formatter plugin classes (attribute and legacy annotation forms) are indexed, and default field plugin classes referenced through field configuration are recognised as implicitly used, so they are no longer reported as unused.
 - Procedural hook support: hook implementations in `.module`, `.install`, and `.theme` files (and their parameters) are recognised as implicitly used and no longer reported as unused/dead.
 - DocBlock code-style rule "DocBlock must be immediately followed by attributes or the documented declaration", with a quick fix that removes blank lines between a docblock and the declaration it documents.

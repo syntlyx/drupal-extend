@@ -25,6 +25,8 @@ class EntityStorageTypeProvider : PhpTypeProvider4 {
 
     private val entityTypeManagerInterface = "\\Drupal\\Core\\Entity\\EntityTypeManagerInterface"
 
+    private val configEntityStorageClass = "\\Drupal\\Core\\Config\\Entity\\ConfigEntityStorage"
+
     private val fileBasedIndex: FileBasedIndex by lazy {
         FileBasedIndex.getInstance()
     }
@@ -60,7 +62,11 @@ class EntityStorageTypeProvider : PhpTypeProvider4 {
         // limit = 2: an entity type id containing the split character must not shift the parts.
         val (originalSignature, entityTypeId) = expression.substring(2).split(SPLIT_KEY, limit = 2)
 
-        val entityType = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project) ?: return null
+        // Content entities carry an explicit storage handler; config entities default to
+        // ConfigEntityStorage. Resolve the storage-handler FQN from whichever index has the id.
+        val storageHandlerFqn = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project)?.storageHandler
+            ?: fileBasedIndex.getValue(CONFIG_ENTITY_INDEX_KEY, entityTypeId, project)?.let { configEntityStorageClass }
+            ?: return null
 
         val phpIndex = PhpIndex.getInstance(project)
         val namedCollection = mutableListOf<PhpNamedElement>()
@@ -75,7 +81,7 @@ class EntityStorageTypeProvider : PhpTypeProvider4 {
         val entityTypeManagerInterface =
             phpIndex.getInterfacesByFQN(entityTypeManagerInterface).takeIf { it.isNotEmpty() }?.first() ?: return null
 
-        val entityStorageClass = phpIndex.getClassesByFQN(entityType.storageHandler)
+        val entityStorageClass = phpIndex.getClassesByFQN(storageHandlerFqn)
             .takeIf { it.isNotEmpty() }
             ?.first()
             ?: return null
