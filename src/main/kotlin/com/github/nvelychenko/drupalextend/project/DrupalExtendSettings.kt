@@ -49,268 +49,532 @@ class DrupalExtendSettings :
             state.isCodeStyleLinterEnabled = value
         }
 
-    var isCodeStyleDocBlockSummaryPunctuationEnabled: Boolean
-        get() = state.isCodeStyleDocBlockSummaryPunctuationEnabled
+    var codeStyleDocBlockSummaryPunctuationSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockSummaryPunctuationSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
         set(value) {
-            state.isCodeStyleDocBlockSummaryPunctuationEnabled = value
+            state.codeStyleDocBlockSummaryPunctuationSeverity = value.name
+        }
+
+    var isCodeStyleDocBlockSummaryPunctuationEnabled: Boolean
+        get() = codeStyleDocBlockSummaryPunctuationSeverity != DrupalCodeStyleSeverity.OFF
+        set(value) {
+            codeStyleDocBlockSummaryPunctuationSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockBlankLineBeforeTagsSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockBlankLineBeforeTagsSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockBlankLineBeforeTagsSeverity = value.name
         }
 
     var isCodeStyleDocBlockBlankLineBeforeTagsEnabled: Boolean
-        get() = state.isCodeStyleDocBlockBlankLineBeforeTagsEnabled
+        get() = codeStyleDocBlockBlankLineBeforeTagsSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = value
+            codeStyleDocBlockBlankLineBeforeTagsSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockTagGroupSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockTagGroupSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockTagGroupSpacingSeverity = value.name
         }
 
     var isCodeStyleDocBlockTagGroupSpacingEnabled: Boolean
-        get() = state.isCodeStyleDocBlockTagGroupSpacingEnabled
+        get() = codeStyleDocBlockTagGroupSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockTagGroupSpacingEnabled = value
+            codeStyleDocBlockTagGroupSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockBlankLineNormalizationSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockBlankLineNormalizationSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockBlankLineNormalizationSeverity = value.name
         }
 
     var isCodeStyleDocBlockBlankLineNormalizationEnabled: Boolean
-        get() = state.isCodeStyleDocBlockBlankLineNormalizationEnabled
+        get() = codeStyleDocBlockBlankLineNormalizationSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockBlankLineNormalizationEnabled = value
+            codeStyleDocBlockBlankLineNormalizationSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockContentAfterOpenSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockContentAfterOpenSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockContentAfterOpenSeverity = value.name
         }
 
     var isCodeStyleDocBlockContentAfterOpenEnabled: Boolean
-        get() = state.isCodeStyleDocBlockContentAfterOpenEnabled
+        get() = codeStyleDocBlockContentAfterOpenSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockContentAfterOpenEnabled = value
+            codeStyleDocBlockContentAfterOpenSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockMissingSummarySeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockMissingSummarySeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockMissingSummarySeverity = value.name
         }
 
     var isCodeStyleDocBlockMissingSummaryEnabled: Boolean
-        get() = state.isCodeStyleDocBlockMissingSummaryEnabled
+        get() = codeStyleDocBlockMissingSummarySeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockMissingSummaryEnabled = value
+            codeStyleDocBlockMissingSummarySeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockMissingParamNameSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockMissingParamNameSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockMissingParamNameSeverity = value.name
         }
 
     var isCodeStyleDocBlockMissingParamNameEnabled: Boolean
-        get() = state.isCodeStyleDocBlockMissingParamNameEnabled
+        get() = codeStyleDocBlockMissingParamNameSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockMissingParamNameEnabled = value
+            codeStyleDocBlockMissingParamNameSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockTagDescriptionIndentationSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockTagDescriptionIndentationSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockTagDescriptionIndentationSeverity = value.name
         }
 
     var isCodeStyleDocBlockTagDescriptionIndentationEnabled: Boolean
-        get() = state.isCodeStyleDocBlockTagDescriptionIndentationEnabled
+        get() = codeStyleDocBlockTagDescriptionIndentationSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockTagDescriptionIndentationEnabled = value
+            codeStyleDocBlockTagDescriptionIndentationSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockTagDescriptionRequiredSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockTagDescriptionRequiredSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockTagDescriptionRequiredSeverity = value.name
         }
 
     var isCodeStyleDocBlockTagDescriptionRequiredEnabled: Boolean
-        get() = state.isCodeStyleDocBlockTagDescriptionRequiredEnabled
+        get() = codeStyleDocBlockTagDescriptionRequiredSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockTagDescriptionRequiredEnabled = value
+            codeStyleDocBlockTagDescriptionRequiredSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockTagDescriptionLineSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockTagDescriptionLineSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockTagDescriptionLineSeverity = value.name
         }
 
     var isCodeStyleDocBlockTagDescriptionLineEnabled: Boolean
-        get() = state.isCodeStyleDocBlockTagDescriptionLineEnabled
+        get() = codeStyleDocBlockTagDescriptionLineSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockTagDescriptionLineEnabled = value
+            codeStyleDocBlockTagDescriptionLineSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockTagDescriptionPunctuationSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockTagDescriptionPunctuationSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockTagDescriptionPunctuationSeverity = value.name
         }
 
     var isCodeStyleDocBlockTagDescriptionPunctuationEnabled: Boolean
-        get() = state.isCodeStyleDocBlockTagDescriptionPunctuationEnabled
+        get() = codeStyleDocBlockTagDescriptionPunctuationSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockTagDescriptionPunctuationEnabled = value
+            codeStyleDocBlockTagDescriptionPunctuationSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockApiTagsSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockApiTagsSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockApiTagsSeverity = value.name
         }
 
     var isCodeStyleDocBlockApiTagsEnabled: Boolean
-        get() = state.isCodeStyleDocBlockApiTagsEnabled
+        get() = codeStyleDocBlockApiTagsSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockApiTagsEnabled = value
+            codeStyleDocBlockApiTagsSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleClassFileNameSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleClassFileNameSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleClassFileNameSeverity = value.name
         }
 
     var isCodeStyleClassFileNameEnabled: Boolean
-        get() = state.isCodeStyleClassFileNameEnabled
+        get() = codeStyleClassFileNameSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleClassFileNameEnabled = value
+            codeStyleClassFileNameSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleClassNameSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleClassNameSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleClassNameSeverity = value.name
         }
 
     var isCodeStyleClassNameEnabled: Boolean
-        get() = state.isCodeStyleClassNameEnabled
+        get() = codeStyleClassNameSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleClassNameEnabled = value
+            codeStyleClassNameSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleFunctionNameSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleFunctionNameSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleFunctionNameSeverity = value.name
         }
 
     var isCodeStyleFunctionNameEnabled: Boolean
-        get() = state.isCodeStyleFunctionNameEnabled
+        get() = codeStyleFunctionNameSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleFunctionNameEnabled = value
+            codeStyleFunctionNameSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleMemberVisibilitySeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleMemberVisibilitySeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleMemberVisibilitySeverity = value.name
         }
 
     var isCodeStyleMemberVisibilityEnabled: Boolean
-        get() = state.isCodeStyleMemberVisibilityEnabled
+        get() = codeStyleMemberVisibilitySeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleMemberVisibilityEnabled = value
+            codeStyleMemberVisibilitySeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleConstantCasingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleConstantCasingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleConstantCasingSeverity = value.name
         }
 
     var isCodeStyleConstantCasingEnabled: Boolean
-        get() = state.isCodeStyleConstantCasingEnabled
+        get() = codeStyleConstantCasingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleConstantCasingEnabled = value
+            codeStyleConstantCasingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleClosingPhpTagSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleClosingPhpTagSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleClosingPhpTagSeverity = value.name
         }
 
     var isCodeStyleClosingPhpTagEnabled: Boolean
-        get() = state.isCodeStyleClosingPhpTagEnabled
+        get() = codeStyleClosingPhpTagSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleClosingPhpTagEnabled = value
+            codeStyleClosingPhpTagSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleFileWhitespaceSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleFileWhitespaceSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleFileWhitespaceSeverity = value.name
         }
 
     var isCodeStyleFileWhitespaceEnabled: Boolean
-        get() = state.isCodeStyleFileWhitespaceEnabled
+        get() = codeStyleFileWhitespaceSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleFileWhitespaceEnabled = value
+            codeStyleFileWhitespaceSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleShortArraySyntaxSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleShortArraySyntaxSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleShortArraySyntaxSeverity = value.name
         }
 
     var isCodeStyleShortArraySyntaxEnabled: Boolean
-        get() = state.isCodeStyleShortArraySyntaxEnabled
+        get() = codeStyleShortArraySyntaxSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleShortArraySyntaxEnabled = value
+            codeStyleShortArraySyntaxSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleMultilineArrayStyleSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleMultilineArrayStyleSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleMultilineArrayStyleSeverity = value.name
         }
 
     var isCodeStyleMultilineArrayStyleEnabled: Boolean
-        get() = state.isCodeStyleMultilineArrayStyleEnabled
+        get() = codeStyleMultilineArrayStyleSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleMultilineArrayStyleEnabled = value
+            codeStyleMultilineArrayStyleSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleElseIfSyntaxSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleElseIfSyntaxSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleElseIfSyntaxSeverity = value.name
         }
 
     var isCodeStyleElseIfSyntaxEnabled: Boolean
-        get() = state.isCodeStyleElseIfSyntaxEnabled
+        get() = codeStyleElseIfSyntaxSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleElseIfSyntaxEnabled = value
+            codeStyleElseIfSyntaxSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleMissingDocCommentsSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleMissingDocCommentsSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleMissingDocCommentsSeverity = value.name
         }
 
     var isCodeStyleMissingDocCommentsEnabled: Boolean
-        get() = state.isCodeStyleMissingDocCommentsEnabled
+        get() = codeStyleMissingDocCommentsSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleMissingDocCommentsEnabled = value
+            codeStyleMissingDocCommentsSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleFunctionDeclarationStyleSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleFunctionDeclarationStyleSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleFunctionDeclarationStyleSeverity = value.name
         }
 
     var isCodeStyleFunctionDeclarationStyleEnabled: Boolean
-        get() = state.isCodeStyleFunctionDeclarationStyleEnabled
+        get() = codeStyleFunctionDeclarationStyleSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleFunctionDeclarationStyleEnabled = value
+            codeStyleFunctionDeclarationStyleSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleFunctionSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleFunctionSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleFunctionSpacingSeverity = value.name
         }
 
     var isCodeStyleFunctionSpacingEnabled: Boolean
-        get() = state.isCodeStyleFunctionSpacingEnabled
+        get() = codeStyleFunctionSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleFunctionSpacingEnabled = value
+            codeStyleFunctionSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleClassCloseBraceSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleClassCloseBraceSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleClassCloseBraceSpacingSeverity = value.name
         }
 
     var isCodeStyleClassCloseBraceSpacingEnabled: Boolean
-        get() = state.isCodeStyleClassCloseBraceSpacingEnabled
+        get() = codeStyleClassCloseBraceSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleClassCloseBraceSpacingEnabled = value
+            codeStyleClassCloseBraceSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleBlockBlankLinesSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleBlockBlankLinesSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleBlockBlankLinesSeverity = value.name
         }
 
     var isCodeStyleBlockBlankLinesEnabled: Boolean
-        get() = state.isCodeStyleBlockBlankLinesEnabled
+        get() = codeStyleBlockBlankLinesSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleBlockBlankLinesEnabled = value
+            codeStyleBlockBlankLinesSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleCastSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleCastSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleCastSpacingSeverity = value.name
         }
 
     var isCodeStyleCastSpacingEnabled: Boolean
-        get() = state.isCodeStyleCastSpacingEnabled
+        get() = codeStyleCastSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleCastSpacingEnabled = value
+            codeStyleCastSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleOperatorSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleOperatorSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleOperatorSpacingSeverity = value.name
         }
 
     var isCodeStyleOperatorSpacingEnabled: Boolean
-        get() = state.isCodeStyleOperatorSpacingEnabled
+        get() = codeStyleOperatorSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleOperatorSpacingEnabled = value
+            codeStyleOperatorSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleCommaSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleCommaSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleCommaSpacingSeverity = value.name
         }
 
     var isCodeStyleCommaSpacingEnabled: Boolean
-        get() = state.isCodeStyleCommaSpacingEnabled
+        get() = codeStyleCommaSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleCommaSpacingEnabled = value
+            codeStyleCommaSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleControlStructureSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleControlStructureSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleControlStructureSpacingSeverity = value.name
         }
 
     var isCodeStyleControlStructureSpacingEnabled: Boolean
-        get() = state.isCodeStyleControlStructureSpacingEnabled
+        get() = codeStyleControlStructureSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleControlStructureSpacingEnabled = value
+            codeStyleControlStructureSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleUseStatementSortingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleUseStatementSortingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleUseStatementSortingSeverity = value.name
         }
 
     var isCodeStyleUseStatementSortingEnabled: Boolean
-        get() = state.isCodeStyleUseStatementSortingEnabled
+        get() = codeStyleUseStatementSortingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleUseStatementSortingEnabled = value
+            codeStyleUseStatementSortingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleFullyQualifiedClassNameSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleFullyQualifiedClassNameSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleFullyQualifiedClassNameSeverity = value.name
         }
 
     var isCodeStyleFullyQualifiedClassNameEnabled: Boolean
-        get() = state.isCodeStyleFullyQualifiedClassNameEnabled
+        get() = codeStyleFullyQualifiedClassNameSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleFullyQualifiedClassNameEnabled = value
+            codeStyleFullyQualifiedClassNameSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleFileDocCommentSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleFileDocCommentSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleFileDocCommentSeverity = value.name
         }
 
     var isCodeStyleFileDocCommentEnabled: Boolean
-        get() = state.isCodeStyleFileDocCommentEnabled
+        get() = codeStyleFileDocCommentSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleFileDocCommentEnabled = value
+            codeStyleFileDocCommentSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleElsePlacementSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleElsePlacementSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleElsePlacementSeverity = value.name
         }
 
     var isCodeStyleElsePlacementEnabled: Boolean
-        get() = state.isCodeStyleElsePlacementEnabled
+        get() = codeStyleElsePlacementSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleElsePlacementEnabled = value
+            codeStyleElsePlacementSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleStringQuotesSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleStringQuotesSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleStringQuotesSeverity = value.name
         }
 
     var isCodeStyleStringQuotesEnabled: Boolean
-        get() = state.isCodeStyleStringQuotesEnabled
+        get() = codeStyleStringQuotesSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleStringQuotesEnabled = value
+            codeStyleStringQuotesSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleInlineCommentSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleInlineCommentSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleInlineCommentSeverity = value.name
         }
 
     var isCodeStyleInlineCommentEnabled: Boolean
-        get() = state.isCodeStyleInlineCommentEnabled
+        get() = codeStyleInlineCommentSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleInlineCommentEnabled = value
+            codeStyleInlineCommentSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDiscouragedFunctionsSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDiscouragedFunctionsSeverity, DrupalCodeStyleSeverity.WARNING)
+        set(value) {
+            state.codeStyleDiscouragedFunctionsSeverity = value.name
         }
 
     var isCodeStyleDiscouragedFunctionsEnabled: Boolean
-        get() = state.isCodeStyleDiscouragedFunctionsEnabled
+        get() = codeStyleDiscouragedFunctionsSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDiscouragedFunctionsEnabled = value
+            codeStyleDiscouragedFunctionsSeverity = if (value) DrupalCodeStyleSeverity.WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStylePropertyNameSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStylePropertyNameSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStylePropertyNameSeverity = value.name
         }
 
     var isCodeStylePropertyNameEnabled: Boolean
-        get() = state.isCodeStylePropertyNameEnabled
+        get() = codeStylePropertyNameSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStylePropertyNameEnabled = value
+            codeStylePropertyNameSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleScopeKeywordSpacingSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleScopeKeywordSpacingSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleScopeKeywordSpacingSeverity = value.name
         }
 
     var isCodeStyleScopeKeywordSpacingEnabled: Boolean
-        get() = state.isCodeStyleScopeKeywordSpacingEnabled
+        get() = codeStyleScopeKeywordSpacingSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleScopeKeywordSpacingEnabled = value
+            codeStyleScopeKeywordSpacingSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleConsecutiveBlankLinesSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleConsecutiveBlankLinesSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleConsecutiveBlankLinesSeverity = value.name
         }
 
     var isCodeStyleConsecutiveBlankLinesEnabled: Boolean
-        get() = state.isCodeStyleConsecutiveBlankLinesEnabled
+        get() = codeStyleConsecutiveBlankLinesSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleConsecutiveBlankLinesEnabled = value
+            codeStyleConsecutiveBlankLinesSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockShortTypesSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockShortTypesSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockShortTypesSeverity = value.name
         }
 
     var isCodeStyleDocBlockShortTypesEnabled: Boolean
-        get() = state.isCodeStyleDocBlockShortTypesEnabled
+        get() = codeStyleDocBlockShortTypesSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockShortTypesEnabled = value
+            codeStyleDocBlockShortTypesSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleDocBlockSummaryLengthSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleDocBlockSummaryLengthSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleDocBlockSummaryLengthSeverity = value.name
         }
 
     var isCodeStyleDocBlockSummaryLengthEnabled: Boolean
-        get() = state.isCodeStyleDocBlockSummaryLengthEnabled
+        get() = codeStyleDocBlockSummaryLengthSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleDocBlockSummaryLengthEnabled = value
+            codeStyleDocBlockSummaryLengthSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
+        }
+
+    var codeStyleFunctionDocMissingTagsSeverity: DrupalCodeStyleSeverity
+        get() = DrupalCodeStyleSeverity.fromState(state.codeStyleFunctionDocMissingTagsSeverity, DrupalCodeStyleSeverity.WEAK_WARNING)
+        set(value) {
+            state.codeStyleFunctionDocMissingTagsSeverity = value.name
         }
 
     var isCodeStyleFunctionDocMissingTagsEnabled: Boolean
-        get() = state.isCodeStyleFunctionDocMissingTagsEnabled
+        get() = codeStyleFunctionDocMissingTagsSeverity != DrupalCodeStyleSeverity.OFF
         set(value) {
-            state.isCodeStyleFunctionDocMissingTagsEnabled = value
+            codeStyleFunctionDocMissingTagsSeverity = if (value) DrupalCodeStyleSeverity.WEAK_WARNING else DrupalCodeStyleSeverity.OFF
         }
 
     var drupalCoreVersion: String
@@ -323,55 +587,55 @@ class DrupalExtendSettings :
         // @todo Once we will implement balloon make it false by default
         var isEnabled: Boolean by property(true)
         var drupalCoreVersion by string()
-        var isCodeStyleFunctionDocMissingTagsEnabled: Boolean by property(true)
-        var isCodeStylePropertyNameEnabled: Boolean by property(true)
-        var isCodeStyleScopeKeywordSpacingEnabled: Boolean by property(true)
-        var isCodeStyleConsecutiveBlankLinesEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockShortTypesEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockSummaryLengthEnabled: Boolean by property(true)
-        var isCodeStyleElsePlacementEnabled: Boolean by property(true)
-        var isCodeStyleStringQuotesEnabled: Boolean by property(true)
-        var isCodeStyleInlineCommentEnabled: Boolean by property(true)
-        var isCodeStyleDiscouragedFunctionsEnabled: Boolean by property(true)
+        var codeStyleFunctionDocMissingTagsSeverity by string()
+        var codeStylePropertyNameSeverity by string()
+        var codeStyleScopeKeywordSpacingSeverity by string()
+        var codeStyleConsecutiveBlankLinesSeverity by string()
+        var codeStyleDocBlockShortTypesSeverity by string()
+        var codeStyleDocBlockSummaryLengthSeverity by string()
+        var codeStyleElsePlacementSeverity by string()
+        var codeStyleStringQuotesSeverity by string()
+        var codeStyleInlineCommentSeverity by string()
+        var codeStyleDiscouragedFunctionsSeverity by string()
         var isEntityReferenceTypeResolverEnabled: Boolean by property(false)
         var isServicesCompletionEnabled: Boolean by property(true)
         var isRoutesCompletionEnabled: Boolean by property(true)
         var isDependencyInjectionHelperEnabled: Boolean by property(true)
         var isCodeStyleLinterEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockSummaryPunctuationEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockBlankLineBeforeTagsEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockTagGroupSpacingEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockBlankLineNormalizationEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockContentAfterOpenEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockMissingSummaryEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockMissingParamNameEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockTagDescriptionIndentationEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockTagDescriptionRequiredEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockTagDescriptionLineEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockTagDescriptionPunctuationEnabled: Boolean by property(true)
-        var isCodeStyleDocBlockApiTagsEnabled: Boolean by property(true)
-        var isCodeStyleClassFileNameEnabled: Boolean by property(true)
-        var isCodeStyleClassNameEnabled: Boolean by property(true)
-        var isCodeStyleFunctionNameEnabled: Boolean by property(true)
-        var isCodeStyleMemberVisibilityEnabled: Boolean by property(true)
-        var isCodeStyleConstantCasingEnabled: Boolean by property(true)
-        var isCodeStyleClosingPhpTagEnabled: Boolean by property(true)
-        var isCodeStyleFileWhitespaceEnabled: Boolean by property(true)
-        var isCodeStyleShortArraySyntaxEnabled: Boolean by property(true)
-        var isCodeStyleMultilineArrayStyleEnabled: Boolean by property(true)
-        var isCodeStyleElseIfSyntaxEnabled: Boolean by property(true)
-        var isCodeStyleMissingDocCommentsEnabled: Boolean by property(true)
-        var isCodeStyleFunctionDeclarationStyleEnabled: Boolean by property(true)
-        var isCodeStyleFunctionSpacingEnabled: Boolean by property(true)
-        var isCodeStyleClassCloseBraceSpacingEnabled: Boolean by property(true)
-        var isCodeStyleBlockBlankLinesEnabled: Boolean by property(true)
-        var isCodeStyleCastSpacingEnabled: Boolean by property(true)
-        var isCodeStyleOperatorSpacingEnabled: Boolean by property(true)
-        var isCodeStyleCommaSpacingEnabled: Boolean by property(true)
-        var isCodeStyleControlStructureSpacingEnabled: Boolean by property(true)
-        var isCodeStyleUseStatementSortingEnabled: Boolean by property(true)
-        var isCodeStyleFullyQualifiedClassNameEnabled: Boolean by property(true)
-        var isCodeStyleFileDocCommentEnabled: Boolean by property(true)
+        var codeStyleDocBlockSummaryPunctuationSeverity by string()
+        var codeStyleDocBlockBlankLineBeforeTagsSeverity by string()
+        var codeStyleDocBlockTagGroupSpacingSeverity by string()
+        var codeStyleDocBlockBlankLineNormalizationSeverity by string()
+        var codeStyleDocBlockContentAfterOpenSeverity by string()
+        var codeStyleDocBlockMissingSummarySeverity by string()
+        var codeStyleDocBlockMissingParamNameSeverity by string()
+        var codeStyleDocBlockTagDescriptionIndentationSeverity by string()
+        var codeStyleDocBlockTagDescriptionRequiredSeverity by string()
+        var codeStyleDocBlockTagDescriptionLineSeverity by string()
+        var codeStyleDocBlockTagDescriptionPunctuationSeverity by string()
+        var codeStyleDocBlockApiTagsSeverity by string()
+        var codeStyleClassFileNameSeverity by string()
+        var codeStyleClassNameSeverity by string()
+        var codeStyleFunctionNameSeverity by string()
+        var codeStyleMemberVisibilitySeverity by string()
+        var codeStyleConstantCasingSeverity by string()
+        var codeStyleClosingPhpTagSeverity by string()
+        var codeStyleFileWhitespaceSeverity by string()
+        var codeStyleShortArraySyntaxSeverity by string()
+        var codeStyleMultilineArrayStyleSeverity by string()
+        var codeStyleElseIfSyntaxSeverity by string()
+        var codeStyleMissingDocCommentsSeverity by string()
+        var codeStyleFunctionDeclarationStyleSeverity by string()
+        var codeStyleFunctionSpacingSeverity by string()
+        var codeStyleClassCloseBraceSpacingSeverity by string()
+        var codeStyleBlockBlankLinesSeverity by string()
+        var codeStyleCastSpacingSeverity by string()
+        var codeStyleOperatorSpacingSeverity by string()
+        var codeStyleCommaSpacingSeverity by string()
+        var codeStyleControlStructureSpacingSeverity by string()
+        var codeStyleUseStatementSortingSeverity by string()
+        var codeStyleFullyQualifiedClassNameSeverity by string()
+        var codeStyleFileDocCommentSeverity by string()
     }
 
 }

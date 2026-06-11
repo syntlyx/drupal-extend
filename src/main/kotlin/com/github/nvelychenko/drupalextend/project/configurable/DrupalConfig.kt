@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.project.configurable
 
 import com.github.nvelychenko.drupalextend.DrupalExtendBundle
+import com.github.nvelychenko.drupalextend.project.DrupalCodeStyleSeverity
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.clearPluginIndexes
 import com.intellij.openapi.options.BoundConfigurable
@@ -68,275 +69,275 @@ class DrupalConfig(
 
             indent {
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_naming"), true) {
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_class_file_name"))
-                            .bindSelected(settings::isCodeStyleClassFileNameEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_class_file_name")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleClassFileNameSeverity }, { settings.codeStyleClassFileNameSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_class_name"))
-                            .bindSelected(settings::isCodeStyleClassNameEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_class_name")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleClassNameSeverity }, { settings.codeStyleClassNameSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_name"))
-                            .bindSelected(settings::isCodeStyleFunctionNameEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_name")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleFunctionNameSeverity }, { settings.codeStyleFunctionNameSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_member_visibility"))
-                            .bindSelected(settings::isCodeStyleMemberVisibilityEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_member_visibility")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleMemberVisibilitySeverity }, { settings.codeStyleMemberVisibilitySeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_property_name"))
-                            .bindSelected(settings::isCodeStylePropertyNameEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_property_name")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStylePropertyNameSeverity }, { settings.codeStylePropertyNameSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_php_syntax"), true) {
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_constant_casing"))
-                            .bindSelected(settings::isCodeStyleConstantCasingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_constant_casing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleConstantCasingSeverity }, { settings.codeStyleConstantCasingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_closing_php_tag"))
-                            .bindSelected(settings::isCodeStyleClosingPhpTagEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_closing_php_tag")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleClosingPhpTagSeverity }, { settings.codeStyleClosingPhpTagSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_file_whitespace"))
-                            .bindSelected(settings::isCodeStyleFileWhitespaceEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_file_whitespace")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleFileWhitespaceSeverity }, { settings.codeStyleFileWhitespaceSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_short_array_syntax"))
-                            .bindSelected(settings::isCodeStyleShortArraySyntaxEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_short_array_syntax")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleShortArraySyntaxSeverity }, { settings.codeStyleShortArraySyntaxSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_multiline_array_style"))
-                            .bindSelected(settings::isCodeStyleMultilineArrayStyleEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_multiline_array_style")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleMultilineArrayStyleSeverity }, { settings.codeStyleMultilineArrayStyleSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_elseif_syntax"))
-                            .bindSelected(settings::isCodeStyleElseIfSyntaxEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_elseif_syntax")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleElseIfSyntaxSeverity }, { settings.codeStyleElseIfSyntaxSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_else_placement"))
-                            .bindSelected(settings::isCodeStyleElsePlacementEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_else_placement")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleElsePlacementSeverity }, { settings.codeStyleElsePlacementSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_string_quotes"))
-                            .bindSelected(settings::isCodeStyleStringQuotesEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_string_quotes")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleStringQuotesSeverity }, { settings.codeStyleStringQuotesSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_inline_comment"))
-                            .bindSelected(settings::isCodeStyleInlineCommentEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_inline_comment")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleInlineCommentSeverity }, { settings.codeStyleInlineCommentSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_discouraged_functions"))
-                            .bindSelected(settings::isCodeStyleDiscouragedFunctionsEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_discouraged_functions")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDiscouragedFunctionsSeverity }, { settings.codeStyleDiscouragedFunctionsSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_consecutive_blank_lines"))
-                            .bindSelected(settings::isCodeStyleConsecutiveBlankLinesEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_consecutive_blank_lines")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleConsecutiveBlankLinesSeverity }, { settings.codeStyleConsecutiveBlankLinesSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_imports"), true) {
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_use_statement_sorting"))
-                            .bindSelected(settings::isCodeStyleUseStatementSortingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_use_statement_sorting")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleUseStatementSortingSeverity }, { settings.codeStyleUseStatementSortingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_fully_qualified_class_name"))
-                            .bindSelected(settings::isCodeStyleFullyQualifiedClassNameEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_fully_qualified_class_name")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleFullyQualifiedClassNameSeverity }, { settings.codeStyleFullyQualifiedClassNameSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_spacing"), true) {
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_declaration_style"))
-                            .bindSelected(settings::isCodeStyleFunctionDeclarationStyleEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_declaration_style")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleFunctionDeclarationStyleSeverity }, { settings.codeStyleFunctionDeclarationStyleSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_spacing"))
-                            .bindSelected(settings::isCodeStyleFunctionSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleFunctionSpacingSeverity }, { settings.codeStyleFunctionSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_class_close_brace_spacing"))
-                            .bindSelected(settings::isCodeStyleClassCloseBraceSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_class_close_brace_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleClassCloseBraceSpacingSeverity }, { settings.codeStyleClassCloseBraceSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_block_blank_lines"))
-                            .bindSelected(settings::isCodeStyleBlockBlankLinesEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_block_blank_lines")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleBlockBlankLinesSeverity }, { settings.codeStyleBlockBlankLinesSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_cast_spacing"))
-                            .bindSelected(settings::isCodeStyleCastSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_cast_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleCastSpacingSeverity }, { settings.codeStyleCastSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_operator_spacing"))
-                            .bindSelected(settings::isCodeStyleOperatorSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_operator_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleOperatorSpacingSeverity }, { settings.codeStyleOperatorSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_comma_spacing"))
-                            .bindSelected(settings::isCodeStyleCommaSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_comma_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleCommaSpacingSeverity }, { settings.codeStyleCommaSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_control_structure_spacing"))
-                            .bindSelected(settings::isCodeStyleControlStructureSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_control_structure_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleControlStructureSpacingSeverity }, { settings.codeStyleControlStructureSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_scope_keyword_spacing"))
-                            .bindSelected(settings::isCodeStyleScopeKeywordSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_scope_keyword_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleScopeKeywordSpacingSeverity }, { settings.codeStyleScopeKeywordSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_docblock"), true) {
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_missing_doc_comments"))
-                            .bindSelected(settings::isCodeStyleMissingDocCommentsEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_missing_doc_comments")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleMissingDocCommentsSeverity }, { settings.codeStyleMissingDocCommentsSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_summary_punctuation"))
-                            .bindSelected(settings::isCodeStyleDocBlockSummaryPunctuationEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_summary_punctuation")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockSummaryPunctuationSeverity }, { settings.codeStyleDocBlockSummaryPunctuationSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_blank_line_before_tags"))
-                            .bindSelected(settings::isCodeStyleDocBlockBlankLineBeforeTagsEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_blank_line_before_tags")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockBlankLineBeforeTagsSeverity }, { settings.codeStyleDocBlockBlankLineBeforeTagsSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_group_spacing"))
-                            .bindSelected(settings::isCodeStyleDocBlockTagGroupSpacingEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_group_spacing")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockTagGroupSpacingSeverity }, { settings.codeStyleDocBlockTagGroupSpacingSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_blank_line_normalization"))
-                            .bindSelected(settings::isCodeStyleDocBlockBlankLineNormalizationEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_blank_line_normalization")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockBlankLineNormalizationSeverity }, { settings.codeStyleDocBlockBlankLineNormalizationSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_content_after_open"))
-                            .bindSelected(settings::isCodeStyleDocBlockContentAfterOpenEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_content_after_open")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockContentAfterOpenSeverity }, { settings.codeStyleDocBlockContentAfterOpenSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_missing_summary"))
-                            .bindSelected(settings::isCodeStyleDocBlockMissingSummaryEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_missing_summary")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockMissingSummarySeverity }, { settings.codeStyleDocBlockMissingSummarySeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_missing_param_name"))
-                            .bindSelected(settings::isCodeStyleDocBlockMissingParamNameEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_missing_param_name")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockMissingParamNameSeverity }, { settings.codeStyleDocBlockMissingParamNameSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_indentation"))
-                            .bindSelected(settings::isCodeStyleDocBlockTagDescriptionIndentationEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_indentation")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockTagDescriptionIndentationSeverity }, { settings.codeStyleDocBlockTagDescriptionIndentationSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_required"))
-                            .bindSelected(settings::isCodeStyleDocBlockTagDescriptionRequiredEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_required")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockTagDescriptionRequiredSeverity }, { settings.codeStyleDocBlockTagDescriptionRequiredSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_line"))
-                            .bindSelected(settings::isCodeStyleDocBlockTagDescriptionLineEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_line")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockTagDescriptionLineSeverity }, { settings.codeStyleDocBlockTagDescriptionLineSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_punctuation"))
-                            .bindSelected(settings::isCodeStyleDocBlockTagDescriptionPunctuationEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_tag_description_punctuation")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockTagDescriptionPunctuationSeverity }, { settings.codeStyleDocBlockTagDescriptionPunctuationSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_api_tags"))
-                            .bindSelected(settings::isCodeStyleDocBlockApiTagsEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_api_tags")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockApiTagsSeverity }, { settings.codeStyleDocBlockApiTagsSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_doc_block_short_types"))
-                            .bindSelected(settings::isCodeStyleDocBlockShortTypesEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_doc_block_short_types")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockShortTypesSeverity }, { settings.codeStyleDocBlockShortTypesSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_doc_block_summary_length"))
-                            .bindSelected(settings::isCodeStyleDocBlockSummaryLengthEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_doc_block_summary_length")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleDocBlockSummaryLengthSeverity }, { settings.codeStyleDocBlockSummaryLengthSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_doc_missing_tags"))
-                            .bindSelected(settings::isCodeStyleFunctionDocMissingTagsEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_doc_missing_tags")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleFunctionDocMissingTagsSeverity }, { settings.codeStyleFunctionDocMissingTagsSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 
-                    row {
-                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_file_doc_comment"))
-                            .bindSelected(settings::isCodeStyleFileDocCommentEnabled)
+                    row(DrupalExtendBundle.message("settings.drupal_extend.code_style_file_doc_comment")) {
+                        comboBox(DrupalCodeStyleSeverity.entries)
+                            .bindItem({ settings.codeStyleFileDocCommentSeverity }, { settings.codeStyleFileDocCommentSeverity = it ?: DrupalCodeStyleSeverity.OFF })
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }

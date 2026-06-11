@@ -25,9 +25,22 @@ internal interface DrupalCodeStyleRule {
 internal data class DrupalCodeStyleContext(
     val holder: ProblemsHolder,
     val isOnTheFly: Boolean,
+    /**
+     * The user-configured severity of the registering rule. Set by the dispatcher; replaces
+     * the rule's own highlight type so severity is controlled in exactly one place.
+     */
+    val severityOverride: ProblemHighlightType? = null,
 ) {
+    fun withSeverityOverride(severity: ProblemHighlightType?): DrupalCodeStyleContext {
+        if (severity == null || severity == severityOverride) return this
+
+        return copy(severityOverride = severity)
+    }
+
     fun register(problem: DrupalCodeStyleProblem) {
-        val problemWithFileFix = problem.withFileFix()
+        val problemWithFileFix = problem
+            .let { if (severityOverride != null) it.copy(highlightType = severityOverride) else it }
+            .withFileFix()
         if (problemWithFileFix.rangeInElement != null) {
             holder.registerProblem(
                 problemWithFileFix.element,

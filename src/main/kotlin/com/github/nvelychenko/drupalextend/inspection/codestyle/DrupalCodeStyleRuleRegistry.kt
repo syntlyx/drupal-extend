@@ -1,6 +1,8 @@
 package com.github.nvelychenko.drupalextend.inspection.codestyle
 
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
+import com.github.nvelychenko.drupalextend.project.DrupalCodeStyleSeverity
+import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
@@ -27,61 +29,66 @@ import com.jetbrains.php.lang.parser.PhpElementTypes
 
 internal object DrupalCodeStyleRuleRegistry {
     private val registrations = listOf(
-        register(ClassFileNameRule, Target.PHP_CLASS),
-        register(ClassNameRule, Target.PHP_CLASS),
-        register(FunctionNameRule, Target.FUNCTION),
-        register(MemberVisibilityRule, Target.PHP_CLASS, Target.METHOD, Target.CLASS_FIELDS),
-        register(ConstantCasingRule, Target.CONSTANT_REFERENCE),
-        register(ClosingPhpTagRule, Target.PHP_FILE),
-        register(FileWhitespaceRule, Target.PHP_FILE),
-        register(ShortArraySyntaxRule, Target.ARRAY_CREATION),
-        register(MultilineArrayStyleRule, Target.ARRAY_CREATION),
-        register(ElseIfSyntaxRule, Target.ELSE),
-        register(FullyQualifiedClassNameRule, Target.CLASS_REFERENCE),
-        register(MissingDocCommentRule, Target.PHP_CLASS, Target.FUNCTION),
-        register(FunctionDeclarationStyleRule, Target.FUNCTION),
-        register(FunctionSpacingRule, Target.FUNCTION),
-        register(ClassCloseBraceSpacingRule, Target.PHP_CLASS),
-        register(BlockBlankLineRule, Target.FUNCTION, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),
-        register(CastSpacingRule, Target.CAST_EXPRESSION),
-        register(OperatorSpacingRule, Target.OPERATOR),
-        register(CommaSpacingRule, Target.ARRAY_CREATION, Target.PARAMETER_LIST),
-        register(ControlStructureSpacingRule, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),
-        register(UseStatementSortingRule, Target.USE_LIST),
-        register(DocBlockSummaryPunctuationRule, Target.DOC_BLOCK),
-        register(DocBlockBlankLineBeforeTagsRule, Target.DOC_BLOCK),
-        register(DocBlockTagGroupSpacingRule, Target.DOC_BLOCK),
-        register(DocBlockBlankLineNormalizationRule, Target.DOC_BLOCK),
-        register(DocBlockDeclarationSpacingRule, Target.DOC_BLOCK),
-        register(DocBlockContentAfterOpenRule, Target.DOC_BLOCK),
-        register(DocBlockMissingSummaryRule, Target.DOC_BLOCK),
-        register(FunctionDocParamNameRule, Target.FUNCTION),
-        register(FunctionDocTagDescriptionRequiredRule, Target.FUNCTION),
-        register(FunctionDocTagDescriptionIndentationRule, Target.FUNCTION),
-        register(FunctionDocTagDescriptionLineRule, Target.FUNCTION),
-        register(FunctionDocTagDescriptionPunctuationRule, Target.FUNCTION),
-        register(DocBlockApiTagSyntaxRule, Target.DOC_BLOCK),
-        register(FileDocCommentRule, Target.PHP_FILE),
+        register(ClassFileNameRule, { it.codeStyleClassFileNameSeverity }, Target.PHP_CLASS),
+        register(ClassNameRule, { it.codeStyleClassNameSeverity }, Target.PHP_CLASS),
+        register(FunctionNameRule, { it.codeStyleFunctionNameSeverity }, Target.FUNCTION),
+        register(MemberVisibilityRule, { it.codeStyleMemberVisibilitySeverity }, Target.PHP_CLASS, Target.METHOD, Target.CLASS_FIELDS),
+        register(ConstantCasingRule, { it.codeStyleConstantCasingSeverity }, Target.CONSTANT_REFERENCE),
+        register(ClosingPhpTagRule, { it.codeStyleClosingPhpTagSeverity }, Target.PHP_FILE),
+        register(FileWhitespaceRule, { it.codeStyleFileWhitespaceSeverity }, Target.PHP_FILE),
+        register(ShortArraySyntaxRule, { it.codeStyleShortArraySyntaxSeverity }, Target.ARRAY_CREATION),
+        register(MultilineArrayStyleRule, { it.codeStyleMultilineArrayStyleSeverity }, Target.ARRAY_CREATION),
+        register(ElseIfSyntaxRule, { it.codeStyleElseIfSyntaxSeverity }, Target.ELSE),
+        register(FullyQualifiedClassNameRule, { it.codeStyleFullyQualifiedClassNameSeverity }, Target.CLASS_REFERENCE),
+        register(MissingDocCommentRule, { it.codeStyleMissingDocCommentsSeverity }, Target.PHP_CLASS, Target.FUNCTION),
+        register(FunctionDeclarationStyleRule, { it.codeStyleFunctionDeclarationStyleSeverity }, Target.FUNCTION),
+        register(FunctionSpacingRule, { it.codeStyleFunctionSpacingSeverity }, Target.FUNCTION),
+        register(ClassCloseBraceSpacingRule, { it.codeStyleClassCloseBraceSpacingSeverity }, Target.PHP_CLASS),
+        register(BlockBlankLineRule, { it.codeStyleBlockBlankLinesSeverity }, Target.FUNCTION, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),
+        register(CastSpacingRule, { it.codeStyleCastSpacingSeverity }, Target.CAST_EXPRESSION),
+        register(OperatorSpacingRule, { it.codeStyleOperatorSpacingSeverity }, Target.OPERATOR),
+        register(CommaSpacingRule, { it.codeStyleCommaSpacingSeverity }, Target.ARRAY_CREATION, Target.PARAMETER_LIST),
+        register(ControlStructureSpacingRule, { it.codeStyleControlStructureSpacingSeverity }, Target.CONTROL_STATEMENT, Target.ELSE, Target.SWITCH),
+        register(UseStatementSortingRule, { it.codeStyleUseStatementSortingSeverity }, Target.USE_LIST),
+        register(DocBlockSummaryPunctuationRule, { it.codeStyleDocBlockSummaryPunctuationSeverity }, Target.DOC_BLOCK),
+        register(DocBlockBlankLineBeforeTagsRule, { it.codeStyleDocBlockBlankLineBeforeTagsSeverity }, Target.DOC_BLOCK),
+        register(DocBlockTagGroupSpacingRule, { it.codeStyleDocBlockTagGroupSpacingSeverity }, Target.DOC_BLOCK),
+        register(DocBlockBlankLineNormalizationRule, { it.codeStyleDocBlockBlankLineNormalizationSeverity }, Target.DOC_BLOCK),
+        register(DocBlockDeclarationSpacingRule, { it.codeStyleDocBlockBlankLineNormalizationSeverity }, Target.DOC_BLOCK),
+        register(DocBlockContentAfterOpenRule, { it.codeStyleDocBlockContentAfterOpenSeverity }, Target.DOC_BLOCK),
+        register(DocBlockMissingSummaryRule, { it.codeStyleDocBlockMissingSummarySeverity }, Target.DOC_BLOCK),
+        register(FunctionDocParamNameRule, { it.codeStyleDocBlockMissingParamNameSeverity }, Target.FUNCTION),
+        register(FunctionDocTagDescriptionRequiredRule, { it.codeStyleDocBlockTagDescriptionRequiredSeverity }, Target.FUNCTION),
+        register(FunctionDocTagDescriptionIndentationRule, { it.codeStyleDocBlockTagDescriptionIndentationSeverity }, Target.FUNCTION),
+        register(FunctionDocTagDescriptionLineRule, { it.codeStyleDocBlockTagDescriptionLineSeverity }, Target.FUNCTION),
+        register(FunctionDocTagDescriptionPunctuationRule, { it.codeStyleDocBlockTagDescriptionPunctuationSeverity }, Target.FUNCTION),
+        register(DocBlockApiTagSyntaxRule, { it.codeStyleDocBlockApiTagsSeverity }, Target.DOC_BLOCK),
+        register(FileDocCommentRule, { it.codeStyleFileDocCommentSeverity }, Target.PHP_FILE),
         // CONTROL_STATEMENT too: the one-keyword `elseif` form is an ElseIf (an If subtype),
         // never routed through the ELSE slot.
-        register(ElsePlacementRule, Target.ELSE, Target.CONTROL_STATEMENT),
-        register(StringQuotesRule, Target.STRING_LITERAL),
-        register(InlineCommentRule, Target.COMMENT),
-        register(DiscouragedFunctionsRule, Target.FUNCTION_REFERENCE),
-        register(PropertyNameRule, Target.CLASS_FIELDS),
-        register(ScopeKeywordSpacingRule, Target.METHOD, Target.CLASS_FIELDS),
-        register(ConsecutiveBlankLinesRule, Target.PHP_FILE),
-        register(DocBlockShortTypesRule, Target.DOC_BLOCK),
-        register(DocBlockSummaryLengthRule, Target.DOC_BLOCK),
-        register(FunctionDocMissingTagsRule, Target.FUNCTION),
+        register(ElsePlacementRule, { it.codeStyleElsePlacementSeverity }, Target.ELSE, Target.CONTROL_STATEMENT),
+        register(StringQuotesRule, { it.codeStyleStringQuotesSeverity }, Target.STRING_LITERAL),
+        register(InlineCommentRule, { it.codeStyleInlineCommentSeverity }, Target.COMMENT),
+        register(DiscouragedFunctionsRule, { it.codeStyleDiscouragedFunctionsSeverity }, Target.FUNCTION_REFERENCE),
+        register(PropertyNameRule, { it.codeStylePropertyNameSeverity }, Target.CLASS_FIELDS),
+        register(ScopeKeywordSpacingRule, { it.codeStyleScopeKeywordSpacingSeverity }, Target.METHOD, Target.CLASS_FIELDS),
+        register(ConsecutiveBlankLinesRule, { it.codeStyleConsecutiveBlankLinesSeverity }, Target.PHP_FILE),
+        register(DocBlockShortTypesRule, { it.codeStyleDocBlockShortTypesSeverity }, Target.DOC_BLOCK),
+        register(DocBlockSummaryLengthRule, { it.codeStyleDocBlockSummaryLengthSeverity }, Target.DOC_BLOCK),
+        register(FunctionDocMissingTagsRule, { it.codeStyleFunctionDocMissingTagsSeverity }, Target.FUNCTION),
     )
 
     val rules: List<DrupalCodeStyleRule> = registrations.map { it.rule }
 
     fun dispatcher(settings: DrupalExtendSettings): DrupalCodeStyleRuleDispatcher {
-        val enabledRegistrations = registrations.filter { it.rule.isEnabled(settings) }
+        val enabledRegistrations = registrations
+            .filter { it.severity(settings) != DrupalCodeStyleSeverity.OFF }
+        val severityOverrides = enabledRegistrations.associate { registration ->
+            registration.rule to registration.severity(settings).toProblemHighlightType()
+        }
 
         return DrupalCodeStyleRuleDispatcher(
+            severityOverrides = severityOverrides,
             fileRules = enabledRegistrations.rulesFor(Target.PHP_FILE),
             classRules = enabledRegistrations.rulesFor(Target.PHP_CLASS),
             functionRules = enabledRegistrations.rulesFor(Target.FUNCTION),
@@ -106,9 +113,10 @@ internal object DrupalCodeStyleRuleRegistry {
 
     private fun register(
         rule: DrupalCodeStyleRule,
+        severity: (DrupalExtendSettings) -> DrupalCodeStyleSeverity,
         vararg targets: Target,
     ): DrupalCodeStyleRuleRegistration {
-        return DrupalCodeStyleRuleRegistration(rule, targets.toSet())
+        return DrupalCodeStyleRuleRegistration(rule, severity, targets.toSet())
     }
 }
 
@@ -116,6 +124,7 @@ private typealias Target = DrupalCodeStyleRuleTarget
 
 private data class DrupalCodeStyleRuleRegistration(
     val rule: DrupalCodeStyleRule,
+    val severity: (DrupalExtendSettings) -> DrupalCodeStyleSeverity,
     val targets: Set<Target>,
 )
 
@@ -155,6 +164,7 @@ private fun List<DrupalCodeStyleRuleRegistration>.rulesFor(
 }
 
 internal class DrupalCodeStyleRuleDispatcher(
+    private val severityOverrides: Map<DrupalCodeStyleRule, ProblemHighlightType?>,
     private val fileRules: List<DrupalCodeStyleRule>,
     private val classRules: List<DrupalCodeStyleRule>,
     private val functionRules: List<DrupalCodeStyleRule>,
@@ -234,6 +244,8 @@ internal class DrupalCodeStyleRuleDispatcher(
     }
 
     private fun List<DrupalCodeStyleRule>.inspect(element: PsiElement, context: DrupalCodeStyleContext) {
-        forEach { it.inspect(element, context) }
+        forEach { rule ->
+            rule.inspect(element, context.withSeverityOverride(severityOverrides[rule]))
+        }
     }
 }
