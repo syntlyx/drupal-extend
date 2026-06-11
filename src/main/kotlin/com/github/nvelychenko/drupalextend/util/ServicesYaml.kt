@@ -29,8 +29,101 @@ object ServicesYaml {
         "alias"
     )
 
+    /**
+     * Standard core service tags hoisted so first-time usage completes and validates even when no
+     * service in the project carries the tag yet (e.g. a brand-new module). Unioned with the live
+     * index keys; intentionally curated rather than exhaustive — unknown tags are only ever
+     * surfaced as weak warnings, never errors, because tags may come from not-installed modules.
+     */
+    val curatedCoreTags = setOf(
+        "event_subscriber",
+        "access_check",
+        "cache.context",
+        "cache.bin",
+        "cache.bin.memory",
+        "breadcrumb_builder",
+        "theme_negotiator",
+        "route_enhancer",
+        "route_filter",
+        "path_processor_inbound",
+        "path_processor_outbound",
+        "paramconverter",
+        "middleware",
+        "http_client_middleware",
+        "authentication_provider",
+        "page_cache_request_policy",
+        "page_cache_response_policy",
+        "dynamic_page_cache_request_policy",
+        "dynamic_page_cache_response_policy",
+        "plugin_manager_cache_clear",
+        "module_install.uninstall_validator",
+        "config.factory.override",
+        "service_collector",
+        "service_id_collector",
+        "persist",
+        "needs_destruction",
+        "backend_overridable",
+        "twig.extension",
+        "twig.loader",
+        "drush.command",
+    )
+
+    private val taggedArgumentTagNames = setOf("!tagged_iterator", "!tagged_locator")
+
     fun isServicesFileName(fileName: String?): Boolean {
         return fileName?.endsWith(".services.yml") == true
+    }
+
+    /**
+     * True when [scalar] is the value that names a service tag under a `tags:` block — either the
+     * `name:` value of `tags: [{ name: '<here>' }]` or the bare scalar of `tags: ['<here>']`.
+     */
+    fun isTagNameValuePosition(scalar: YAMLScalar): Boolean {
+        if (isKey(scalar)) return false
+
+        val directParent = scalar.parent as? YAMLKeyValue
+        if (directParent != null && directParent.value == scalar) {
+            return directParent.keyText == "name"
+                    && directParent.keyPath.startsWith("services.")
+                    && directParent.keyPath.endsWith(".tags.name")
+        }
+
+        // Bare scalar form: the scalar is a direct sequence item value of the `tags` sequence.
+        val sequenceItem = scalar.parent as? YAMLSequenceItem ?: return false
+        if (sequenceItem.value != scalar) return false
+        val tagsKeyValue = sequenceItem.parents
+            .filterIsInstance<YAMLKeyValue>()
+            .firstOrNull() ?: return false
+        return tagsKeyValue.keyText == "tags" && tagsKeyValue.keyPath.startsWith("services.")
+    }
+
+    /**
+     * The `!tagged_iterator` / `!tagged_locator` tag name [scalar] refers to, or `null` when the
+     * scalar is not in such a position. Handles both the scalar form (`- !tagged_iterator tag.name`)
+     * and the mapping form (`- !tagged_iterator { tag: tag.name }`).
+     */
+    fun taggedArgumentTagName(scalar: YAMLScalar): String? {
+        if (isKey(scalar)) return null
+        if (!isTaggedArgumentTagNamePosition(scalar)) return null
+
+        return scalar.textValue.trim().takeIf { it.isNotBlank() && !it.contains("%") }
+    }
+
+    private fun isTaggedArgumentTagNamePosition(scalar: YAMLScalar): Boolean {
+        // Scalar form: the scalar itself carries the custom YAML tag.
+        if (scalar.hasTaggedArgumentTag()) return true
+
+        // Mapping form: the scalar is the `tag:` value inside a mapping carrying the custom tag.
+        val tagKeyValue = scalar.parent as? YAMLKeyValue ?: return false
+        if (tagKeyValue.value != scalar || tagKeyValue.keyText != "tag") return false
+
+        val mapping = tagKeyValue.parent as? YAMLMapping ?: return false
+        return (mapping as YAMLValue).hasTaggedArgumentTag()
+    }
+
+    private fun YAMLValue.hasTaggedArgumentTag(): Boolean {
+        val tagText = tag?.text?.trim() ?: return false
+        return taggedArgumentTagNames.contains(tagText)
     }
 
     fun isServiceReferenceKeyPath(keyPath: String): Boolean {

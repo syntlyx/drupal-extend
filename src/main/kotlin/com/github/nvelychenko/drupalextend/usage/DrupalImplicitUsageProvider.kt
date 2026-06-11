@@ -9,6 +9,8 @@ import com.intellij.codeInsight.daemon.ImplicitUsageProvider
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.Method
@@ -52,9 +54,38 @@ class DrupalImplicitUsageProvider : ImplicitUsageProvider {
 
         if (isSubscribedEventMethod(method, phpClass)) return true
 
+        if (isFormCallbackMethod(method, phpClass)) return true
+
         return Services.referencesMethod(method.project, phpClass.fqn, method.name) ||
                 Routes.referencesHandler(method.project, phpClass.fqn, method.name)
     }
+
+    /**
+     * Form API registers callbacks by name as `'::handler'` string literals (`#submit`,
+     * `#validate`, `#ajax` `callback`, …); the form system invokes them reflectively, so the
+     * methods look unused.
+     *
+     * Performance: collecting every `'::…'` literal in the class once and caching the resulting
+     * name set per class (keyed on the containing file) turns this into a single set lookup per
+     * method, instead of re-walking the subtree for each method the IDE inspects.
+     */
+    private fun isFormCallbackMethod(method: Method, phpClass: PhpClass): Boolean {
+        if (!method.project.drupalExtendSettings.isEnabled) return false
+        return ownFormCallbackNames(phpClass).contains(method.name)
+    }
+
+    private fun ownFormCallbackNames(phpClass: PhpClass): Set<String> =
+        CachedValuesManager.getCachedValue(phpClass) {
+            val names = HashSet<String>()
+            for (literal in PsiTreeUtil.findChildrenOfType(phpClass, StringLiteralExpression::class.java)) {
+                ProgressManager.checkCanceled()
+                val contents = literal.contents
+                if (contents.length > FORM_CALLBACK_PREFIX.length && contents.startsWith(FORM_CALLBACK_PREFIX)) {
+                    names.add(contents.substring(FORM_CALLBACK_PREFIX.length))
+                }
+            }
+            CachedValueProvider.Result.create(names, phpClass.containingFile)
+        }
 
     /**
      * Symfony/Drupal event subscribers register handler methods by name inside
@@ -106,6 +137,7 @@ class DrupalImplicitUsageProvider : ImplicitUsageProvider {
 
 private const val SUBSCRIBED_EVENTS_METHOD = "getSubscribedEvents"
 private const val EVENT_SUBSCRIBER_INTERFACE = "EventSubscriberInterface"
+private const val FORM_CALLBACK_PREFIX = "::"
 
 private val HOOK_ATTRIBUTE_FQNS = setOf(
     "\\Drupal\\Core\\Hook\\Attribute\\Hook",

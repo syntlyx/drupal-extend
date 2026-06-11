@@ -70,5 +70,18 @@ class DrupalReferenceContributor : PsiReferenceContributor() {
             psiElement(StringLiteralExpression::class.java),
             SubscribedEventMethodReferenceProvider()
         )
+
+        // $form['#submit'][] = '::submitHandler'  /  '#ajax' => ['callback' => '::ajaxCallback']
+        // (the provider narrows to form-callback positions itself)
+        registrar.registerReferenceProvider(
+            psiElement(StringLiteralExpression::class.java),
+            FormCallbackReferenceProvider()
+        )
+
+        // moduleExists('node')  /  test $modules = ['node']
+        registrar.registerReferenceProvider(
+            psiElement(StringLiteralExpression::class.java),
+            ModuleNameReferenceProvider()
+        )
     }
 }

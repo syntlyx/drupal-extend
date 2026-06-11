@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.inspection
 
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.github.nvelychenko.drupalextend.util.Modules
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
@@ -106,14 +107,39 @@ class DrupalInfoYamlInspection : LocalInspectionTool() {
         for (item in dependencies.items) {
             val scalar = item.value as? YAMLScalar ?: continue
             val entry = scalar.textValue.trim()
-            if (entry.isEmpty() || DEPENDENCY_PATTERN.matches(entry)) continue
+            if (entry.isEmpty()) continue
 
-            holder.registerProblem(
-                scalar,
-                "Invalid dependency '$entry', expected 'module' or 'project:module'",
-                ProblemHighlightType.WEAK_WARNING
-            )
+            if (!DEPENDENCY_PATTERN.matches(entry)) {
+                holder.registerProblem(
+                    scalar,
+                    "Invalid dependency '$entry', expected 'module' or 'project:module'",
+                    ProblemHighlightType.WEAK_WARNING
+                )
+                continue
+            }
+
+            inspectUnknownDependency(scalar, entry, holder)
         }
+    }
+
+    /**
+     * A weak warning when the dependency's machine name is unknown to the module index. Kept
+     * weak on purpose: the dependency may live in a Composer project that has not been
+     * downloaded yet. For the `project:module` form only the module part (after the colon) is
+     * checked against the index.
+     */
+    private fun inspectUnknownDependency(scalar: YAMLScalar, entry: String, holder: ProblemsHolder) {
+        val colonIndex = entry.indexOf(':')
+        val machineName = if (colonIndex >= 0) entry.substring(colonIndex + 1) else entry
+        if (machineName.isEmpty()) return
+
+        if (Modules.exists(holder.project, machineName)) return
+
+        holder.registerProblem(
+            scalar,
+            "Unknown module dependency '$machineName'",
+            ProblemHighlightType.WEAK_WARNING
+        )
     }
 
     private fun isSupportEnabled(project: Project): Boolean {

@@ -113,6 +113,64 @@ class DrupalInfoYamlInspectionTest : BasePlatformTestCase() {
         assertFalse(descriptions.any { it.startsWith("Invalid dependency") })
     }
 
+    private fun addKnownModule(machineName: String, type: String = "module") {
+        myFixture.addFileToProject(
+            "modules/contrib/$machineName/$machineName.info.yml",
+            """
+            name: ${machineName.replaceFirstChar { it.uppercase() }}
+            type: $type
+            core_version_requirement: ^11
+            """.trimIndent()
+        )
+    }
+
+    fun testKnownDependencyIsSilent() {
+        addKnownModule("node")
+        val descriptions = highlightDescriptions(
+            "my_module.info.yml",
+            """
+            name: My Module
+            type: module
+            core_version_requirement: ^11
+            dependencies:
+              - node
+            """
+        )
+
+        assertFalse(descriptions.any { it.startsWith("Unknown module dependency") })
+    }
+
+    fun testUnknownDependencyIsWeakWarning() {
+        val descriptions = highlightDescriptions(
+            "my_module.info.yml",
+            """
+            name: My Module
+            type: module
+            core_version_requirement: ^11
+            dependencies:
+              - definitely_not_a_real_module
+            """
+        )
+
+        assertTrue(descriptions.any { it == "Unknown module dependency 'definitely_not_a_real_module'" })
+    }
+
+    fun testProjectScopedKnownDependencyIsSilent() {
+        addKnownModule("pathauto")
+        val descriptions = highlightDescriptions(
+            "my_module.info.yml",
+            """
+            name: My Module
+            type: module
+            core_version_requirement: ^11
+            dependencies:
+              - pathauto:pathauto
+            """
+        )
+
+        assertFalse(descriptions.any { it.startsWith("Unknown module dependency") })
+    }
+
     fun testNonInfoYamlFileIsSilent() {
         val descriptions = highlightDescriptions(
             "my_module.routing.yml",

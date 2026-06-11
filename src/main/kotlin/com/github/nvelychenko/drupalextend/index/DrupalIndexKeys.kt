@@ -8,6 +8,7 @@ import com.github.nvelychenko.drupalextend.index.types.DrupalFieldPluginDefiniti
 import com.github.nvelychenko.drupalextend.index.types.DrupalFieldType
 import com.github.nvelychenko.drupalextend.index.types.DrupalRoute
 import com.github.nvelychenko.drupalextend.index.types.DrupalServiceFactory
+import com.github.nvelychenko.drupalextend.index.types.DrupalServiceTag
 import com.github.nvelychenko.drupalextend.index.types.DrupalTheme
 import com.github.nvelychenko.drupalextend.index.types.RenderElementType
 import com.intellij.util.indexing.ID
@@ -59,6 +60,12 @@ val SERVICES_INDEX_KEY: ID<String, String> =
 
 val SERVICE_FACTORY_INDEX_KEY: ID<String, DrupalServiceFactory> =
     ID.create("com.github.nvelychenko.drupalextend.index.service_factory")
+
+val SERVICE_TAGS_INDEX_KEY: ID<String, DrupalServiceTag> =
+    ID.create("com.github.nvelychenko.drupalextend.index.service_tags")
+
+val MODULE_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.modules")
 
 val THEME_INDEX_KEY: ID<String, DrupalTheme> =
     ID.create("com.github.nvelychenko.drupalextend.index.hook_themes")

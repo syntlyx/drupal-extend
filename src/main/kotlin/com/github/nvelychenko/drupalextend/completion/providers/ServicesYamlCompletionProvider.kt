@@ -1,5 +1,6 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
+import com.github.nvelychenko.drupalextend.util.ServiceTags
 import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.codeInsight.completion.CompletionParameters
@@ -23,10 +24,28 @@ class ServicesYamlCompletionProvider : CompletionProvider<CompletionParameters>(
         processingContext: ProcessingContext,
         completionResultSet: CompletionResultSet
     ) {
-        val position = completionParameters.originalPosition ?: return
-        val project = position.project
+        val project = completionParameters.position.project
 
         if (!Services.isSupportEnabled(project)) return
+        // The original file carries the real VirtualFile; the completion copy can have a null/light
+        // one, so the *.services.yml gate must read the original.
+        if (!ServicesYaml.isServicesFileName(completionParameters.originalFile.virtualFile?.name)) return
+
+        // `position` is the dummy-inserted leaf in the completion copy — its scalar is present even
+        // at an empty value (`name: <caret>`, `!tagged_iterator <caret>`), unlike `originalPosition`.
+        // The service paths below only act on already-typed prefixes, so they keep the
+        // original-position behaviour; tag positions can be empty and need the copy leaf.
+        val copyScalar = PsiTreeUtil.getParentOfType(completionParameters.position, YAMLScalar::class.java, false)
+        if (copyScalar != null
+            && !ServicesYaml.isKey(copyScalar)
+            && copyScalar.isTagNamePosition()
+        ) {
+            addTagNameCompletions(project, completionResultSet)
+            completionResultSet.stopHere()
+            return
+        }
+
+        val position = completionParameters.originalPosition ?: return
 
         val scalar = PsiTreeUtil.getParentOfType(position, YAMLScalar::class.java, false) ?: return
         if (!ServicesYaml.isServicesFileName(scalar.containingFile.virtualFile?.name)) return
@@ -62,6 +81,26 @@ class ServicesYamlCompletionProvider : CompletionProvider<CompletionParameters>(
 
                 completionResultSet.addElement(lookupElement)
             }
+    }
+
+    private fun YAMLScalar.isTagNamePosition(): Boolean {
+        return ServicesYaml.isTagNameValuePosition(this)
+                || ServicesYaml.taggedArgumentTagName(this) != null
+    }
+
+    private fun addTagNameCompletions(
+        project: Project,
+        completionResultSet: CompletionResultSet
+    ) {
+        // The caret may sit in an empty value (`name: <caret>`) where the auto-inserted dummy
+        // identifier would otherwise filter every tag out; match against an empty prefix and let
+        // the platform re-filter on the real characters typed.
+        val tagResultSet = completionResultSet.withPrefixMatcher("")
+        ServiceTags.allTagNames(project).forEach { tagName ->
+            tagResultSet.addElement(
+                LookupElementBuilder.create(tagName).withTypeText("service tag", true)
+            )
+        }
     }
 
     private fun addClassCompletions(

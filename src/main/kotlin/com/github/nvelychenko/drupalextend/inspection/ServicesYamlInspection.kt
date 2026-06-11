@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.inspection
 
 import com.github.nvelychenko.drupalextend.extensions.keyPath
+import com.github.nvelychenko.drupalextend.util.ServiceTags
 import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.github.nvelychenko.drupalextend.util.normalizeServiceClassFqn
@@ -80,9 +81,25 @@ class ServicesYamlInspection : LocalInspectionTool() {
     ) {
         if (ServicesYaml.isKey(scalar)) return
 
+        inspectTaggedArgumentTag(scalar, holder)
         inspectServiceReference(scalar, localServiceIds, holder)
         inspectPlainServiceId(scalar, localServiceIds, holder)
         inspectServiceClass(scalar, holder)
+    }
+
+    private fun inspectTaggedArgumentTag(
+        scalar: YAMLScalar,
+        holder: ProblemsHolder
+    ) {
+        val tagName = ServicesYaml.taggedArgumentTagName(scalar) ?: return
+        if (ServiceTags.isKnown(holder.project, tagName)) return
+
+        holder.registerProblem(
+            scalar,
+            "Unknown service tag '$tagName'",
+            ProblemHighlightType.WEAK_WARNING,
+            ServicesYaml.scalarTextValueRange(scalar, tagName)
+        )
     }
 
     private fun inspectServiceReference(

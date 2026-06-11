@@ -45,6 +45,13 @@ class DrupalCompletionContributor : CompletionContributor() {
         // (broad string pattern; the provider bails immediately outside settings*.php files)
         extend(CompletionType.BASIC, psiElement().withParent(StringLiteralExpression::class.java), SettingsPhpCompletionProvider())
 
+        // $form_state->getValue('na|
+        extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, FormStateValueCompletionProvider())
+
+        // \Drupal::moduleHandler()->moduleExists('no|  /  test $modules = ['no|
+        // (broad string pattern for the $modules property form; the provider narrows itself)
+        extend(CompletionType.BASIC, psiElement().withParent(StringLiteralExpression::class.java), ModuleNameCompletionProvider())
+
         // Url::fromRoute('entity.node.canonical')
         // Link::createFromRoute('entity.node.canonical')
         // $form_state->setRedirect('entity.node.canonical')

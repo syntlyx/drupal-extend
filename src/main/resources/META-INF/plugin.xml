@@ -59,6 +59,8 @@ services), while still understanding legacy annotations and procedural code.</p>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.RoutesIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.LinksIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ConfigObjectIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ServiceTagsIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ModuleIndex"/>
         <fileType name="PHP" extensions="install"/>
 
         <psi.referenceContributor
@@ -69,6 +71,9 @@ services), while still understanding legacy annotations and procedural code.</p>
                 language="yaml"/>
         <psi.referenceContributor
                 implementation="com.github.nvelychenko.drupalextend.reference.RoutesYamlReferenceContributor"
+                language="yaml"/>
+        <psi.referenceContributor
+                implementation="com.github.nvelychenko.drupalextend.reference.InfoYamlReferenceContributor"
                 language="yaml"/>
         <findUsagesHandlerFactory
                 implementation="com.github.nvelychenko.drupalextend.reference.ServicesYamlFindUsagesHandlerFactory"

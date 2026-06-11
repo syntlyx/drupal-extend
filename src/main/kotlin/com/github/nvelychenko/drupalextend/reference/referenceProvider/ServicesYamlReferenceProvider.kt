@@ -4,6 +4,7 @@ import com.github.nvelychenko.drupalextend.extensions.keyPath
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceClassReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceMethodReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceReference
+import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
 import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.psi.PsiElement
@@ -30,12 +31,23 @@ class ServicesYamlReferenceProvider : PsiReferenceProvider() {
             return PsiReference.EMPTY_ARRAY
         }
 
+        getTaggedArgumentReference(scalar)?.let { return arrayOf(it) }
         getServiceReference(scalar)?.let { return arrayOf(it) }
         getPlainServiceIdReference(scalar)?.let { return arrayOf(it) }
         getFactoryMethodReference(scalar)?.let { return arrayOf(it) }
         getClassReference(scalar)?.let { return arrayOf(it) }
 
         return PsiReference.EMPTY_ARRAY
+    }
+
+    private fun getTaggedArgumentReference(scalar: YAMLScalar): PsiReference? {
+        val tagName = ServicesYaml.taggedArgumentTagName(scalar) ?: return null
+
+        return ServiceTagReference(
+            scalar,
+            tagName,
+            ServicesYaml.scalarTextValueRange(scalar, tagName)
+        )
     }
 
     private fun getServiceReference(scalar: YAMLScalar): PsiReference? {
