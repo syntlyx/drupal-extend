@@ -1920,7 +1920,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
 
         myFixture.doHighlighting()
         myFixture.launchAction(myFixture.getAllQuickFixes().single {
-            it.text == "Prefix @throws exception class with \\"
+            it.text == "Fully qualify @throws exception class"
         })
         myFixture.doHighlighting()
         myFixture.launchAction(myFixture.getAllQuickFixes().single {
@@ -1944,6 +1944,143 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                */
               public function build(): array {
                 return [];
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixFullyQualifiesImportedThrowsException() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.addFileToProject(
+            "Experian/Exceptions/ExperianCreditReportReferenceIntegrityException.php",
+            """
+            <?php
+
+            namespace Drupal\nll_core\Experian\Exceptions;
+
+            class ExperianCreditReportReferenceIntegrityException extends \RuntimeException {}
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "ExperianService.php",
+            """
+            <?php
+
+            namespace Drupal\nll_core\Experian;
+
+            use Drupal\nll_core\Experian\Exceptions\ExperianCreditReportReferenceIntegrityException;
+
+            final class ExperianService {
+              /**
+               * Builds rows.
+               *
+               * @throws ExperianCreditReportReferenceIntegrityException
+               *   Something failed.
+               */
+              public function build(): void {
+                throw new ExperianCreditReportReferenceIntegrityException();
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        myFixture.launchAction(myFixture.getAllQuickFixes().first {
+            it.text == "Fully qualify @throws exception class"
+        })
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            namespace Drupal\nll_core\Experian;
+
+            use Drupal\nll_core\Experian\Exceptions\ExperianCreditReportReferenceIntegrityException;
+
+            final class ExperianService {
+              /**
+               * Builds rows.
+               *
+               * @throws \Drupal\nll_core\Experian\Exceptions\ExperianCreditReportReferenceIntegrityException
+               *   Something failed.
+               */
+              public function build(): void {
+                throw new ExperianCreditReportReferenceIntegrityException();
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testFullDocBlockFixFullyQualifiesImportedThrowsException() {
+        project.drupalExtendSettings.isCodeStyleClassFileNameEnabled = false
+        project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.addFileToProject(
+            "Experian/Exceptions/ExperianCreditReportReferenceIntegrityException.php",
+            """
+            <?php
+
+            namespace Drupal\nll_core\Experian\Exceptions;
+
+            class ExperianCreditReportReferenceIntegrityException extends \RuntimeException {}
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "ExperianService.php",
+            """
+            <?php
+
+            namespace Drupal\nll_core\Experian;
+
+            use Drupal\nll_core\Experian\Exceptions\ExperianCreditReportReferenceIntegrityException;
+
+            final class ExperianService {
+              /**
+               * Builds rows
+               *
+               * @throws ExperianCreditReportReferenceIntegrityException Something failed
+               */
+              public function build(): void {
+                throw new ExperianCreditReportReferenceIntegrityException();
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        myFixture.launchAction(myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal DocBlock"
+        })
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            namespace Drupal\nll_core\Experian;
+
+            use Drupal\nll_core\Experian\Exceptions\ExperianCreditReportReferenceIntegrityException;
+
+            final class ExperianService {
+              /**
+               * Builds rows.
+               *
+               * @throws \Drupal\nll_core\Experian\Exceptions\ExperianCreditReportReferenceIntegrityException
+               *   Something failed.
+               */
+              public function build(): void {
+                throw new ExperianCreditReportReferenceIntegrityException();
               }
 
             }

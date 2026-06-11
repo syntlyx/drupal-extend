@@ -41,7 +41,7 @@ private fun PhpDocComment.fullDocBlockFixText(
     val function = owningFunction()
     val normalizedContent = contentLines
         .withMissingParamNames(function, settings)
-        .withThrowsExceptionNamespaces(settings)
+        .withThrowsExceptionNamespaces(settings, throwsExceptionFqns())
         .withInlineDescriptionsOnContinuationLines(settings)
         .withDescriptionIndentation(settings)
         .withTagDescriptionPunctuation(settings)
@@ -125,6 +125,7 @@ private fun List<String>.withInlineDescriptionsOnContinuationLines(
 
 private fun List<String>.withThrowsExceptionNamespaces(
     settings: DrupalExtendSettings,
+    throwsFqns: Map<String, String>,
 ): List<String> {
     if (!settings.isCodeStyleDocBlockApiTagsEnabled) return this
 
@@ -133,7 +134,12 @@ private fun List<String>.withThrowsExceptionNamespaces(
         val tag = line.drupalDocBlockThrowsTag() ?: return@map line
         if (tag.type.startsWith("\\")) return@map line
 
-        line.substring(0, tag.typeStartOffset) + "\\" + line.substring(tag.typeStartOffset)
+        val resolvedFqn = throwsFqns[tag.type]
+        if (resolvedFqn != null) {
+            line.substring(0, tag.typeStartOffset) + resolvedFqn + line.substring(tag.typeEndOffset)
+        } else {
+            line.substring(0, tag.typeStartOffset) + "\\" + line.substring(tag.typeStartOffset)
+        }
     }
 }
 

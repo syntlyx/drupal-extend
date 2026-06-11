@@ -52,14 +52,19 @@ internal object DocBlockApiTagSyntaxRule : DrupalCodeStyleRule {
     }
 
     private fun prefixThrowsExceptionClassFix(): DrupalCodeStyleTextEditQuickFix {
-        return DrupalCodeStyleTextEditQuickFix("Prefix @throws exception class with \\") { _, descriptor ->
+        return DrupalCodeStyleTextEditQuickFix("Fully qualify @throws exception class") { _, descriptor ->
             val docComment = descriptor.psiElement as? PhpDocComment ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             val line = docComment.drupalDocBlockLines()
                 .firstOrNull { it.tagName() == "throws" && it.throwsTag()?.type?.startsWith("\\") == false }
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
             val tag = line.throwsTag() ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
 
-            listOf(TextEdit(docComment.textRange.startOffset + line.trimmedContentStartOffset() + tag.typeStartOffset, "\\"))
+            val typeStart = docComment.textRange.startOffset + line.trimmedContentStartOffset() + tag.typeStartOffset
+            val resolvedFqn = docComment.throwsExceptionFqns()[tag.type]
+                ?: return@DrupalCodeStyleTextEditQuickFix listOf(TextEdit(typeStart, "\\"))
+
+            val typeEnd = docComment.textRange.startOffset + line.trimmedContentStartOffset() + tag.typeEndOffset
+            listOf(TextEdit(typeStart, typeEnd, resolvedFqn))
         }
     }
 

@@ -1,6 +1,10 @@
 package com.github.nvelychenko.drupalextend.inspection.codestyle
 
+import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
+import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocType
+import com.jetbrains.php.lang.psi.elements.PhpClass
+import com.jetbrains.php.lang.psi.elements.PhpReference
 
 internal data class DrupalDocBlockLine(
     val rawText: String,
@@ -548,3 +552,32 @@ private fun String.docBlockTagName(): String? {
 }
 
 internal val DRUPAL_DOCBLOCK_DESCRIPTION_TAGS = setOf("param", "return", "throws")
+
+/**
+ * Resolves each unqualified `@throws` exception class to its fully qualified name, honouring the
+ * file's `use` imports and current namespace.
+ *
+ * Keyed by the exact type token as written in the docblock (e.g. `MyException`), valued by the
+ * resolved FQN with a leading backslash (e.g. `\Drupal\foo\MyException`). Already-qualified types
+ * and types that don't resolve to a class are omitted, so callers can fall back to a plain `\`
+ * prefix when a key is missing.
+ */
+internal fun PhpDocComment.throwsExceptionFqns(): Map<String, String> {
+    val result = LinkedHashMap<String, String>()
+    for (tag in getTagElementsByName("@throws")) {
+        val docType = PsiTreeUtil.findChildOfType(tag, PhpDocType::class.java) ?: continue
+        val typeText = docType.text?.trim()?.takeIf { it.isNotBlank() } ?: continue
+        if (typeText.startsWith("\\") || typeText in result) continue
+
+        docType.resolvedClassFqn()?.let { result[typeText] = it }
+    }
+
+    return result
+}
+
+private fun PhpDocType.resolvedClassFqn(): String? {
+    val resolved = (this as? PhpReference)?.resolve()
+        ?: references.asSequence().mapNotNull { it.resolve() }.firstOrNull()
+
+    return (resolved as? PhpClass)?.fqn?.takeIf { it.startsWith("\\") }
+}

@@ -12,6 +12,7 @@
 
 ### Fixed
 
+- "Fully qualify @throws exception class" fix (and the umbrella "Fix Drupal DocBlock" fix) now resolves an imported or namespace-relative exception class to its real FQN instead of blindly prepending `\`. Previously `@throws MyException` with a matching `use ...\MyException;` was "fixed" to `@throws \MyException`, which resolves to a non-existent root-namespace class; it now becomes `@throws \Full\Namespace\MyException`. Types that don't resolve to a class still fall back to the plain `\` prefix.
 - Resolving whether a method is implicitly used as a service factory (used by every method during every highlighting pass) no longer parses every `*.services.yml` file in the project on each call. Service factory methods are now served from a dedicated file-based index, removing a per-method, per-pass whole-project PSI sweep.
 
 - "Inject Drupal service into constructor" quick fix now inserts the injected property/constructor after any class-level trait `use` statements instead of before them (which produced invalid PHP).
