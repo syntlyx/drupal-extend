@@ -329,6 +329,12 @@ class DrupalConfig(
                     }
 
                     row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_function_doc_missing_tags"))
+                            .bindSelected(settings::isCodeStyleFunctionDocMissingTagsEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_file_doc_comment"))
                             .bindSelected(settings::isCodeStyleFileDocCommentEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)

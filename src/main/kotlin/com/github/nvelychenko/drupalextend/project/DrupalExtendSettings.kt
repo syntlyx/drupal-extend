@@ -307,6 +307,12 @@ class DrupalExtendSettings :
             state.isCodeStyleDocBlockSummaryLengthEnabled = value
         }
 
+    var isCodeStyleFunctionDocMissingTagsEnabled: Boolean
+        get() = state.isCodeStyleFunctionDocMissingTagsEnabled
+        set(value) {
+            state.isCodeStyleFunctionDocMissingTagsEnabled = value
+        }
+
     var drupalCoreVersion: String
         get() = state.drupalCoreVersion.orEmpty()
         set(value) {
@@ -317,6 +323,7 @@ class DrupalExtendSettings :
         // @todo Once we will implement balloon make it false by default
         var isEnabled: Boolean by property(true)
         var drupalCoreVersion by string()
+        var isCodeStyleFunctionDocMissingTagsEnabled: Boolean by property(true)
         var isCodeStylePropertyNameEnabled: Boolean by property(true)
         var isCodeStyleScopeKeywordSpacingEnabled: Boolean by property(true)
         var isCodeStyleConsecutiveBlankLinesEnabled: Boolean by property(true)

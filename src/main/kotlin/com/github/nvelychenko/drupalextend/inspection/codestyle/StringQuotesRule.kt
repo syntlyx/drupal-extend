@@ -55,15 +55,19 @@ internal object StringQuotesRule : DrupalCodeStyleRule {
 /**
  * Returns true when the raw content (between the outer `"` delimiters) contains
  * only plain characters, `\\`, or `\"` — and therefore can be represented as a
- * single-quoted string without semantic change.
+ * single-quoted string without semantic change OR new escaping.
  *
  * Any escape sequence that only works in double-quoted context (`\n`, `\t`, `\r`,
  * `\v`, `\e`, `\f`, `\0`–`\7`, `\x`, `\u`, `\$`) causes this to return false.
+ * A literal `'` also returns false: per Drupal's coding standard, double quotes
+ * are the RIGHT choice when the string contains single quotes (converting would
+ * force `\'` escapes, e.g. SQL like `"… uuid = ''"`).
  */
 private fun isConvertibleContent(content: String): Boolean {
     var i = 0
     while (i < content.length) {
         val c = content[i]
+        if (c == '\'') return false
         if (c == '\\' && i + 1 < content.length) {
             when (content[i + 1]) {
                 '\\', '"' -> {

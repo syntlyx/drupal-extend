@@ -73,6 +73,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(ConsecutiveBlankLinesRule, Target.PHP_FILE),
         register(DocBlockShortTypesRule, Target.DOC_BLOCK),
         register(DocBlockSummaryLengthRule, Target.DOC_BLOCK),
+        register(FunctionDocMissingTagsRule, Target.FUNCTION),
     )
 
     val rules: List<DrupalCodeStyleRule> = registrations.map { it.rule }

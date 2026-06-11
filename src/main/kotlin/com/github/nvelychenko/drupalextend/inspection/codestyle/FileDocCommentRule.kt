@@ -19,9 +19,6 @@ import com.jetbrains.php.lang.psi.PhpFile
 internal object FileDocCommentRule : DrupalCodeStyleRule {
     override val id: String = "file_doc_comment"
 
-    // Matches the <?php opening line including its trailing newline.
-    private val phpOpenTagLine = Regex("""^<\?php[ \t]*(?:\r?\n|\r)?""")
-
     override fun isEnabled(settings: DrupalExtendSettings): Boolean =
         settings.isCodeStyleFileDocCommentEnabled
 
@@ -30,7 +27,7 @@ internal object FileDocCommentRule : DrupalCodeStyleRule {
         if (!file.isProceduralDrupalFile()) return
 
         val text = file.text ?: return
-        val openTagMatch = phpOpenTagLine.find(text) ?: return
+        val openTagMatch = PHP_OPEN_TAG_LINE.find(text) ?: return
         // Offset immediately after the <?php line — where new content would go.
         val afterOpenTagOffset = openTagMatch.range.last + 1
 
@@ -94,23 +91,7 @@ internal object FileDocCommentRule : DrupalCodeStyleRule {
             val file = descriptor.psiElement.containingFile as? PhpFile
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
 
-            // Idempotency guard: re-derive offset from current file text.
-            val currentText = file.text ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-            val currentOpenTagMatch = phpOpenTagLine.find(currentText)
-                ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-            val currentAfterOpenTag = currentOpenTagMatch.range.last + 1
-
-            // If the first docblock already has @file, nothing to do.
-            val existingDocBlock = PsiTreeUtil.findChildOfType(file, PhpDocComment::class.java)
-            if (existingDocBlock != null
-                && existingDocBlock.isFileLevelDocBlock(currentAfterOpenTag)
-                && existingDocBlock.hasFileTag()
-            ) {
-                return@DrupalCodeStyleTextEditQuickFix emptyList()
-            }
-
-            val docBlock = "/**\n * @file\n * TODO: Describe the file.\n *" + "/\n"
-            listOf(TextEdit(currentAfterOpenTag, docBlock))
+            listOfNotNull(file.fileDocCommentEdit())
         }
 
     private fun insertFileTagFix(): DrupalCodeStyleTextEditQuickFix =
@@ -118,19 +99,69 @@ internal object FileDocCommentRule : DrupalCodeStyleRule {
             val docComment = descriptor.psiElement as? PhpDocComment
                 ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
 
-            // Idempotency guard.
-            if (docComment.hasFileTag()) {
-                return@DrupalCodeStyleTextEditQuickFix emptyList()
-            }
-
-            val insertOffset = docComment.fileTagInsertOffset()
-                ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-            val hasOtherContent = docComment.hasContentBeyondOpenClose()
-
-            val insertion = if (hasOtherContent) " * @file\n *\n" else " * @file\n"
-            listOf(TextEdit(insertOffset, insertion))
+            listOfNotNull(docComment.fileTagInsertEdit())
         }
 }
+
+/**
+ * The single edit that brings the file to a valid `@file` state, or null when nothing is
+ * needed. Used by the quick fixes and by the file-wide "Fix Drupal code style" action.
+ */
+internal fun PhpFile.fileDocCommentEdit(): TextEdit? {
+    if (!isProceduralDrupalFile()) return null
+
+    val text = text ?: return null
+    val openTagMatch = PHP_OPEN_TAG_LINE.find(text) ?: return null
+    val afterOpenTagOffset = openTagMatch.range.last + 1
+
+    val firstDocBlock = PsiTreeUtil.findChildOfType(this, PhpDocComment::class.java)
+    if (firstDocBlock != null && firstDocBlock.isFileLevelDocBlock(afterOpenTagOffset)) {
+        // A top-of-file docblock exists: only the @file tag may be missing.
+        return firstDocBlock.fileTagInsertEdit()
+    }
+
+    // No docblock at the top of the file. Nothing to do for an otherwise empty file.
+    val contentAfterTag = text.substring(afterOpenTagOffset)
+    if (contentAfterTag.isBlank()) return null
+
+    // Keep exactly one blank line between the docblock and the following content.
+    val separator = if (contentAfterTag.startsWith("\n") || contentAfterTag.startsWith("\r")) "" else "\n"
+    val docBlock = "/**\n * @file\n * ${fileDocDescription()}\n *" + "/\n" + separator
+
+    return TextEdit(afterOpenTagOffset, docBlock)
+}
+
+/** `@file`-tag insertion into an existing top-of-file docblock, or null when already present. */
+internal fun PhpDocComment.fileTagInsertEdit(): TextEdit? {
+    if (hasFileTag()) return null
+
+    val insertOffset = fileTagInsertOffset() ?: return null
+    val insertion = if (hasContentBeyondOpenClose()) " * @file\n *\n" else " * @file\n"
+
+    return TextEdit(insertOffset, insertion)
+}
+
+/**
+ * A Drupal-core-convention description derived from the file name:
+ * `nll_core.install` → "Install, update and uninstall functions for the Nll Core module."
+ */
+private fun PhpFile.fileDocDescription(): String {
+    val humanized = name.substringBefore('.')
+        .split('_', '-')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { part -> part.replaceFirstChar { it.uppercaseChar() } }
+        .ifBlank { "this" }
+
+    return when (name.substringAfterLast('.', "")) {
+        "install" -> "Install, update and uninstall functions for the $humanized module."
+        "module" -> "Hook implementations for the $humanized module."
+        "theme" -> "Functions to support theming in the $humanized theme."
+        "profile" -> "Enables modules and site configuration for a $humanized site installation."
+        else -> "Helper functions for the $humanized module."
+    }
+}
+
+private val PHP_OPEN_TAG_LINE = Regex("""^<\?php[ \t]*(?:\r?\n|\r)?""")
 
 // -------------------------------------------------------------------------
 // PhpFile helpers

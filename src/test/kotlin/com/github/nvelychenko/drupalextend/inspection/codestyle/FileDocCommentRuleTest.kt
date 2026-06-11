@@ -174,11 +174,35 @@ class FileDocCommentRuleTest : BasePlatformTestCase() {
             <?php
             /**
              * @file
-             * TODO: Describe the file.
+             * Hook implementations for the My Module module.
              */
 
             function my_module_hook(): void {}
             """.trimIndent()
+        )
+    }
+
+    fun testFileWideFixGeneratesFileDocBlockWithConventionDescription() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "nll_core.install",
+            """
+            <?php
+
+            function nll_core_install(): void {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertTrue(
+            "File-wide fix must generate the @file docblock, got:\n$result",
+            result.contains("/**\n * @file\n * Install, update and uninstall functions for the Nll Core module.\n */")
         )
     }
 

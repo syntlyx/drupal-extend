@@ -214,4 +214,66 @@ class DocBlockSummaryLengthRuleTest : BasePlatformTestCase() {
             descriptions.any { it.contains("must not exceed 80 characters") }
         )
     }
+
+    fun testWrapFixMovesOverflowToContinuationLine() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Constructs the application generated document manager handling tradeline updates.
+             */
+            function example(): void {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Wrap summary at 80 characters"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            /**
+             * Constructs the application generated document manager handling tradeline
+             * updates.
+             */
+            function example(): void {}
+            """.trimIndent()
+        )
+
+        // Idempotency: every line is now under the limit — no further violation, no fix.
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(descriptions.any { it.contains("must not exceed 80 characters") })
+    }
+
+    fun testWrapFixHandlesVeryLongSummaryWithMultipleContinuations() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        val longSummary = (1..30).joinToString(" ") { "word$it" }
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * $longSummary.
+             */
+            function example(): void {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Wrap summary at 80 characters"
+        }
+        myFixture.launchAction(intention)
+
+        val overLimit = myFixture.file.text.lines().filter { it.length > 80 }
+        assertEmpty("All wrapped lines must fit in 80 characters: $overLimit", overLimit)
+    }
 }

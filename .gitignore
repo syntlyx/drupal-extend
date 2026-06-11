@@ -4,3 +4,7 @@
 .intellijPlatform
 .kotlin
 build
+
+# Decompiled SDK sources occasionally dumped by tooling
+/com/
+*.hprof

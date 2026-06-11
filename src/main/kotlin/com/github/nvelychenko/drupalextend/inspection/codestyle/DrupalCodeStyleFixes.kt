@@ -14,6 +14,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
 import com.jetbrains.php.lang.parser.PhpElementTypes
+import com.jetbrains.php.lang.psi.PhpFile
 import com.jetbrains.php.lang.psi.elements.ArrayHashElement
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.AssignmentExpression
@@ -82,12 +83,31 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
     val document = document() ?: return emptyList()
     val edits = mutableListOf<TextEdit>()
 
+    if (settings.isCodeStyleFileDocCommentEnabled && this is PhpFile) {
+        fileDocCommentEdit()?.let { edits += it }
+    }
+
     PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
         .mapNotNullTo(edits) { it.fullDocBlockFixEdit(settings) }
 
     if (settings.isCodeStyleDocBlockBlankLineNormalizationEnabled) {
         PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
             .mapNotNullTo(edits) { it.declarationSpacingEdit(document) }
+    }
+
+    if (settings.isCodeStyleDocBlockSummaryLengthEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, PhpDocComment::class.java)
+            .mapNotNull { it.summaryWrapEdit() }
+            .filterNot { wrapEdit -> edits.any { it.overlaps(wrapEdit) } }
+            .toCollection(edits)
+    }
+
+    if (settings.isCodeStyleFunctionDocMissingTagsEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, Function::class.java)
+            .filterNot { it.isClosure }
+            .flatMap { it.missingDocTagsEdits() }
+            .filterNot { tagEdit -> edits.any { it.overlaps(tagEdit) } }
+            .toCollection(edits)
     }
 
     if (settings.isCodeStyleConstantCasingEnabled) {

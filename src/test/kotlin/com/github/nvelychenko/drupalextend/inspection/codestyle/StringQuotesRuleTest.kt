@@ -226,26 +226,25 @@ class StringQuotesRuleTest : BasePlatformTestCase() {
     }
 
     // -------------------------------------------------------------------------
-    // Fix: string containing a single quote — fix escapes it
-    // e.g. "it's" → 'it\'s'
+    // String containing a single quote — double quotes are the RIGHT choice per
+    // Drupal CS (converting would force escaping), so it is NOT reported.
+    // e.g. "it's"  /  "UPDATE {t} SET uuid = '' WHERE …"
     // -------------------------------------------------------------------------
 
-    fun testQuickFixEscapesSingleQuoteInsideString() {
+    fun testStringContainingSingleQuoteIsNotReported() {
         myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
         myFixture.configureByText(
             "Example.php",
-            // PHP source: $x = "it's";
-            "<?php\n\$x = \"it's\";"
+            // PHP source: $x = "it's"; $db->query("UPDATE {t} SET uuid = '' WHERE 1");
+            "<?php\n\$x = \"it's\";\n\$db->query(\"UPDATE {t} SET uuid = '' WHERE 1\");"
         )
 
-        myFixture.doHighlighting()
-        val intention = myFixture.getAllQuickFixes().first {
-            it.text == "Convert to single-quoted string"
-        }
-        myFixture.launchAction(intention)
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
 
-        // Result should be: $x = 'it\'s';
-        myFixture.checkResult("<?php\n\$x = 'it\\'s';")
+        assertFalse(
+            "Strings containing single quotes must not be reported",
+            descriptions.contains("Prefer single quotes for strings without interpolation or escapes")
+        )
     }
 
     // -------------------------------------------------------------------------
