@@ -83,5 +83,12 @@ class DrupalReferenceContributor : PsiReferenceContributor() {
             psiElement(StringLiteralExpression::class.java),
             ModuleNameReferenceProvider()
         )
+
+        // ->condition('type', 'article')  /  Node::create(['type' => 'article'])
+        // (the provider narrows to bundle-value positions itself)
+        registrar.registerReferenceProvider(
+            psiElement(StringLiteralExpression::class.java),
+            BundleValueReferenceProvider()
+        )
     }
 }

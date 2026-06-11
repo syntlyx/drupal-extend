@@ -63,6 +63,15 @@ class DrupalCompletionContributor : CompletionContributor() {
         // \Drupal::entityTypeManager->getQuery()->condition('
         extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, EntityQueryConditionFieldCompletionProvider())
 
+        // ->condition('type', 'artic|   Node::create(['type' => 'artic|   loadByProperties([...])
+        // (hash VALUES sit under an Array-value wrapper the narrow patterns don't cover;
+        // the provider narrows to bundle-value positions in O(1) itself)
+        extend(
+            CompletionType.BASIC,
+            psiElement().withParent(StringLiteralExpression::class.java),
+            BundleValueCompletionProvider()
+        )
+
         // $node->set('fi
         // $node->get('fi|
         extend(CompletionType.BASIC, STRING_LITERAL_INSIDE_METHOD_PARAMETER, FieldCompletionCompletionProvider())
