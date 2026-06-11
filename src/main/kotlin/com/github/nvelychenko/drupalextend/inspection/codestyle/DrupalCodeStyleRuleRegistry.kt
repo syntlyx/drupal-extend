@@ -68,6 +68,11 @@ internal object DrupalCodeStyleRuleRegistry {
         register(StringQuotesRule, Target.STRING_LITERAL),
         register(InlineCommentRule, Target.COMMENT),
         register(DiscouragedFunctionsRule, Target.FUNCTION_REFERENCE),
+        register(PropertyNameRule, Target.CLASS_FIELDS),
+        register(ScopeKeywordSpacingRule, Target.METHOD, Target.CLASS_FIELDS),
+        register(ConsecutiveBlankLinesRule, Target.PHP_FILE),
+        register(DocBlockShortTypesRule, Target.DOC_BLOCK),
+        register(DocBlockSummaryLengthRule, Target.DOC_BLOCK),
     )
 
     val rules: List<DrupalCodeStyleRule> = registrations.map { it.rule }

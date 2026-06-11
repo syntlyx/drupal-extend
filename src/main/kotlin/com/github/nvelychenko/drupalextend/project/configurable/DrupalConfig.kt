@@ -91,6 +91,12 @@ class DrupalConfig(
                             .bindSelected(settings::isCodeStyleMemberVisibilityEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_property_name"))
+                            .bindSelected(settings::isCodeStylePropertyNameEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
                 }
 
                 collapsibleGroup(DrupalExtendBundle.message("settings.drupal_extend.code_style_group_php_syntax"), true) {
@@ -151,6 +157,12 @@ class DrupalConfig(
                     row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_discouraged_functions"))
                             .bindSelected(settings::isCodeStyleDiscouragedFunctionsEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_consecutive_blank_lines"))
+                            .bindSelected(settings::isCodeStyleConsecutiveBlankLinesEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }
@@ -215,6 +227,12 @@ class DrupalConfig(
                     row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_control_structure_spacing"))
                             .bindSelected(settings::isCodeStyleControlStructureSpacingEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_scope_keyword_spacing"))
+                            .bindSelected(settings::isCodeStyleScopeKeywordSpacingEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
                 }
@@ -295,6 +313,18 @@ class DrupalConfig(
                     row {
                         checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_docblock_api_tags"))
                             .bindSelected(settings::isCodeStyleDocBlockApiTagsEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_doc_block_short_types"))
+                            .bindSelected(settings::isCodeStyleDocBlockShortTypesEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_doc_block_summary_length"))
+                            .bindSelected(settings::isCodeStyleDocBlockSummaryLengthEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
 

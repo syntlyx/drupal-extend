@@ -277,6 +277,36 @@ class DrupalExtendSettings :
             state.isCodeStyleDiscouragedFunctionsEnabled = value
         }
 
+    var isCodeStylePropertyNameEnabled: Boolean
+        get() = state.isCodeStylePropertyNameEnabled
+        set(value) {
+            state.isCodeStylePropertyNameEnabled = value
+        }
+
+    var isCodeStyleScopeKeywordSpacingEnabled: Boolean
+        get() = state.isCodeStyleScopeKeywordSpacingEnabled
+        set(value) {
+            state.isCodeStyleScopeKeywordSpacingEnabled = value
+        }
+
+    var isCodeStyleConsecutiveBlankLinesEnabled: Boolean
+        get() = state.isCodeStyleConsecutiveBlankLinesEnabled
+        set(value) {
+            state.isCodeStyleConsecutiveBlankLinesEnabled = value
+        }
+
+    var isCodeStyleDocBlockShortTypesEnabled: Boolean
+        get() = state.isCodeStyleDocBlockShortTypesEnabled
+        set(value) {
+            state.isCodeStyleDocBlockShortTypesEnabled = value
+        }
+
+    var isCodeStyleDocBlockSummaryLengthEnabled: Boolean
+        get() = state.isCodeStyleDocBlockSummaryLengthEnabled
+        set(value) {
+            state.isCodeStyleDocBlockSummaryLengthEnabled = value
+        }
+
     var drupalCoreVersion: String
         get() = state.drupalCoreVersion.orEmpty()
         set(value) {
@@ -287,6 +317,11 @@ class DrupalExtendSettings :
         // @todo Once we will implement balloon make it false by default
         var isEnabled: Boolean by property(true)
         var drupalCoreVersion by string()
+        var isCodeStylePropertyNameEnabled: Boolean by property(true)
+        var isCodeStyleScopeKeywordSpacingEnabled: Boolean by property(true)
+        var isCodeStyleConsecutiveBlankLinesEnabled: Boolean by property(true)
+        var isCodeStyleDocBlockShortTypesEnabled: Boolean by property(true)
+        var isCodeStyleDocBlockSummaryLengthEnabled: Boolean by property(true)
         var isCodeStyleElsePlacementEnabled: Boolean by property(true)
         var isCodeStyleStringQuotesEnabled: Boolean by property(true)
         var isCodeStyleInlineCommentEnabled: Boolean by property(true)
