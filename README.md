@@ -23,6 +23,9 @@ procedural code.
   `->load()/loadMultiple()/loadByProperties()` → entity class (content **and** config entities),
   `\Drupal::entityQuery()`, field item lists, and `->entity` on reference fields
   ![Entity type provider](./assets/entity_type_provider.png)
+* Bundle ids completed and navigable in `->condition('type', '…')` (when the field is the
+  entity's bundle key), `Node::create(['type' => '…'])`, `loadByProperties()`, and test
+  `drupalCreateNode()` calls — sourced from the `node.type.*`-style bundle configs
 * Navigation from storage ids and field names to their definitions
   ![Storage reference](./assets/storage_reference_provider.gif)
 
@@ -32,7 +35,9 @@ procedural code.
   and container `get()` calls — including modern autowired definitions where the service id is
   the class FQN (`Drupal\my_module\MyService: ~`)
 * `*.services.yml`: service id and class completion, references, Find Usages, and inspections
-  for unknown services/classes and constructor argument mismatches
+  for unknown services/classes and constructor argument mismatches — with a "Fill constructor
+  arguments" quick fix that appends `@service` references matched by the constructor's type
+  hints
 * "Inject Drupal service into constructor" quick fix: adds the property, constructor parameter
   (promoted constructors supported), and a `create()` override when the class needs one —
   `AutowireTrait` classes get an `#[Autowire(service: '...')]` parameter instead, so working
@@ -50,8 +55,8 @@ procedural code.
   redirects, and across `*.routing.yml` / `*.links.*.yml`
 * Navigation to controller/form/access handler classes and methods
 * Inspections for unknown routes, unknown permissions, missing handler methods, and missing
-  route parameters — with a quick fix that adds the missing parameters without touching your
-  formatting
+  route parameters — with quick fixes that add the missing parameters (without touching your
+  formatting) or generate the missing handler method stub right in the controller
 
 ## Hooks (OOP & procedural)
 
@@ -98,7 +103,7 @@ procedural code.
   and never reported unused
 * Permission completion and navigation in `hasPermission()`-style calls and routing YAML
 
-## Drupal coding standards (42 rules)
+## Drupal coding standards (45 rules)
 
 A configurable linter implementing the phpcs Drupal/DrupalPractice rules that make sense in an
 IDE — naming (classes, functions, properties, constants), `else` placement, string quotes,
@@ -108,9 +113,13 @@ FQN-to-import conversion, `@file` docblocks for procedural files, and a full set
 content rules (summaries, tag grouping, `@param`/`@return` descriptions, short scalar types,
 80-character summaries, `@throws`/`@see`/`@deprecated` syntax).
 
-Every rule is individually toggleable (<kbd>Settings</kbd> → <kbd>PHP</kbd> →
-<kbd>Drupal Extend</kbd>), ships a quick fix where one is safe, and there's a file-wide
-"Fix Drupal code style" action.
+Every rule has its own severity (<kbd>Settings</kbd> → <kbd>PHP</kbd> →
+<kbd>Drupal Extend</kbd>: Off / Weak warning / Warning / Error — so debug calls can be errors
+while spacing stays subtle), ships a quick fix where one is safe, and applies in bulk two
+ways: the file-wide "Fix Drupal code style" action, and the IDE's standard **Code Cleanup**
+(including the "Cleanup code" checkbox in the commit dialog) — so style normalizes before
+your pre-commit phpcs ever runs. The file-wide fix also generates missing `@file` docblocks
+and `@param`/`@return` tags with core-convention descriptions.
 
 ## Extension descriptors & YAML
 
