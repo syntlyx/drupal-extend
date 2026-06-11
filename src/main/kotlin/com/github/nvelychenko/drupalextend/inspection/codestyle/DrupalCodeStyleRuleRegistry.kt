@@ -58,6 +58,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(FunctionDocTagDescriptionLineRule, Target.FUNCTION),
         register(FunctionDocTagDescriptionPunctuationRule, Target.FUNCTION),
         register(DocBlockApiTagSyntaxRule, Target.DOC_BLOCK),
+        register(FileDocCommentRule, Target.PHP_FILE),
     )
 
     val rules: List<DrupalCodeStyleRule> = registrations.map { it.rule }

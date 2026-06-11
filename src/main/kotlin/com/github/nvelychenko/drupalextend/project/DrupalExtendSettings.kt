@@ -247,6 +247,12 @@ class DrupalExtendSettings :
             state.isCodeStyleFullyQualifiedClassNameEnabled = value
         }
 
+    var isCodeStyleFileDocCommentEnabled: Boolean
+        get() = state.isCodeStyleFileDocCommentEnabled
+        set(value) {
+            state.isCodeStyleFileDocCommentEnabled = value
+        }
+
     var drupalCoreVersion: String
         get() = state.drupalCoreVersion.orEmpty()
         set(value) {
@@ -295,6 +301,7 @@ class DrupalExtendSettings :
         var isCodeStyleControlStructureSpacingEnabled: Boolean by property(true)
         var isCodeStyleUseStatementSortingEnabled: Boolean by property(true)
         var isCodeStyleFullyQualifiedClassNameEnabled: Boolean by property(true)
+        var isCodeStyleFileDocCommentEnabled: Boolean by property(true)
     }
 
 }

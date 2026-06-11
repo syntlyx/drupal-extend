@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drupal-extend.local/schemas/drupal-routing.schema.json",
+  "title": "Drupal routing.yml",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "route_callbacks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "patternProperties": {
+    "^(?!route_callbacks$).+$": {
+      "$ref": "#/definitions/routeDefinition"
+    }
+  },
+  "definitions": {
+    "routeDefinition": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "defaults": {
+          "$ref": "#/definitions/defaults"
+        },
+        "requirements": {
+          "$ref": "#/definitions/requirements"
+        },
+        "methods": {
+          "$ref": "#/definitions/methods"
+        },
+        "options": {
+          "$ref": "#/definitions/options"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "_controller": {
+          "type": "string"
+        },
+        "_form": {
+          "type": "string"
+        },
+        "_entity_form": {
+          "type": "string"
+        },
+        "_entity_list": {
+          "type": "string"
+        },
+        "_entity_view": {
+          "type": "string"
+        },
+        "_title": {
+          "type": "string"
+        },
+        "_title_callback": {
+          "type": "string"
+        },
+        "_title_arguments": {
+          "type": [
+            "object",
+            "array",
+            "string"
+          ]
+        },
+        "_title_context": {
+          "type": "string"
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "_permission": {
+          "type": "string"
+        },
+        "_access": {
+          "type": [
+            "string",
+            "boolean"
+          ]
+        },
+        "_role": {
+          "type": "string"
+        },
+        "_custom_access": {
+          "type": "string"
+        },
+        "_entity_access": {
+          "type": "string"
+        },
+        "_format": {
+          "type": "string"
+        },
+        "_method": {
+          "type": "string"
+        },
+        "_csrf_token": {
+          "type": [
+            "string",
+            "boolean"
+          ]
+        },
+        "_user_is_logged_in": {
+          "type": [
+            "string",
+            "boolean"
+          ]
+        },
+        "_module_dependencies": {
+          "type": "string"
+        }
+      }
+    },
+    "methods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "GET",
+          "POST",
+          "PUT",
+          "PATCH",
+          "DELETE",
+          "HEAD",
+          "OPTIONS"
+        ]
+      }
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "_admin_route": {
+          "type": "boolean"
+        },
+        "no_cache": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "_auth": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

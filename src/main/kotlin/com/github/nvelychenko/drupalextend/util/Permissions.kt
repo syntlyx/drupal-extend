@@ -64,6 +64,10 @@ object Permissions {
         return title
     }
 
+    fun isPermissionsFileName(fileName: String?): Boolean {
+        return fileName?.endsWith(".permissions.yml") == true
+    }
+
     fun isYamlPermissionReferenceFileName(fileName: String?): Boolean {
         return RoutingYaml.isRouteReferenceFileName(fileName)
     }
@@ -135,7 +139,7 @@ object Permissions {
     }
 
     fun permissionDefinitionFromKeyElement(element: PsiElement): YAMLKeyValue? {
-        if (element.containingFile?.virtualFile?.name?.endsWith(".permissions.yml") != true) return null
+        if (!isPermissionsFileName(element.containingFile?.virtualFile?.name)) return null
 
         val keyValue = element as? YAMLKeyValue
             ?: element.parent as? YAMLKeyValue

@@ -82,6 +82,13 @@
                          enabledByDefault="true"
                          level="WARNING"
                          implementationClass="com.github.nvelychenko.drupalextend.inspection.RoutesYamlInspection"/>
+        <localInspection language="yaml"
+                         shortName="DrupalInfoYaml"
+                         displayName="Drupal info.yml problems"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalInfoYamlInspection"/>
         <localInspection language="PHP"
                          shortName="DrupalRoutesPhp"
                          displayName="Drupal route call problems"
@@ -103,6 +110,13 @@
                          enabledByDefault="true"
                          level="WEAK WARNING"
                          implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalPluginAttributeInspection"/>
+        <localInspection language="PHP"
+                         shortName="DrupalHookMethodVisibility"
+                         displayName="Drupal hook method must be public and non-static"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="ERROR"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalHookMethodVisibilityInspection"/>
         <localInspection language="PHP"
                          shortName="DrupalCodeStyle"
                          displayName="Drupal code style"
@@ -137,12 +151,17 @@
 
     <extensions defaultExtensionNs="JavaScript">
         <JsonSchema.ProviderFactory implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory implementation="com.github.nvelychenko.drupalextend.schema.DrupalRoutingSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory implementation="com.github.nvelychenko.drupalextend.schema.DrupalPermissionsSchemaProviderFactory"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.json">
         <catalog.exclusion implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaCatalogExclusion"/>
+        <catalog.exclusion implementation="com.github.nvelychenko.drupalextend.schema.DrupalRoutingSchemaCatalogExclusion"/>
+        <catalog.exclusion implementation="com.github.nvelychenko.drupalextend.schema.DrupalPermissionsSchemaCatalogExclusion"/>
         <jsonSchemaGotoDeclarationSuppressor implementation="com.github.nvelychenko.drupalextend.schema.DrupalServicesSchemaGotoDeclarationSuppressor"/>
         <jsonSchemaGotoDeclarationSuppressor implementation="com.github.nvelychenko.drupalextend.schema.DrupalRoutesSchemaGotoDeclarationSuppressor"/>
+        <jsonSchemaGotoDeclarationSuppressor implementation="com.github.nvelychenko.drupalextend.schema.DrupalPermissionsSchemaGotoDeclarationSuppressor"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.jetbrains.php">

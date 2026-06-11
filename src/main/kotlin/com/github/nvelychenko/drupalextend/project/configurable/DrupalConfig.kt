@@ -273,6 +273,12 @@ class DrupalConfig(
                             .bindSelected(settings::isCodeStyleDocBlockApiTagsEnabled)
                             .enabledIf(codeStyleLinterCheckbox.selected)
                     }
+
+                    row {
+                        checkBox(DrupalExtendBundle.message("settings.drupal_extend.code_style_file_doc_comment"))
+                            .bindSelected(settings::isCodeStyleFileDocCommentEnabled)
+                            .enabledIf(codeStyleLinterCheckbox.selected)
+                    }
                 }
             }
 
