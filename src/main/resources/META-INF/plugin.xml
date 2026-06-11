@@ -5,16 +5,41 @@
     <name>Drupal Extend</name>
     <vendor>nvelychenko</vendor>
     <description><![CDATA[
-<h1>Extends Drupal integration with PHPStorm.</h1>
+<h1>Deep Drupal integration for PhpStorm</h1>
 
-<h2>Features</h2>
+<p>Completion, navigation, type inference, inspections with quick fixes, and a Drupal
+coding-standards linter — built for modern Drupal (11.x, PHP attributes, OOP hooks, autowired
+services), while still understanding legacy annotations and procedural code.</p>
+
+<h2>Highlights</h2>
 
 <ul>
-    <li>Autocomplete for Content/Config Entity Storages, services, routes, fields, themes, attribute hooks, render element types and their properties</li>
-    <li>References for Storages, services, routes, RenderElements, themes and Fields (Ctrl + Click)</li>
-    <li>And much more. You can find list of all features <a href="https://github.com/nvelychenko/drupal-extend?tab=readme-ov-file#drupal-extend">here.</a></li>
+    <li><b>Entities &amp; fields</b> — storage/field/property completion, navigation, and full type
+        inference for <code>getStorage()</code> → <code>load()</code> chains, entity queries, field
+        item lists, and reference fields (content and config entities alike)</li>
+    <li><b>Services &amp; DI</b> — completion, navigation, hover docs, and type resolution for
+        service calls and <code>*.services.yml</code>; an inject-into-constructor quick fix that
+        understands promoted constructors, <code>create()</code> overrides, and
+        <code>AutowireTrait</code>/<code>#[Autowire]</code></li>
+    <li><b>Routes &amp; links</b> — completion/navigation across PHP and routing/links YAML,
+        plus inspections for unknown routes, permissions, handlers, and missing route parameters</li>
+    <li><b>Hooks</b> — <code>#[Hook]</code> name completion with method scaffolding, api.php ↔
+        implementation line markers, unknown-hook and hook-visibility inspections, and dead-code
+        suppression for the whole 11.x hook-attribute family and procedural hooks</li>
+    <li><b>Config API</b> — config name and key-path completion/navigation in
+        <code>config()</code> calls and <code>settings.php</code> overrides, plus
+        <code>$settings[...]</code> key completion</li>
+    <li><b>Drupal coding standards</b> — 42 individually toggleable rules (naming, spacing,
+        quotes, comments, DocBlocks, debug-call detection, <code>else</code> placement…) with
+        safe quick fixes and a file-wide fix action</li>
+    <li><b>More</b> — translation placeholder validation, event subscriber navigation,
+        permission/library/cache-context/theme/render-element completion,
+        <code>*.info.yml</code> validation, JSON Schemas for services/routing/permissions YAML,
+        and version-aware annotation → attribute conversion for ~45 core plugin types</li>
 </ul>
 
+<p>The full feature list lives in the
+<a href="https://github.com/nvelychenko/drupal-extend?tab=readme-ov-file#drupal-extend">README</a>.</p>
 ]]></description>
 
     <extensions defaultExtensionNs="com.intellij">
