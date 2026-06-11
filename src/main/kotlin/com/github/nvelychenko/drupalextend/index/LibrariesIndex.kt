@@ -1,7 +1,6 @@
 package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.*
@@ -22,7 +21,6 @@ class LibrariesIndex : FileBasedIndexExtension<String, Void?>() {
             val file = inputData.file
             val fileName = file.name
 
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
             if (!fileName.endsWith(".libraries.yml")) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
@@ -58,6 +56,6 @@ class LibrariesIndex : FileBasedIndexExtension<String, Void?>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }

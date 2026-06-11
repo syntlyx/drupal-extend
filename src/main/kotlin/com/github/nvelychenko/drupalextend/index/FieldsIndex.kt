@@ -2,11 +2,9 @@ package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.data.ExtendableContentEntityRelatedClasses
 import com.github.nvelychenko.drupalextend.extensions.findVariablesByName
-import com.github.nvelychenko.drupalextend.extensions.isInConfigurationDirectory
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.dataExternalizer.SerializedObjectDataExternalizer
 import com.github.nvelychenko.drupalextend.index.types.DrupalField
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.getPhpDocParameter
 import com.github.nvelychenko.drupalextend.util.yml.StringFinderInContext
 import com.github.nvelychenko.drupalextend.util.yml.YAMLKeyValueFinder
@@ -44,7 +42,6 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, DrupalField>()
 
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
 
             val psiFile = inputData.psiFile
 
@@ -53,11 +50,7 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
             }
 
             when (psiFile) {
-                is YAMLFile -> {
-                    if (inputData.isInConfigurationDirectory()) {
-                        processYml(map, psiFile)
-                    }
-                }
+                is YAMLFile -> processYml(map, psiFile)
 
                 is PhpFile -> processPhp(map, psiFile)
             }
@@ -306,7 +299,7 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 14
+    override fun getVersion(): Int = 15
 
     private data class FieldRepresentation(val key: String, val value: String, val path: String?, val targetType: String? = null)
 

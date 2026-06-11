@@ -1,5 +1,6 @@
 package com.github.nvelychenko.drupalextend.lineMarker
 
+import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.completion.PrefixMatcher
 import com.intellij.codeInsight.daemon.DefaultGutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.LineMarkerInfo
@@ -28,6 +29,7 @@ class DrupalHookImplLineMarkerProvider : LineMarkerProvider {
         result: MutableCollection<in LineMarkerInfo<*>>
     ) {
         if (elements.isEmpty()) return
+        if (!elements[0].project.drupalExtendSettings.isEnabled) return
         val dataService = DrupalDataService.getInstance(elements[0].project)
         if (!dataService.isEnabled || !dataService.isVersionValid) return
 

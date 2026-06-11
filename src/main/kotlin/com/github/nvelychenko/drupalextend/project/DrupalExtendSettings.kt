@@ -5,8 +5,6 @@ import com.intellij.openapi.project.Project
 
 private const val SERVICE_NAME: String = "DrupalExtendSettings"
 
-const val DEFAULT_CONFIG_SYNC_DIRECTORY = "config/sync"
-
 val Project.drupalExtendSettings: DrupalExtendSettings
     get() = service<DrupalExtendSettings>()
 
@@ -249,12 +247,6 @@ class DrupalExtendSettings :
             state.isCodeStyleFullyQualifiedClassNameEnabled = value
         }
 
-    var configDirectory: String
-        get() = state.configDirectory ?: DEFAULT_CONFIG_SYNC_DIRECTORY
-        set(value) {
-            state.configDirectory = value
-        }
-
     var drupalCoreVersion: String
         get() = state.drupalCoreVersion.orEmpty()
         set(value) {
@@ -264,7 +256,6 @@ class DrupalExtendSettings :
     class DrupalExtendState : BaseState() {
         // @todo Once we will implement balloon make it false by default
         var isEnabled: Boolean by property(true)
-        var configDirectory by string()
         var drupalCoreVersion by string()
         var isEntityReferenceTypeResolverEnabled: Boolean by property(false)
         var isServicesCompletionEnabled: Boolean by property(true)

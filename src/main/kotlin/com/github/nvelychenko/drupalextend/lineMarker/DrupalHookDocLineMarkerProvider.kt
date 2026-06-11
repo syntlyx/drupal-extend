@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.lineMarker
 
 import com.github.nvelychenko.drupalextend.index.*
+import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.codeInsight.daemon.DefaultGutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
@@ -26,6 +27,8 @@ class DrupalHookDocLineMarkerProvider : LineMarkerProvider {
         result: MutableCollection<in LineMarkerInfo<*>>
     ) {
         if (elements.isEmpty()) return
+        // The index is populated regardless of plugin settings — consumers gate themselves.
+        if (!elements[0].project.drupalExtendSettings.isEnabled) return
         val dataService = DrupalDataService.getInstance(elements[0].project)
         if (!dataService.isEnabled || !dataService.isVersionValid) return
 

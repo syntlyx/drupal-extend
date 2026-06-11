@@ -1,9 +1,7 @@
 package com.github.nvelychenko.drupalextend.index
 
-import com.github.nvelychenko.drupalextend.extensions.isInConfigurationDirectory
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.extensions.keyPath
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.yml.YAMLKeyValueFinder
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -23,7 +21,6 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, String>()
             val yamlFile = inputData.psiFile as? YAMLFile ?: return@DataIndexer map
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
             if (inputData.file.name.endsWith(".permissions.yml")) {
@@ -38,8 +35,7 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
 
             if (
                 inputData.file.name.startsWith("user.role.") &&
-                inputData.file.name.endsWith(".yml") &&
-                inputData.isInConfigurationDirectory()
+                inputData.file.name.endsWith(".yml")
             ) {
                 val permissionsSequence = YAMLKeyValueFinder("permissions")
                     .findIn(yamlFile)
@@ -78,6 +74,6 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }

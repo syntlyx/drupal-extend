@@ -3,7 +3,6 @@ package com.github.nvelychenko.drupalextend.index
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.dataExternalizer.SerializedObjectDataExternalizer
 import com.github.nvelychenko.drupalextend.index.types.DrupalFieldPluginDefinition
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.DrupalFieldPlugins
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -24,7 +23,6 @@ class FieldPluginDefinitionIndex : FileBasedIndexExtension<String, DrupalFieldPl
         return DataIndexer { inputData ->
             val map = hashMapOf<String, DrupalFieldPluginDefinition>()
 
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
             val phpFile = inputData.psiFile as? PhpFile ?: return@DataIndexer map
@@ -59,5 +57,5 @@ class FieldPluginDefinitionIndex : FileBasedIndexExtension<String, DrupalFieldPl
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 4
+    override fun getVersion(): Int = 5
 }

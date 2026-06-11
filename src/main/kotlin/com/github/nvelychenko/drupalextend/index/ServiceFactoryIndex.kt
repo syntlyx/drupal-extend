@@ -4,7 +4,6 @@ import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.dataExternalizer.SerializedObjectDataExternalizer
 import com.github.nvelychenko.drupalextend.index.types.DrupalServiceFactory
 import com.github.nvelychenko.drupalextend.index.types.DrupalServiceFactoryOwner
-import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.indexing.DataIndexer
@@ -23,7 +22,6 @@ class ServiceFactoryIndex : FileBasedIndexExtension<String, DrupalServiceFactory
         return DataIndexer { inputData ->
             val map = hashMapOf<String, DrupalServiceFactory>()
 
-            if (!Services.isSupportEnabled(inputData.project)) return@DataIndexer map
             if (!ServicesYaml.isServicesFileName(inputData.file.name)) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
@@ -69,6 +67,6 @@ class ServiceFactoryIndex : FileBasedIndexExtension<String, DrupalServiceFactory
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 
 }

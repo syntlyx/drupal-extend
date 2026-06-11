@@ -3,11 +3,9 @@ package com.github.nvelychenko.drupalextend.index
 import com.github.nvelychenko.drupalextend.extensions.getModificationTrackerForIndexId
 import com.github.nvelychenko.drupalextend.extensions.getAllProjectKeys
 import com.github.nvelychenko.drupalextend.extensions.getValue
-import com.github.nvelychenko.drupalextend.extensions.isInConfigurationDirectory
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.dataExternalizer.SerializedObjectDataExternalizer
 import com.github.nvelychenko.drupalextend.index.types.DrupalContentEntity
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.getPhpDocParameter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil
@@ -35,7 +33,6 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
         return DataIndexer { inputData ->
             val map = hashMapOf<String, DrupalContentEntity>()
 
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
 
             val psiFile = inputData.psiFile
 
@@ -45,11 +42,7 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
 
             when (psiFile) {
                 is PhpFile -> processPhp(map, psiFile)
-                is YAMLFile -> {
-                    if (inputData.isInConfigurationDirectory()) {
-                        processYml(map, psiFile)
-                    }
-                }
+                is YAMLFile -> processYml(map, psiFile)
             }
 
             map
@@ -192,7 +185,7 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 16
+    override fun getVersion(): Int = 17
 
 }
 

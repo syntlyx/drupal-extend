@@ -6,7 +6,6 @@ import com.github.nvelychenko.drupalextend.extensions.getModificationTrackerForI
 import com.github.nvelychenko.drupalextend.extensions.getValue
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.types.DrupalFieldType
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.getPhpDocParameter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil.unquoteString
@@ -70,7 +69,6 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
             val map = hashMapOf<String, DrupalFieldType>()
 
             val phpFile = inputData.psiFile as PhpFile
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
             val phpClass = PsiTreeUtil.findChildOfType(phpFile, PhpClass::class.java) ?: return@DataIndexer map
@@ -174,7 +172,7 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 5
+    override fun getVersion(): Int = 6
 
 }
 

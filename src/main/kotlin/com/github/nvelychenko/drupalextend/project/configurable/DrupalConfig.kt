@@ -3,11 +3,9 @@ package com.github.nvelychenko.drupalextend.project.configurable
 import com.github.nvelychenko.drupalextend.DrupalExtendBundle
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.clearPluginIndexes
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
 
@@ -20,33 +18,14 @@ class DrupalConfig(
         group(DrupalExtendBundle.message("settings.title")) {
             lateinit var isEnabledCheckbox: Cell<JBCheckBox>
             row {
+                // No clearPluginIndexes() on apply: indexers no longer read settings, so the
+                // indexed data is the same whether the plugin is enabled or not — toggling
+                // only changes whether consumers use it.
                 isEnabledCheckbox = checkBox(DrupalExtendBundle.message("settings.drupal_extend.is_enabled"))
                     .bindSelected(settings::isEnabled)
-                    .onApply { clearPluginIndexes() }
-            }
-
-            row {
-                val fileChooserDescriptor =
-                    FileChooserDescriptorFactory.createSingleFolderDescriptor()
-                        .withFileFilter { it.isDirectory }
-                val configDirectoryField = TextFieldWithBrowseButton().apply {
-                    addBrowseFolderListener(project, fileChooserDescriptor)
-                }
-
-                cell(configDirectoryField)
-                    .enabledIf(isEnabledCheckbox.selected)
-                    .comment(DrupalExtendBundle.message("settings.drupal_extend.config_directory.title"))
-                    .resizableColumn()
-                    .align(Align.FILL)
-                    .bindText(settings::configDirectory)
-                    .onApply {
-                        clearPluginIndexes()
-                    }
 
                 button(DrupalExtendBundle.message("settings.drupal_extend.clear_index")) { clearPluginIndexes() }
-                    .enabledIf(isEnabledCheckbox.selected)
                     .align(AlignX.RIGHT)
-
             }
 
             row(DrupalExtendBundle.message("settings.drupal_extend.drupal_core_version")) {
@@ -63,7 +42,6 @@ class DrupalConfig(
                     .comment(DrupalExtendBundle.message("settings.drupal_extend.services_completion_description"))
                     .bindSelected(settings::isServicesCompletionEnabled)
                     .enabledIf(isEnabledCheckbox.selected)
-                    .onApply { clearPluginIndexes() }
             }
 
             row {
@@ -71,7 +49,6 @@ class DrupalConfig(
                     .comment(DrupalExtendBundle.message("settings.drupal_extend.routes_completion_description"))
                     .bindSelected(settings::isRoutesCompletionEnabled)
                     .enabledIf(isEnabledCheckbox.selected)
-                    .onApply { clearPluginIndexes() }
             }
 
             row {

@@ -5,7 +5,6 @@ import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.dataExternalizer.SerializedObjectDataExternalizer
 import com.github.nvelychenko.drupalextend.index.types.DrupalTheme
 import com.github.nvelychenko.drupalextend.patterns.Patterns.SIMPLE_FUNCTION
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.yml.FunctionFinderInContext
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.*
@@ -25,7 +24,6 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, DrupalTheme>()
 
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
             handleLegacyHooks(map, inputData)
             handleHooks(map, inputData)
@@ -160,6 +158,6 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 3
+    override fun getVersion(): Int = 4
 
 }

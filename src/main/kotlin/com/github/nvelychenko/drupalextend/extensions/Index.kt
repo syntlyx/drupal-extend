@@ -1,7 +1,5 @@
 package com.github.nvelychenko.drupalextend.extensions
 
-import com.github.nvelychenko.drupalextend.project.DEFAULT_CONFIG_SYNC_DIRECTORY
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -19,6 +17,9 @@ import com.intellij.util.indexing.ID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
+// Indexers must NOT read mutable project settings (drupalExtendSettings & co): getVersion() is
+// static, so settings-dependent indexer output leaves stale data on disk when a setting changes.
+// Index unconditionally and gate the CONSUMERS on settings instead.
 fun FileContent.isValidForIndex(): Boolean {
     val fileName = psiFile.name
     if (fileName.startsWith(".") || fileName.endsWith("Test")) {
@@ -33,20 +34,6 @@ fun FileContent.isValidForIndex(): Boolean {
             || relativePath.contains("/tests/") || relativePath.contains("/fixtures/")
             || relativePath.contains("/tests/") || relativePath.contains("/fixture/")
             || relativePath.contains("/Fixtures/")))
-}
-
-fun FileContent.isInConfigurationDirectory(): Boolean {
-    val configDirectory = project.drupalExtendSettings.configDirectory
-    if (configDirectory == DEFAULT_CONFIG_SYNC_DIRECTORY) {
-        val baseDir = project.guessProjectDir() ?: return true
-
-        val relativePath =
-            VfsUtil.getRelativePath(file, baseDir, '/') ?: return true
-
-        return relativePath.contains(DEFAULT_CONFIG_SYNC_DIRECTORY)
-    }
-
-    return VfsUtil.isEqualOrAncestor(configDirectory, file.path)
 }
 
 private val keyForProvider: ConcurrentMap<String, Key<CachedValue<*>>> = ConcurrentHashMap()

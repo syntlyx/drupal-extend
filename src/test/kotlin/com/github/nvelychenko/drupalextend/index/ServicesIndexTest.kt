@@ -12,6 +12,25 @@ class ServicesIndexTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isServicesCompletionEnabled = true
     }
 
+    fun testIndexerOutputDoesNotDependOnPluginSettings() {
+        // Indexers must index unconditionally: getVersion() is static, so settings-dependent
+        // output would leave stale data on disk when a setting is toggled. Consumers gate.
+        project.drupalExtendSettings.isEnabled = false
+        project.drupalExtendSettings.isServicesCompletionEnabled = false
+        val psiFile = myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.services.yml",
+            """
+            services:
+              my_module.classic:
+                class: Drupal\my_module\Classic
+            """.trimIndent()
+        )
+
+        val map = ServicesIndex().indexer.map(FileContentImpl.createByFile(psiFile.virtualFile, project))
+
+        assertEquals("Drupal\\my_module\\Classic", map["my_module.classic"])
+    }
+
     fun testFqnServiceIdWithoutClassKeyFallsBackToIdAsClass() {
         val psiFile = myFixture.addFileToProject(
             "modules/custom/my_module/my_module.services.yml",

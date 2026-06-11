@@ -2,7 +2,6 @@ package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.types.ContentEntity
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.getPhpDocParameter
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -65,7 +64,7 @@ class ContentEntityFqnIndex : FileBasedIndexExtension<String, ContentEntity>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, ContentEntity>()
 
-            if (!inputData.project.drupalExtendSettings.isEnabled || !inputData.isValidForIndex()) return@DataIndexer map
+            if (!inputData.isValidForIndex()) return@DataIndexer map
             val phpFile = inputData.psiFile as PhpFile
 
             val phpClass = PsiTreeUtil.findChildOfType(phpFile, PhpClass::class.java) ?: return@DataIndexer map
@@ -121,6 +120,6 @@ class ContentEntityFqnIndex : FileBasedIndexExtension<String, ContentEntity>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 14
+    override fun getVersion(): Int = 15
 
 }

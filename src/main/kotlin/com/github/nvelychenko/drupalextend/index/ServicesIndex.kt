@@ -1,7 +1,6 @@
 package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
-import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -22,7 +21,6 @@ class ServicesIndex : FileBasedIndexExtension<String, String>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, String>()
 
-            if (!Services.isSupportEnabled(inputData.project)) return@DataIndexer map
             if (!ServicesYaml.isServicesFileName(inputData.file.name)) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
@@ -65,6 +63,6 @@ class ServicesIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 
 }

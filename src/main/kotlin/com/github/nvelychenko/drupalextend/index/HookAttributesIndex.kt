@@ -1,7 +1,6 @@
 package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
@@ -20,7 +19,6 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, String>()
             if (!inputData.isValidForIndex()) return@DataIndexer map
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
 
             val phpFile = inputData.psiFile as PhpFile
 
@@ -63,7 +61,7 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 
 }
 

@@ -1,7 +1,6 @@
 package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
-import com.github.nvelychenko.drupalextend.util.Links
 import com.github.nvelychenko.drupalextend.util.RoutingYaml
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -22,7 +21,6 @@ class LinksIndex : FileBasedIndexExtension<String, String>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, String>()
 
-            if (!Links.isSupportEnabled(inputData.project)) return@DataIndexer map
             if (!RoutingYaml.isLinksFileName(inputData.file.name)) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
@@ -54,6 +52,6 @@ class LinksIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }

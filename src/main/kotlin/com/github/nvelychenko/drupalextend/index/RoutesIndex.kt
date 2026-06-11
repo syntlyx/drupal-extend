@@ -4,7 +4,6 @@ import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.index.dataExternalizer.SerializedObjectDataExternalizer
 import com.github.nvelychenko.drupalextend.index.types.DrupalRoute
 import com.github.nvelychenko.drupalextend.index.types.DrupalRouteHandler
-import com.github.nvelychenko.drupalextend.util.Routes
 import com.github.nvelychenko.drupalextend.util.RoutingYaml
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.indexing.DataIndexer
@@ -23,7 +22,6 @@ class RoutesIndex : FileBasedIndexExtension<String, DrupalRoute>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, DrupalRoute>()
 
-            if (!Routes.isSupportEnabled(inputData.project)) return@DataIndexer map
             if (!RoutingYaml.isRoutingFileName(inputData.file.name)) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
@@ -67,6 +65,6 @@ class RoutesIndex : FileBasedIndexExtension<String, DrupalRoute>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 5
+    override fun getVersion(): Int = 6
 
 }

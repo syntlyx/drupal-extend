@@ -2,7 +2,6 @@ package com.github.nvelychenko.drupalextend.index
 
 import com.github.nvelychenko.drupalextend.extensions.isValidForIndex
 import com.github.nvelychenko.drupalextend.extensions.keyPath
-import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.util.DrupalFieldPlugins
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -24,7 +23,6 @@ class FieldPluginConfigUsageIndex : FileBasedIndexExtension<String, String>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, String>()
 
-            if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
             val yamlFile = inputData.psiFile as? YAMLFile ?: return@DataIndexer map
@@ -106,5 +104,5 @@ class FieldPluginConfigUsageIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 }
