@@ -38,6 +38,9 @@ procedural code.
   `AutowireTrait` classes get an `#[Autowire(service: '...')]` parameter instead, so working
   autowiring is never replaced
 * Service id completion and navigation inside `#[Autowire(service: '...')]`
+* Service tags: name completion under `tags:`, completion + navigation for
+  `!tagged_iterator` / `!tagged_locator` argument tags (resolves to the tagged services), and a
+  warning for unknown tags
 * `\Drupal::routeMatch()`, `currentUser()`, and `classResolver()` are covered by the DI
   inspection too
 
@@ -69,6 +72,13 @@ procedural code.
 * Key path completion in `->get('page.front')` — works through variables too
 * `settings.php`: `$config['name']` completion + navigation, `$config['name']['key']` key
   completion from the config's YAML, and `$settings['...']` completion of core Settings keys
+
+## Form API
+
+* Form callback strings are real references: `'#submit' => ['::submitHandler']`,
+  `'#validate'`, `'#element_validate'`, `'#ajax' => ['callback' => '::ajaxCallback']`,
+  `[$this, 'method']` — Ctrl-click, rename, and no false "unused method" reports
+* `$form_state->getValue('…')` completes the keys your `buildForm()` actually declares
 
 ## Render arrays & theming
 
@@ -105,7 +115,9 @@ Every rule is individually toggleable (<kbd>Settings</kbd> → <kbd>PHP</kbd> �
 ## Extension descriptors & YAML
 
 * `*.info.yml` inspection: missing `name`/`type`/`core_version_requirement`, invalid `type`,
-  malformed `dependencies`
+  malformed or unknown `dependencies`
+* Module machine names everywhere: completion + navigation to `*.info.yml` in
+  `moduleExists()`-style calls, test `$modules` arrays, and info.yml `dependencies`
 * Bundled JSON Schemas for `*.services.yml`, `*.routing.yml`, and `*.permissions.yml` —
   completion and documentation hints for definition keys, without fighting the plugin's own
   navigation
