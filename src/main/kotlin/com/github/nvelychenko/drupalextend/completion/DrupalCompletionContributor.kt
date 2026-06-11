@@ -92,6 +92,20 @@ class DrupalCompletionContributor : CompletionContributor() {
             LibrariesCompletionProvider()
         )
 
+        // $renderer->addCacheContexts(['us|'])
+        // $build['#cache']['contexts'][] = 'us|'
+        // $build = ['#cache' => ['contexts' => ['us|']]]
+        extend(
+            CompletionType.BASIC,
+            or(
+                psiElement(PsiElement::class.java).withParent(STRING_INSIDE_ARRAY_METHOD),
+                psiElement(PsiElement::class.java).withParent(TRIPLE_ARRAY_WITH_STRING_VALUE),
+                psiElement(PsiElement::class.java).withParent(TRIPLE_SIMPLE_STRING_ARRAY_VALUE),
+                psiElement(PsiElement::class.java).withParent(TRIPLE_NESTED_STRING_ARRAY_VALUE),
+            ),
+            CacheContextsCompletionProvider()
+        )
+
         // $node->get('field_entity')->entity
         // $node->get('field_entity')[0]->entity
         // $node->get('field_entity')->first()->entity

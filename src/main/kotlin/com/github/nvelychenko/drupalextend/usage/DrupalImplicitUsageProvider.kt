@@ -6,13 +6,16 @@ import com.github.nvelychenko.drupalextend.util.DrupalProceduralHooks
 import com.github.nvelychenko.drupalextend.util.Routes
 import com.github.nvelychenko.drupalextend.util.Services
 import com.intellij.codeInsight.daemon.ImplicitUsageProvider
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.Parameter
 import com.jetbrains.php.lang.psi.elements.PhpAttributesOwner
 import com.jetbrains.php.lang.psi.elements.PhpClass
+import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
 class DrupalImplicitUsageProvider : ImplicitUsageProvider {
     override fun isImplicitUsage(element: PsiElement): Boolean {
@@ -47,8 +50,46 @@ class DrupalImplicitUsageProvider : ImplicitUsageProvider {
         if (method.hasHookAttribute()) return true
         val phpClass = method.containingClass ?: return false
 
+        if (isSubscribedEventMethod(method, phpClass)) return true
+
         return Services.referencesMethod(method.project, phpClass.fqn, method.name) ||
                 Routes.referencesHandler(method.project, phpClass.fqn, method.name)
+    }
+
+    /**
+     * Symfony/Drupal event subscribers register handler methods by name inside
+     * `getSubscribedEvents()`; the dispatcher invokes them reflectively, so they look unused.
+     *
+     * Cheap by construction: we only do work for classes that actually declare an own
+     * `getSubscribedEvents`, and the string search is bounded to that one method's subtree.
+     * `getSubscribedEvents` itself is the dispatcher's contract method on
+     * `EventSubscriberInterface`, so it is implicitly used too.
+     */
+    private fun isSubscribedEventMethod(method: Method, phpClass: PhpClass): Boolean {
+        if (!method.project.drupalExtendSettings.isEnabled) return false
+
+        val subscribedEvents = phpClass.ownMethods
+            .firstOrNull { it.name == SUBSCRIBED_EVENTS_METHOD } ?: return false
+
+        if (method.name == SUBSCRIBED_EVENTS_METHOD) {
+            return method.isEquivalentTo(subscribedEvents) && implementsEventSubscriberInterface(phpClass)
+        }
+
+        return subscribedEventHandlerNames(subscribedEvents).contains(method.name)
+    }
+
+    private fun implementsEventSubscriberInterface(phpClass: PhpClass): Boolean =
+        phpClass.interfaceNames.any { it.substringAfterLast('\\') == EVENT_SUBSCRIBER_INTERFACE }
+
+    private fun subscribedEventHandlerNames(subscribedEvents: Method): Set<String> {
+        val body = subscribedEvents.lastChild ?: return emptySet()
+        val names = HashSet<String>()
+        for (literal in PsiTreeUtil.findChildrenOfType(body, StringLiteralExpression::class.java)) {
+            ProgressManager.checkCanceled()
+            val contents = literal.contents
+            if (contents.isNotEmpty()) names.add(contents)
+        }
+        return names
     }
 
     /**
@@ -62,6 +103,9 @@ class DrupalImplicitUsageProvider : ImplicitUsageProvider {
         return attributes.any { it.fqn in HOOK_ATTRIBUTE_FQNS }
     }
 }
+
+private const val SUBSCRIBED_EVENTS_METHOD = "getSubscribedEvents"
+private const val EVENT_SUBSCRIBER_INTERFACE = "EventSubscriberInterface"
 
 private val HOOK_ATTRIBUTE_FQNS = setOf(
     "\\Drupal\\Core\\Hook\\Attribute\\Hook",

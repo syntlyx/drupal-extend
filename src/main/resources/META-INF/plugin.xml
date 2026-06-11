@@ -111,6 +111,13 @@
                          level="WEAK WARNING"
                          implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalPluginAttributeInspection"/>
         <localInspection language="PHP"
+                         shortName="DrupalTranslationPlaceholder"
+                         displayName="Translation placeholder/argument mismatch"
+                         groupName="Drupal Extend"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalTranslationPlaceholderInspection"/>
+        <localInspection language="PHP"
                          shortName="DrupalHookMethodVisibility"
                          displayName="Drupal hook method must be public and non-static"
                          groupName="Drupal Extend"
