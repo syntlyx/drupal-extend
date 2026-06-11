@@ -9,16 +9,19 @@ import com.github.nvelychenko.drupalextend.util.Routes
 import com.github.nvelychenko.drupalextend.util.RoutingYaml
 import com.github.nvelychenko.drupalextend.util.normalizeRouteClassFqn
 import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.util.indexing.FileBasedIndex
 import com.jetbrains.php.PhpIndex
 import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.Parameter
+import com.jetbrains.php.lang.psi.elements.PhpClass
 import com.jetbrains.php.lang.psi.resolve.types.PhpType
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -143,12 +146,33 @@ class RoutesYamlInspection : LocalInspectionTool() {
             return
         }
 
+        val fixes = createMethodFixes(phpClass, methodName, keyValue.keyText)
         holder.registerProblem(
             scalar,
             "Unknown route handler method '${handler.className}::$methodName'",
             ProblemHighlightType.LIKE_UNKNOWN_SYMBOL,
-            RoutingYaml.handlerValueTextRange(scalar, textValue, handler)
+            RoutingYaml.handlerValueTextRange(scalar, textValue, handler),
+            *fixes
         )
+    }
+
+    /**
+     * Offers a "Create method" stub fix only when the handler class is a writable project class
+     * (never core/vendor) — building the stub there is impossible and meaningless. `_title_callback`
+     * handlers return a string title; every other handler kind defaults to the array-returning shape.
+     */
+    private fun createMethodFixes(
+        phpClass: PhpClass,
+        methodName: String,
+        handlerKey: String,
+    ): Array<LocalQuickFix> {
+        val virtualFile = phpClass.containingFile?.virtualFile ?: return emptyArray()
+        if (!virtualFile.isWritable) return emptyArray()
+        val project = phpClass.project
+        if (!ProjectFileIndex.getInstance(project).isInContent(virtualFile)) return emptyArray()
+
+        val returnsString = handlerKey == "_title_callback"
+        return arrayOf(CreateRouteHandlerMethodQuickFix(phpClass.fqn, methodName, returnsString))
     }
 
     private fun inspectControllerRouteParameters(

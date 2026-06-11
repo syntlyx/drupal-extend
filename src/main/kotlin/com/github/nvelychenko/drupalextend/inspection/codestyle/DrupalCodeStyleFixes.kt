@@ -38,6 +38,10 @@ internal object DrupalCodeStyleFixes {
             return familyName
         }
 
+        // Batch runs (Code Cleanup, Inspect Code "fix all") apply each problem's own targeted
+        // fix; replaying the whole-file fixer once per problem would be redundant work.
+        override fun availableInBatchMode(): Boolean = false
+
         override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
             val file = descriptor.psiElement.containingFile ?: return
             DrupalCodeStyleFileFixer.apply(project, file)

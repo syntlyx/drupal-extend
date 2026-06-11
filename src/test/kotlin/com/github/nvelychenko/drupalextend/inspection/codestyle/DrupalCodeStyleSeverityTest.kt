@@ -76,6 +76,12 @@ class DrupalCodeStyleSeverityTest : BasePlatformTestCase() {
         assertEquals(DrupalCodeStyleSeverity.WARNING, settings.codeStyleDiscouragedFunctionsSeverity)
     }
 
+    fun testInspectionParticipatesInCodeCleanup() {
+        // The marker interface routes our quick fixes through Code -> Code Cleanup and the
+        // commit dialog's "Cleanup code" checkbox.
+        assertTrue(DrupalCodeStyleInspection() is com.intellij.codeInspection.CleanupLocalInspectionTool)
+    }
+
     fun testSeverityAppliesOnlyToTheConfiguredRule() {
         // string_quotes raised to ERROR must not affect another rule's level.
         project.drupalExtendSettings.codeStyleStringQuotesSeverity = DrupalCodeStyleSeverity.ERROR

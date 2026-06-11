@@ -12,6 +12,7 @@ import com.github.nvelychenko.drupalextend.usage.DrupalImplicitUsageProvider
 import com.github.nvelychenko.drupalextend.util.RoutingYaml
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.find.findUsages.PsiElement2UsageTargetAdapter
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
@@ -812,6 +813,135 @@ class RoutesYamlSupportTest : BasePlatformTestCase() {
             "Unknown route handler class 'Drupal\\my_module\\Controller\\MissingController'",
             "Unknown route handler method 'Drupal\\my_module\\Controller\\ApplicationController::missing'"
         )
+    }
+
+    fun testRoutesYamlInspectionCreateMethodQuickFixGeneratesControllerStub() {
+        myFixture.enableInspections(RoutesYamlInspection::class.java)
+        val controllerFile = myFixture.addFileToProject(
+            "modules/custom/my_module/src/Controller/ApplicationController.php",
+            """
+            <?php
+            namespace Drupal\my_module\Controller;
+
+            class ApplicationController {
+            }
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "my_module.routing.yml",
+            """
+            my_module.application_build:
+              path: '/application'
+              defaults:
+                _controller: '\Drupal\my_module\Controller\ApplicationController::build'
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single { it.text == "Create method 'build'" }
+        WriteCommandAction.runWriteCommandAction(project) {
+            intention.invoke(project, myFixture.editor, myFixture.file)
+        }
+
+        val updated = controllerFile.text
+        assertTrue(updated, updated.contains("public function build(): array {"))
+        assertTrue(updated, updated.contains("// TODO: Implement the route handler."))
+        assertTrue(updated, updated.contains("return [];"))
+        assertTrue(updated, updated.contains("* TODO: Describe the route handler."))
+    }
+
+    fun testRoutesYamlInspectionCreateMethodQuickFixGeneratesStringTitleStub() {
+        myFixture.enableInspections(RoutesYamlInspection::class.java)
+        val controllerFile = myFixture.addFileToProject(
+            "modules/custom/my_module/src/Controller/TitleController.php",
+            """
+            <?php
+            namespace Drupal\my_module\Controller;
+
+            class TitleController {
+            }
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "my_module.routing.yml",
+            """
+            my_module.application:
+              path: '/application'
+              defaults:
+                _controller: '\Drupal\my_module\Controller\TitleController::build'
+                _title_callback: '\Drupal\my_module\Controller\TitleController::title'
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single { it.text == "Create method 'title'" }
+        WriteCommandAction.runWriteCommandAction(project) {
+            intention.invoke(project, myFixture.editor, myFixture.file)
+        }
+
+        val updated = controllerFile.text
+        assertTrue(updated, updated.contains("public function title(): string {"))
+        assertTrue(updated, updated.contains("return '';"))
+    }
+
+    fun testRoutesYamlInspectionCreateMethodQuickFixIsIdempotentWhenMethodExists() {
+        myFixture.enableInspections(RoutesYamlInspection::class.java)
+        myFixture.addFileToProject(
+            "modules/custom/my_module/src/Controller/ApplicationController.php",
+            """
+            <?php
+            namespace Drupal\my_module\Controller;
+
+            class ApplicationController {
+              public function build(): array {
+                return [];
+              }
+            }
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "my_module.routing.yml",
+            """
+            my_module.application_build:
+              path: '/application'
+              defaults:
+                _controller: '\Drupal\my_module\Controller\ApplicationController::build'
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+
+        assertTrue(myFixture.getAllQuickFixes().none { it.text == "Create method 'build'" })
+    }
+
+    fun testRoutesYamlInspectionCreateMethodQuickFixAbsentForReadOnlyClass() {
+        myFixture.enableInspections(RoutesYamlInspection::class.java)
+        val controllerFile = myFixture.addFileToProject(
+            "modules/custom/my_module/src/Controller/ApplicationController.php",
+            """
+            <?php
+            namespace Drupal\my_module\Controller;
+
+            class ApplicationController {
+            }
+            """.trimIndent()
+        )
+        WriteCommandAction.runWriteCommandAction(project) {
+            controllerFile.virtualFile.isWritable = false
+        }
+        myFixture.configureByText(
+            "my_module.routing.yml",
+            """
+            my_module.application_build:
+              path: '/application'
+              defaults:
+                _controller: '\Drupal\my_module\Controller\ApplicationController::build'
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+
+        assertTrue(myFixture.getAllQuickFixes().none { it.text == "Create method 'build'" })
     }
 
     fun testRoutesYamlInspectionReportsMissingControllerRouteParameter() {
