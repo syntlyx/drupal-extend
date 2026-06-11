@@ -51,7 +51,7 @@ class HookAttributeCompletionProvider : CompletionProvider<CompletionParameters>
 
         val element = leaf.parent as? StringLiteralExpression ?: return
         val parameterList = PsiTreeUtil.getParentOfType(leaf, ParameterList::class.java) ?: return
-        if (!parameterList.parameters.first().isEquivalentTo(element)) return
+        if (parameterList.parameters.firstOrNull()?.isEquivalentTo(element) != true) return
         val attribute = PsiTreeUtil.getParentOfType(leaf, PhpAttribute::class.java) ?: return
         if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") return
         val prefixMatcher: PrefixMatcher = completionResultSet.prefixMatcher
@@ -124,10 +124,11 @@ class HookAttributeCompletionProvider : CompletionProvider<CompletionParameters>
             val element = context.file.findElementAt(context.startOffset) ?: return
             val currentAttribute = PsiTreeUtil.getParentOfType(element, PhpAttribute::class.java) ?: return
             val attributeListImpl = currentAttribute.parent
-            // Do not insert method if hook attribute is on class.
+            // Do not insert method if hook attribute is on class. The attribute may also sit on
+            // a property or dangle on incomplete code — only a method gets the stub.
             val attributeParent = attributeListImpl.parent
             if (attributeParent is PhpClassImpl) return
-            val method = attributeParent as MethodImpl
+            val method = attributeParent as? MethodImpl ?: return
 
             val secondLeaf = currentAttribute.nextLeaf()?.nextLeaf()
             // Some piece of actual shit.
@@ -183,7 +184,8 @@ class HookAttributeCompletionProvider : CompletionProvider<CompletionParameters>
             val parameterListText = parameterList?.text ?: ""
 
             val functionName = convertToCamelCaseString(hookName)
-            val offset = attributeList.nextSibling.textRange.startOffset
+            // The attribute list may be the last child on incomplete code.
+            val offset = attributeList.nextSibling?.textRange?.startOffset ?: return
             val template = "\npublic function $functionName($parameterListText) {\n}"
 
             editor.caretModel.moveToOffset(offset, true)

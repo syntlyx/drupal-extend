@@ -31,7 +31,8 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
 
             for (attribute in attributes) {
                 if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") continue
-                val hookName = attribute.parameters.first() ?: continue
+                // A bare `#[Hook]` (no arguments yet) is normal mid-typing PHP.
+                val hookName = attribute.parameters.firstOrNull() ?: continue
 
                 if (hookName is StringLiteralExpression && hookName.contents.isNotEmpty()) {
                     map[hookName.contents] = clazz.fqn
@@ -59,7 +60,7 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 0
+    override fun getVersion(): Int = 1
 
 }
 
@@ -69,7 +70,8 @@ fun getHookAttributesByName(psiElement: PsiElement, name: String): Array<PhpAttr
 
     for (attribute in attributes) {
         if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") continue
-        val hookName = attribute.parameters.first() ?: continue
+        // A bare `#[Hook]` (no arguments yet) is normal mid-typing PHP.
+        val hookName = attribute.parameters.firstOrNull() ?: continue
         if (hookName is StringLiteralExpression && hookName.contents == name) {
             result.add(attribute)
         }

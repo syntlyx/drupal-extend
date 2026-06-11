@@ -16,7 +16,9 @@ internal object ClassNameRule : DrupalCodeStyleRule {
         val phpClass = element as? PhpClass ?: return
         if (phpClass.isAnonymous) return
 
-        val name = phpClass.name
+        // An empty name is normal while the declaration is being typed.
+        val name: String? = phpClass.name
+        if (name.isNullOrBlank()) return
         if (name.isPascalCaseName()) return
 
         context.register(

@@ -21,8 +21,6 @@ import kotlinx.serialization.serializer
 
 class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
 
-    private lateinit var hookName: String
-
     override fun getIndexer(): DataIndexer<String, DrupalTheme, FileContent> {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, DrupalTheme>()
@@ -41,12 +39,8 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
         val clazz = PsiTreeUtil.findChildOfType(phpFile, PhpClass::class.java) ?: return
 
         if (clazz.fqn == "\\Drupal\\Core\\Theme\\ThemeCommonElements") {
-            hookName = "commonElements"
             val method = clazz.findMethodByName("commonElements") ?: return
-            val returnType = PsiTreeUtil.findChildOfType(method, PhpReturn::class.java)?.firstPsiChild
-            if (returnType is ArrayCreationExpression) {
-                processArrayCreationExpression(returnType, map)
-            }
+            collectThemesFromFunction(method, map, "commonElements")
         }
 
         if (!clazz.namespaceName.startsWith("\\Drupal\\") || !clazz.namespaceName.endsWith("\\Hook\\")) return
@@ -55,26 +49,13 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
 
         for (attribute in attributes) {
             if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") continue
-            val hookNamie = attribute.parameters.first() ?: continue
+            // A bare `#[Hook]` (no arguments yet) is normal mid-typing PHP.
+            val hookNameArgument = attribute.parameters.firstOrNull() ?: continue
 
-            if (hookNamie !is StringLiteralExpression || hookNamie.contents != "theme") continue
+            if (hookNameArgument !is StringLiteralExpression || hookNameArgument.contents != "theme") continue
 
             val holder = attribute.parent.parent as? Method ?: continue
-            hookName = holder.name
-
-            when (val returnType = PsiTreeUtil.findChildOfType(holder, PhpReturn::class.java)?.firstPsiChild) {
-                is ArrayCreationExpression -> processArrayCreationExpression(returnType, map)
-                is Variable -> processVariable(returnType, holder, map)
-                is FunctionReference -> {
-                    if (returnType.name == "array_merge") {
-                        returnType.parameters.forEach {
-                            if (it is ArrayCreationExpression) {
-                                processArrayCreationExpression(it, map)
-                            }
-                        }
-                    }
-                }
-            }
+            collectThemesFromFunction(holder, map, holder.name)
         }
 
     }
@@ -88,16 +69,18 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
 
         val finder = FunctionFinderInContext(arrayOf(moduleName + "_theme", "drupal_common_theme"), SIMPLE_FUNCTION)
         val themeHook = finder.findIn(inputData.psiFile) ?: return
-        hookName = themeHook.name
+        collectThemesFromFunction(themeHook, map, themeHook.name)
+    }
 
-        when (val returnType = PsiTreeUtil.findChildOfType(themeHook, PhpReturn::class.java)?.firstPsiChild) {
-            is ArrayCreationExpression -> processArrayCreationExpression(returnType, map)
-            is Variable -> processVariable(returnType, themeHook, map)
+    private fun collectThemesFromFunction(themeHook: Function, map: HashMap<String, DrupalTheme>, hookName: String) {
+        when (val returnValue = PsiTreeUtil.findChildOfType(themeHook, PhpReturn::class.java)?.firstPsiChild) {
+            is ArrayCreationExpression -> processArrayCreationExpression(returnValue, map, hookName)
+            is Variable -> processVariable(returnValue, themeHook, map, hookName)
             is FunctionReference -> {
-                if (returnType.name == "array_merge") {
-                    returnType.parameters.forEach {
+                if (returnValue.name == "array_merge") {
+                    returnValue.parameters.forEach {
                         if (it is ArrayCreationExpression) {
-                            processArrayCreationExpression(it, map)
+                            processArrayCreationExpression(it, map, hookName)
                         }
                     }
                 }
@@ -105,7 +88,12 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
         }
     }
 
-    private fun processVariable(returnVariable: Variable, themeHook: Function, map: HashMap<String, DrupalTheme>) {
+    private fun processVariable(
+        returnVariable: Variable,
+        themeHook: Function,
+        map: HashMap<String, DrupalTheme>,
+        hookName: String,
+    ) {
         for (variable in themeHook.findVariablesByName(returnVariable.name)) {
             val assignment = PhpPsiUtil.getParentOfClass(variable, AssignmentExpression::class.java) ?: continue
 
@@ -119,7 +107,11 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
         }
     }
 
-    private fun processArrayCreationExpression(returnType: ArrayCreationExpression, map: HashMap<String, DrupalTheme>) {
+    private fun processArrayCreationExpression(
+        returnType: ArrayCreationExpression,
+        map: HashMap<String, DrupalTheme>,
+        hookName: String,
+    ) {
         top@ for (topHash in returnType.hashElements) {
             val propertiesHash = topHash.value
             val themeNamePsi = topHash.key
@@ -168,6 +160,6 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }

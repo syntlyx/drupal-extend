@@ -3,6 +3,7 @@ package com.github.nvelychenko.drupalextend.inspection
 import com.github.nvelychenko.drupalextend.php.edit.PhpImportPlanner
 import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.php.edit.applyTo
+import com.github.nvelychenko.drupalextend.php.edit.escapePhpSingleQuoted
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
@@ -33,10 +34,22 @@ internal class InjectDrupalServiceQuickFix(
         val serviceType = imports.typeName(serviceCall.serviceClass)
         val memberIndent = phpClass.memberIndent()
         val bodyIndent = "$memberIndent$memberIndent"
+        // A class served by AutowireTrait's create() (directly or via a base class like
+        // ControllerBase in Drupal 10.2+) must NOT get a create() override — that would replace
+        // working autowiring. The new constructor parameter carries an #[Autowire] attribute
+        // instead, so the trait resolves it by service id rather than by type.
+        val hasOwnCreateMethod = phpClass.findOwnMethodByName("create") != null
+        val autowiredCreate = !hasOwnCreateMethod && phpClass.createComesFromAutowireTrait()
         // Generate a create() override whenever the class is an injection target and has no own
         // create(): without one, an added required constructor parameter has nothing supplying it.
-        val shouldAddCreateMethod = phpClass.findOwnMethodByName("create") == null
+        val shouldAddCreateMethod = !hasOwnCreateMethod
+                && !autowiredCreate
                 && phpClass.isContainerInjectionTarget()
+        val parameterAttributePrefix = if (autowiredCreate) {
+            "#[${imports.typeName(AUTOWIRE_ATTRIBUTE)}(service: '${serviceCall.serviceId.escapePhpSingleQuoted()}')] "
+        } else {
+            ""
+        }
         // The no-constructor path folds create() into the property+constructor text; an existing
         // constructor needs create() emitted as a standalone member.
         val createTypeForNewConstructor = if (shouldAddCreateMethod && constructor == null) {
@@ -51,18 +64,26 @@ internal class InjectDrupalServiceQuickFix(
                 edits += TextEdit(
                     anchorOffset,
                     anchorOffset,
-                    serviceCall.newPropertyAndConstructorText(serviceType, createTypeForNewConstructor, memberIndent, bodyIndent)
+                    serviceCall.newPropertyAndConstructorText(
+                        serviceType,
+                        createTypeForNewConstructor,
+                        memberIndent,
+                        bodyIndent,
+                        parameterAttributePrefix,
+                    )
                 )
             } else if (constructor.usesConstructorPromotion()) {
                 // Promoted property name == camelCase propertyName, so accessMemberName stays as-is.
-                constructor.parameterInsertionEdit(serviceCall, serviceType, promoted = true)?.let { edits += it }
+                constructor.parameterInsertionEdit(serviceCall, serviceType, promoted = true, parameterAttributePrefix)
+                    ?.let { edits += it }
             } else {
                 edits += TextEdit(
                     anchorOffset,
                     anchorOffset,
                     serviceCall.newPropertyText(serviceType, memberIndent)
                 )
-                constructor.parameterInsertionEdit(serviceCall, serviceType, promoted = false)?.let { edits += it }
+                constructor.parameterInsertionEdit(serviceCall, serviceType, promoted = false, parameterAttributePrefix)
+                    ?.let { edits += it }
                 constructor.assignmentInsertionEdit(serviceCall, constructor.bodyStatementIndent())?.let { edits += it }
             }
         }

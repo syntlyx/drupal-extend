@@ -3815,4 +3815,26 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
 
         assertContainsElements(descriptions, "DocBlock tag groups must be separated by a blank line")
     }
+
+    fun testIncompleteDeclarationsDoNotTriggerNamingRulesOrCrash() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        // Half-typed declarations with no name yet are normal in the editor; all rules must
+        // survive the broken PSI and the naming rules must stay silent.
+        myFixture.configureByText(
+            "incomplete.php",
+            """
+            <?php
+
+            class
+
+            function
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertDoesntContain(descriptions, "Class name should use PascalCase")
+        assertDoesntContain(descriptions, "Function name should use snake_case")
+    }
 }

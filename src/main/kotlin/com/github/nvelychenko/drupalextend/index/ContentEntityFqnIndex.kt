@@ -121,6 +121,6 @@ class ContentEntityFqnIndex : FileBasedIndexExtension<String, ContentEntity>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 13
+    override fun getVersion(): Int = 14
 
 }

@@ -106,5 +106,5 @@ class FieldPluginConfigUsageIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 }

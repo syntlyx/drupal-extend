@@ -306,7 +306,7 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 12
+    override fun getVersion(): Int = 13
 
     private data class FieldRepresentation(val key: String, val value: String, val path: String?, val targetType: String? = null)
 

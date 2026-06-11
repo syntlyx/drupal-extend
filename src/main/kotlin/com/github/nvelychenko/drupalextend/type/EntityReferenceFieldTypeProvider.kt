@@ -60,8 +60,10 @@ class EntityReferenceFieldTypeProvider : PhpTypeProvider4 {
     override fun complete(expression: String, project: Project): PhpType? {
         if (!expression.startsWith("#$key"))
             return null
+        // The signature may arrive truncated from the type cache; never destructure blindly.
+        if (!expression.contains(END_KEY)) return null
 
-        val (rawSignature, fieldName) = expression.substring(2).split(END_KEY)
+        val (rawSignature, fieldName) = expression.substring(2).split(END_KEY, limit = 2)
         val signature = decompressSignature(rawSignature)
 
         val type = PhpType()

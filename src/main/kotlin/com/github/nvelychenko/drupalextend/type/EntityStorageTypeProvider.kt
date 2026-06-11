@@ -45,8 +45,9 @@ class EntityStorageTypeProvider : PhpTypeProvider4 {
             return null
         }
 
-        val parameterList = methodReference.childrenOfType<ParameterList>().first()
-        val firstParameter = parameterList.getParameter(0) as StringLiteralExpression
+        // getType runs on every type computation; incomplete/error PSI is normal mid-typing.
+        val parameterList = methodReference.childrenOfType<ParameterList>().firstOrNull() ?: return null
+        val firstParameter = parameterList.getParameter(0) as? StringLiteralExpression ?: return null
 
         if (firstParameter.contents.isBlank()) return null
 
@@ -56,7 +57,8 @@ class EntityStorageTypeProvider : PhpTypeProvider4 {
     override fun complete(expression: String, project: Project): PhpType? {
         if (!expression.contains(SPLIT_KEY)) return null
 
-        val (originalSignature, entityTypeId) = expression.substring(2).split(SPLIT_KEY)
+        // limit = 2: an entity type id containing the split character must not shift the parts.
+        val (originalSignature, entityTypeId) = expression.substring(2).split(SPLIT_KEY, limit = 2)
 
         val entityType = fileBasedIndex.getValue(CONTENT_ENTITY_INDEX_KEY, entityTypeId, project) ?: return null
 

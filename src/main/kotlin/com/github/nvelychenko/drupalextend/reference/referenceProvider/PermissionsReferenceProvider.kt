@@ -17,25 +17,27 @@ class PermissionsReferenceProvider : PsiReferenceProvider() {
             return emptyArray()
         }
 
-        element as StringLiteralExpression
-        val permissionName = element.contents
+        val literal = element as? StringLiteralExpression ?: return emptyArray()
+        val permissionName = literal.contents
         if (permissionName.isEmpty()) {
             return emptyArray()
         }
 
-        // Triggers only for the first parameter.
-        val parameterList = element.parent as ParameterList
-        val methodReference = parameterList.parent as MethodReference
-        // Triggers only for the first parameter.
+        val parameterList = literal.parent as? ParameterList ?: return emptyArray()
+        val methodReference = parameterList.parent as? MethodReference ?: return emptyArray()
 
         val methodName = methodReference.name
         val position = allowedMethods.keys.find { it == methodName } ?: return emptyArray()
-        val methodsToCheck = allowedMethods[position]!!
+        val methodsToCheck = allowedMethods[position] ?: return emptyArray()
         val currentElementMethodFqn = (methodReference.resolve() as? MethodImpl)?.fqn ?: return emptyArray()
         val methodToCheck = methodsToCheck.keys.find { it == currentElementMethodFqn } ?: return emptyArray()
-        if (parameterList.parameters[methodsToCheck[methodToCheck]!!]?.isEquivalentTo(element) == false) return emptyArray()
+        val permissionArgumentIndex = methodsToCheck[methodToCheck] ?: return emptyArray()
+        // Triggers only for the parameter at the permission position; the call may not have
+        // that many arguments yet (e.g. a single-argument allowedIfHasPermission() mid-typing).
+        val permissionArgument = parameterList.parameters.getOrNull(permissionArgumentIndex) ?: return emptyArray()
+        if (!permissionArgument.isEquivalentTo(literal)) return emptyArray()
 
-        return arrayOf(PermissionsReference(element, permissionName))
+        return arrayOf(PermissionsReference(literal, permissionName))
     }
 
 }

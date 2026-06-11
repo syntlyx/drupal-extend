@@ -192,7 +192,7 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 14
+    override fun getVersion(): Int = 15
 
 }
 

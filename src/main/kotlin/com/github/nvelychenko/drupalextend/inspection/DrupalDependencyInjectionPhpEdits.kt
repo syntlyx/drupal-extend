@@ -15,7 +15,9 @@ import com.jetbrains.php.lang.psi.elements.PhpClassFieldsList
 import com.jetbrains.php.lang.psi.elements.PhpUseList
 
 internal const val CONTAINER_INTERFACE = "\\Symfony\\Component\\DependencyInjection\\ContainerInterface"
+internal const val AUTOWIRE_ATTRIBUTE = "\\Symfony\\Component\\DependencyInjection\\Attribute\\Autowire"
 
+private const val AUTOWIRE_TRAIT = "\\Drupal\\Core\\DependencyInjection\\AutowireTrait"
 private const val CONTAINER_INJECTION_INTERFACE = "\\Drupal\\Core\\DependencyInjection\\ContainerInjectionInterface"
 private val CONTAINER_INJECTABLE_BASE_CLASSES = setOf(
     "\\Drupal\\Core\\Controller\\ControllerBase",
@@ -88,6 +90,20 @@ internal fun PhpClass.isContainerInjectionTarget(): Boolean {
     return CONTAINER_INJECTION_INTERFACE in superFqns || superFqns.any { it in CONTAINER_INJECTABLE_BASE_CLASSES }
 }
 
+/**
+ * True when the class would get its `create()` from Drupal's `AutowireTrait` (Drupal 10.2+),
+ * either used directly or inherited through a base class. Generating a `create()` override
+ * there would replace working autowiring with TODO placeholders; the injected constructor
+ * parameter only needs an `#[Autowire(service: ...)]` attribute instead, which the trait's
+ * `create()` resolves through the container.
+ */
+internal fun PhpClass.createComesFromAutowireTrait(): Boolean {
+    val createMethod = findMethodByName("create") ?: return false
+    val owner = createMethod.containingClass ?: return false
+
+    return owner.isTrait && owner.fqn == AUTOWIRE_TRAIT
+}
+
 private const val DEFAULT_MEMBER_INDENT = "  "
 private const val DEFAULT_BODY_INDENT = "    "
 
@@ -126,11 +142,12 @@ internal fun DrupalStaticServiceCall.newPropertyAndConstructorText(
     containerType: String?,
     memberIndent: String = DEFAULT_MEMBER_INDENT,
     bodyIndent: String = DEFAULT_BODY_INDENT,
+    parameterAttributePrefix: String = "",
 ): String {
     return "\n" +
             "$memberIndent" + $$"protected $$serviceType $$$propertyName;\n" +
             "\n" +
-            "$memberIndent" + $$"public function __construct($$serviceType $$$parameterName) {\n" +
+            "$memberIndent" + $$"public function __construct($$parameterAttributePrefix$$serviceType $$$parameterName) {\n" +
             "$bodyIndent" + $$"$this->$$propertyName = $$$parameterName;\n" +
             "$memberIndent}\n" +
             (containerType?.let { newCreateMethodText(it, memberIndent, bodyIndent) } ?: "")
@@ -188,6 +205,7 @@ internal fun Method.parameterInsertionEdit(
     serviceCall: DrupalStaticServiceCall,
     serviceType: String,
     promoted: Boolean,
+    attributePrefix: String = "",
 ): TextEdit? {
     // A promoted parameter IS the property, so it follows the camelCase property naming used by
     // modern Drupal core; a classic parameter keeps the snake_case argument convention.
@@ -195,7 +213,7 @@ internal fun Method.parameterInsertionEdit(
     if (parameters.any { it.name == parameterName }) return null
     val parameterList = PsiTreeUtil.findChildOfType(this, ParameterList::class.java) ?: return null
     val existingParameters = parameterList.parameters
-    val declaration = if (promoted) {
+    val declaration = attributePrefix + if (promoted) {
         $$"protected $$serviceType $$$parameterName"
     } else {
         $$"$$serviceType $$$parameterName"

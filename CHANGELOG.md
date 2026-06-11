@@ -12,6 +12,13 @@
 
 ### Fixed
 
+- "Inject Drupal service into constructor" quick fix no longer generates a `create()` override for classes whose `create()` comes from Drupal's `AutowireTrait` (used directly or inherited, e.g. via `ControllerBase` on Drupal 10.2+) — that would have replaced working autowiring with TODO placeholders. The injected constructor parameter now carries an `#[Autowire(service: '...')]` attribute instead, so the trait resolves it by service id.
+- Fixed an `ArrayIndexOutOfBoundsException` in permission references/completion when `AccessResult::allowedIfHasPermission()` is called with a single argument (normal while typing).
+- Fixed a crash in hook indexing and gutter line markers on a bare `#[Hook]` attribute with no arguments (normal while typing).
+- Fixed a data race in the theme index: concurrent indexing could record the wrong hook name for `hook_theme()` definitions, corrupting indexed theme data.
+- Fixed annotation parsing matching the wrong key by substring: e.g. looking up `id` could return the value of `field_id` or `valid`, silently corrupting indexed entity/field-type data for annotation-based (non-attribute) plugins.
+- Fixed crashes on incomplete code in the entity-storage type provider (`getStorage()` on error PSI), in `#[Hook('...')]` name completion (empty argument list, attribute on a non-method, attribute as the last element of a class), and an entity type id containing the internal split character no longer shifts the type signature.
+- "Class name should use PascalCase" / "Function name should use snake_case" code-style rules no longer fire (or crash) on half-typed declarations that have no name yet.
 - "Fully qualify @throws exception class" fix (and the umbrella "Fix Drupal DocBlock" fix) now resolves an imported or namespace-relative exception class to its real FQN instead of blindly prepending `\`. Previously `@throws MyException` with a matching `use ...\MyException;` was "fixed" to `@throws \MyException`, which resolves to a non-existent root-namespace class; it now becomes `@throws \Full\Namespace\MyException`. Types that don't resolve to a class still fall back to the plain `\` prefix.
 - Resolving whether a method is implicitly used as a service factory (used by every method during every highlighting pass) no longer parses every `*.services.yml` file in the project on each call. Service factory methods are now served from a dedicated file-based index, removing a per-method, per-pass whole-project PSI sweep.
 

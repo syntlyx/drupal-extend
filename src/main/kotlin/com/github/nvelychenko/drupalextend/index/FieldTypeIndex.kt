@@ -172,7 +172,7 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 3
+    override fun getVersion(): Int = 4
 
 }
 

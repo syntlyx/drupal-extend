@@ -17,7 +17,9 @@ internal object FunctionNameRule : DrupalCodeStyleRule {
         val function = element as? Function ?: return
         if (function.isClosure) return
 
-        val name = function.name
+        // An empty name is normal while the declaration is being typed.
+        val name: String? = function.name
+        if (name.isNullOrBlank()) return
         val problem = when (function) {
             is Method -> methodNameProblem(name)
             else -> functionNameProblem(name)

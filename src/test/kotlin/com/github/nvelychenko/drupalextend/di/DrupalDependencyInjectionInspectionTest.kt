@@ -514,6 +514,111 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
         assertContainsText(result, $$"$value = $this->sampleManager->label();")
     }
 
+    fun testQuickFixUsesAutowireAttributeInsteadOfCreateForAutowiredBaseClass() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addAutowireTrait()
+        addAutowireAttributeClass()
+        addAutowiredControllerBaseClass()
+        addSampleService()
+        myFixture.configureByText(
+            "ExampleController.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            use Drupal\Core\Controller\ControllerBase;
+
+            class ExampleController extends ControllerBase {
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Controller;
+
+            use Drupal\Core\Controller\ControllerBase;
+            use Drupal\my_module\SampleManager;
+            use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
+            class ExampleController extends ControllerBase {
+              protected SampleManager $sampleManager;
+
+              public function __construct(#[Autowire(service: 'my_module.sample_manager')] SampleManager $sample_manager) {
+                $this->sampleManager = $sample_manager;
+              }
+
+              public function build(): array {
+                $label = $this->sampleManager->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixAddsAutowireAttributeToPromotedConstructorWithDirectTraitUse() {
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addAutowireTrait()
+        addAutowireAttributeClass()
+        addSampleService()
+        addFooService()
+        myFixture.configureByText(
+            "ExampleService.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\Core\DependencyInjection\AutowireTrait;
+
+            class ExampleService {
+              use AutowireTrait;
+
+              public function __construct(private Foo $foo) {}
+
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_<caret>manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Inject service 'my_module.sample_manager' into constructor"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertContainsText(result, "use Symfony\\Component\\DependencyInjection\\Attribute\\Autowire;")
+        assertContainsText(
+            result,
+            $$"__construct(private Foo $foo, #[Autowire(service: 'my_module.sample_manager')] protected SampleManager $sampleManager)"
+        )
+        assertContainsText(result, $$"$label = $this->sampleManager->label();")
+        assertFalse(
+            "Autowired class must not get a create() override",
+            result.contains("public static function create(")
+        )
+    }
+
     fun testQuickFixAddsTodoToIndirectCreateBody() {
         myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
         addDrupalClass()
@@ -693,6 +798,71 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
 
             abstract class ControllerBase implements ContainerInjectionInterface {
               public static function create(ContainerInterface $container): static {}
+            }
+            """.trimIndent()
+        )
+    }
+
+    private fun addAutowireTrait() {
+        myFixture.addFileToProject(
+            "core/lib/Drupal/Core/DependencyInjection/AutowireTrait.php",
+            $$"""
+            <?php
+
+            namespace Drupal\Core\DependencyInjection;
+
+            use Symfony\Component\DependencyInjection\ContainerInterface;
+
+            trait AutowireTrait {
+              public static function create(ContainerInterface $container): static {}
+            }
+            """.trimIndent()
+        )
+    }
+
+    private fun addAutowireAttributeClass() {
+        myFixture.addFileToProject(
+            "vendor/symfony/dependency-injection/Attribute/Autowire.php",
+            $$"""
+            <?php
+
+            namespace Symfony\Component\DependencyInjection\Attribute;
+
+            #[\Attribute(\Attribute::TARGET_PARAMETER)]
+            class Autowire {
+              public function __construct(mixed $value = null, ?string $service = null) {}
+            }
+            """.trimIndent()
+        )
+    }
+
+    private fun addAutowiredControllerBaseClass() {
+        myFixture.addFileToProject(
+            "core/lib/Drupal/Core/DependencyInjection/ContainerInjectionInterface.php",
+            $$"""
+            <?php
+
+            namespace Drupal\Core\DependencyInjection;
+
+            use Symfony\Component\DependencyInjection\ContainerInterface;
+
+            interface ContainerInjectionInterface {
+              public static function create(ContainerInterface $container): static;
+            }
+            """.trimIndent()
+        )
+        myFixture.addFileToProject(
+            "core/lib/Drupal/Core/Controller/ControllerBase.php",
+            $$"""
+            <?php
+
+            namespace Drupal\Core\Controller;
+
+            use Drupal\Core\DependencyInjection\AutowireTrait;
+            use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+
+            abstract class ControllerBase implements ContainerInjectionInterface {
+              use AutowireTrait;
             }
             """.trimIndent()
         )
