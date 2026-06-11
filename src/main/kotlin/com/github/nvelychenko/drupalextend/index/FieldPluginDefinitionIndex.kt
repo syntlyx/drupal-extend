@@ -38,7 +38,7 @@ class FieldPluginDefinitionIndex : FileBasedIndexExtension<String, DrupalFieldPl
         }
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<DrupalFieldPluginDefinition> =
         SerializedObjectDataExternalizer(DrupalFieldPluginDefinition.serializer())
@@ -59,5 +59,5 @@ class FieldPluginDefinitionIndex : FileBasedIndexExtension<String, DrupalFieldPl
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 3
+    override fun getVersion(): Int = 4
 }

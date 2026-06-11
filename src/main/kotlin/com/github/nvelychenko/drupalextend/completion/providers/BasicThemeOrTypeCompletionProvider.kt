@@ -20,11 +20,11 @@ class BasicThemeOrTypeCompletionProvider : CompletionProvider<CompletionParamete
 
         if (!leaf.project.drupalExtendSettings.isEnabled) return
 
-        val containString = leaf.parent as StringLiteralExpression
+        val containString = leaf.parent as? StringLiteralExpression ?: return
 
         if (!containString.contents.startsWith("#")) return
 
-        val array = PsiTreeUtil.getParentOfType(leaf, ArrayCreationExpression::class.java)!!
+        val array = PsiTreeUtil.getParentOfType(leaf, ArrayCreationExpression::class.java) ?: return
 
         val themeOrType = arrayOf("#theme", "#type")
         val hasThemeOrType =

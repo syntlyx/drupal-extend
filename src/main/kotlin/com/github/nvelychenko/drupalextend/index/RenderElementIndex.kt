@@ -41,10 +41,8 @@ class RenderElementIndex : FileBasedIndexExtension<String, RenderElementType>() 
                 "\\Drupal\\Core\\Render\\Element\\RenderElementBase",
             )
 
-            val docComment = phpClass.docComment ?: return@DataIndexer map
-            val docCommentText = docComment.text ?: return@DataIndexer map
-
-            if (docCommentText.isEmpty()) return@DataIndexer map
+            // A docblock is optional: attribute-only render elements are valid modern Drupal.
+            val docCommentText = phpClass.docComment?.text.orEmpty()
 
             if (specialClasses.contains(phpClass.fqn) && docCommentText.contains(" * - #")) {
                 var properties = getAdditionalParametersFromDoc(docCommentText)
@@ -73,7 +71,6 @@ class RenderElementIndex : FileBasedIndexExtension<String, RenderElementType>() 
         map: HashMap<String, RenderElementType>,
         docCommentString: String
     ) {
-        val docComment = phpClass.docComment!!
         var type = "RenderElement"
 
         var renderElementIdId = phpClass.attributes
@@ -88,9 +85,12 @@ class RenderElementIndex : FileBasedIndexExtension<String, RenderElementType>() 
 
                 isForm || isRender
             }
-            ?.arguments?.first()?.argument?.value?.let { StringUtil.unquoteString(it) }
+            // firstOrNull: a bare attribute with no arguments is normal mid-typing PHP.
+            ?.arguments?.firstOrNull()?.argument?.value?.let { StringUtil.unquoteString(it) }
 
         if (renderElementIdId == null) {
+            // Legacy annotation fallback needs a docblock; attribute-only classes don't.
+            val docComment = phpClass.docComment ?: return
             var renderElement = docComment.getTagElementsByName("@RenderElement").firstOrNull()
 
             if (renderElement == null) {
@@ -193,7 +193,7 @@ class RenderElementIndex : FileBasedIndexExtension<String, RenderElementType>() 
         return parameters.toTypedArray()
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<RenderElementType> =
         SerializedObjectDataExternalizer(serializer<RenderElementType>())
@@ -212,6 +212,6 @@ class RenderElementIndex : FileBasedIndexExtension<String, RenderElementType>() 
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 
 }

@@ -7,11 +7,9 @@ import com.intellij.codeInsight.lookup.LookupElement
 class RenderElementTypeInsertionHandler : InsertHandler<LookupElement> {
     override fun handleInsert(context: InsertionContext, item: LookupElement) {
         val document = context.document
-        val editor = context.editor
 
-
-        val fileText: String = editor.document.text
-        if (fileText.isEmpty()) {
+        // startOffset can be 0 when the completed element starts the file.
+        if (context.startOffset <= 0) {
             return
         }
 

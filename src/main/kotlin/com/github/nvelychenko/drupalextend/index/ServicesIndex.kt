@@ -32,13 +32,20 @@ class ServicesIndex : FileBasedIndexExtension<String, String>() {
 
             servicesMapping.keyValues
                 .filter { it.keyText.isNotBlank() && !it.keyText.startsWith("_") }
-                .forEach { map[it.keyText] = ServicesYaml.serviceClass(it).orEmpty() }
+                .forEach { keyValue ->
+                    val serviceId = keyValue.keyText
+                    val explicitClass = ServicesYaml.serviceClass(keyValue)?.takeIf { it.isNotBlank() }
+                    // Modern autowired style: the service id IS the FQCN and `class:` is omitted
+                    // (`Drupal\my_module\MyService: ~`) — fall back to the id as the class.
+                    map[serviceId] = explicitClass
+                        ?: serviceId.takeIf { it.contains('\\') }.orEmpty()
+                }
 
             map
         }
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<String> = EnumeratorStringDescriptor.INSTANCE
 
@@ -58,6 +65,6 @@ class ServicesIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }

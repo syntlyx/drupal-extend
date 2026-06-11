@@ -47,7 +47,7 @@ class RoutesIndex : FileBasedIndexExtension<String, DrupalRoute>() {
         }
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<DrupalRoute> = SerializedObjectDataExternalizer(DrupalRoute.serializer())
 
@@ -67,6 +67,6 @@ class RoutesIndex : FileBasedIndexExtension<String, DrupalRoute>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 4
+    override fun getVersion(): Int = 5
 
 }

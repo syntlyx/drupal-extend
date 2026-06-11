@@ -42,7 +42,7 @@ class LinksIndex : FileBasedIndexExtension<String, String>() {
         return LINKS_INDEX_KEY
     }
 
-    override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor()
+    override fun getKeyDescriptor(): KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     override fun getValueExternalizer(): DataExternalizer<String> = EnumeratorStringDescriptor.INSTANCE
 
@@ -54,6 +54,6 @@ class LinksIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 0
+    override fun getVersion(): Int = 1
 
 }

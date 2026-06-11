@@ -30,7 +30,7 @@ import java.io.DataOutput
 const val FIELD_TYPE_DUMMY_LIST_CLASS = "Dummy"
 
 class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<DrupalFieldType> =
         object : DataExternalizer<DrupalFieldType> {
@@ -39,9 +39,11 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
                 out.writeUTF(value.fqn)
                 out.writeUTF(value.listClassFqn)
                 out.writeInt(value.properties.size)
-                for (key in value.properties) {
-                    out.writeUTF(key.key)
-                    out.writeUTF(key.value)
+                // Sorted for canonical bytes: HashMap iteration order is not stable across
+                // JVM versions, and the index layer compares serialized values.
+                for (entry in value.properties.entries.sortedBy { it.key }) {
+                    out.writeUTF(entry.key)
+                    out.writeUTF(entry.value)
                 }
             }
 
@@ -172,7 +174,7 @@ class FieldTypeIndex : FileBasedIndexExtension<String, DrupalFieldType>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 4
+    override fun getVersion(): Int = 5
 
 }
 

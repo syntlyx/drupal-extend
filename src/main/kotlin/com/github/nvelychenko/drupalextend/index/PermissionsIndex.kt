@@ -22,7 +22,7 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
     override fun getIndexer(): DataIndexer<String, String, FileContent> {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, String>()
-            val yamlFile = inputData.psiFile as YAMLFile
+            val yamlFile = inputData.psiFile as? YAMLFile ?: return@DataIndexer map
             if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
             if (!inputData.isValidForIndex()) return@DataIndexer map
 
@@ -45,8 +45,9 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
                     .findIn(yamlFile)
                     ?.value as? YAMLSequence ?: return@DataIndexer map
                 for (permissionSequenceItem in permissionsSequence.items) {
-                    permissionSequenceItem as YAMLSequenceItem
-                    map[(permissionSequenceItem.value as YAMLScalar).textValue] = "permissions"
+                    // Malformed/in-progress YAML can put non-scalar items here.
+                    val permission = permissionSequenceItem.value as? YAMLScalar ?: continue
+                    map[permission.textValue] = "permissions"
                 }
             }
 
@@ -54,7 +55,7 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
         }
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     override fun getName(): ID<String, String> {
         return PERMISSIONS_INDEX_KEY
@@ -67,12 +68,16 @@ class PermissionsIndex : FileBasedIndexExtension<String, String>() {
     override fun getValueExternalizer(): DataExternalizer<String> = myDataExternalizer
 
     override fun getInputFilter(): FileBasedIndex.InputFilter {
-        return FileBasedIndex.InputFilter { file: VirtualFile -> file.fileType == YAMLFileType.YML }
+        // The indexer only reads `*.permissions.yml` and `user.role.*.yml` — don't parse
+        // every other YAML file in the project during indexing.
+        return FileBasedIndex.InputFilter { file: VirtualFile ->
+            file.fileType == YAMLFileType.YML
+                    && (file.name.endsWith(".permissions.yml") || file.name.startsWith("user.role."))
+        }
     }
 
     override fun dependsOnFileContent(): Boolean = true
 
-    // todo
-    override fun getVersion(): Int = 0
+    override fun getVersion(): Int = 1
 
 }

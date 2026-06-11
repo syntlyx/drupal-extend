@@ -141,7 +141,7 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
         return emptyArray()
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<DrupalTheme> =
         SerializedObjectDataExternalizer(serializer<DrupalTheme>())
@@ -160,6 +160,6 @@ class ThemeIndex : FileBasedIndexExtension<String, DrupalTheme>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 
 }

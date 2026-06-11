@@ -31,7 +31,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 const val GENERAL_BASE_FIELD_KEY_PREFIX = "KEY|"
 
 class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<DrupalField> =
             SerializedObjectDataExternalizer(serializer<DrupalField>())
@@ -306,7 +306,7 @@ class FieldsIndex : FileBasedIndexExtension<String, DrupalField>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 13
+    override fun getVersion(): Int = 14
 
     private data class FieldRepresentation(val key: String, val value: String, val path: String?, val targetType: String? = null)
 

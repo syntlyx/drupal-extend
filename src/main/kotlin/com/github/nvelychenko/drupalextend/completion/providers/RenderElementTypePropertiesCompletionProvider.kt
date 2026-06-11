@@ -36,7 +36,7 @@ class RenderElementTypePropertiesCompletionProvider : CompletionProvider<Complet
 
         if (!project.drupalExtendSettings.isEnabled) return
 
-        val array = PsiTreeUtil.getParentOfType(leaf, ArrayCreationExpression::class.java)!!
+        val array = PsiTreeUtil.getParentOfType(leaf, ArrayCreationExpression::class.java) ?: return
 
         val typeElement = array.hashElements.find {
             val key = it.key
@@ -44,7 +44,7 @@ class RenderElementTypePropertiesCompletionProvider : CompletionProvider<Complet
         } ?: return
 
         val type =
-            (typeElement.value as StringLiteralExpression).contents.takeIf { it.isNotEmpty() } ?: return
+            (typeElement.value as? StringLiteralExpression)?.contents?.takeIf { it.isNotEmpty() } ?: return
 
         val renderElementType = fileBasedIndex.getValue(RENDER_ELEMENT_INDEX_KEY, type, project) ?: return
 

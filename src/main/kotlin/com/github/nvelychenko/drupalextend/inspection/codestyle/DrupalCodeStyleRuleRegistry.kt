@@ -186,7 +186,7 @@ internal class DrupalCodeStyleRuleDispatcher(
             is ArrayHashElement -> operatorRules.inspect(element, context)
             is BinaryExpression -> operatorRules.inspect(element, context)
             else -> {
-                if (element.node.elementType == PhpElementTypes.CAST_EXPRESSION) {
+                if (element.node?.elementType == PhpElementTypes.CAST_EXPRESSION) {
                     castExpressionRules.inspect(element, context)
                 }
             }

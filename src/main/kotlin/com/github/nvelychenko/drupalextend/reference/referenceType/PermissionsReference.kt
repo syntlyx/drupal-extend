@@ -50,8 +50,9 @@ class PermissionsReference(
         files.forEach {
             val path = it.key
             val virtualFile = it.value
-            val yamlFile = psiManager.findFile(virtualFile)
-            val keyValue = YAMLKeyValueFinder(path).findIn(yamlFile as PsiElement) ?: return@forEach
+            // findFile can return null if the file vanished between index lookup and resolve.
+            val yamlFile = psiManager.findFile(virtualFile) ?: return@forEach
+            val keyValue = YAMLKeyValueFinder(path).findIn(yamlFile) ?: return@forEach
             navigationItems.add(keyValue.key ?: keyValue.value ?: keyValue)
 
         }

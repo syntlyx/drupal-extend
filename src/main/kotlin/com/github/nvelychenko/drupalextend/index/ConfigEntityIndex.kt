@@ -14,7 +14,7 @@ import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
 import com.jetbrains.php.lang.psi.elements.PhpClass
 
 class ConfigEntityIndex : FileBasedIndexExtension<String, String>() {
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<String> = EnumeratorStringDescriptor.INSTANCE
     override fun getName(): ID<String, String> {

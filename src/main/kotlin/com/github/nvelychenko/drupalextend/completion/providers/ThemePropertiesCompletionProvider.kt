@@ -30,7 +30,7 @@ class ThemePropertiesCompletionProvider : CompletionProvider<CompletionParameter
 
         if (!project.drupalExtendSettings.isEnabled) return
 
-        val array = PsiTreeUtil.getParentOfType(leaf, ArrayCreationExpression::class.java)!!
+        val array = PsiTreeUtil.getParentOfType(leaf, ArrayCreationExpression::class.java) ?: return
 
         val typeElement = array.hashElements.find {
             val key = it.key
@@ -38,7 +38,7 @@ class ThemePropertiesCompletionProvider : CompletionProvider<CompletionParameter
         } ?: return
 
         val type =
-            (typeElement.value as StringLiteralExpression).contents.takeIf { it.isNotEmpty() } ?: return
+            (typeElement.value as? StringLiteralExpression)?.contents?.takeIf { it.isNotEmpty() } ?: return
 
         fileBasedIndex.getValue(THEME_INDEX_KEY, type, project)
             ?.variables

@@ -48,7 +48,7 @@ class ServiceFactoryIndex : FileBasedIndexExtension<String, DrupalServiceFactory
         }
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<DrupalServiceFactory> =
         SerializedObjectDataExternalizer(DrupalServiceFactory.serializer())
@@ -69,6 +69,6 @@ class ServiceFactoryIndex : FileBasedIndexExtension<String, DrupalServiceFactory
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }

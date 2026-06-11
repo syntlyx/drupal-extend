@@ -42,6 +42,43 @@ class HookAttributesIndexTest : BasePlatformTestCase() {
         assertEquals(mapOf("node_view" to "\\Drupal\\my_module\\Hook\\MyModuleHooks"), map)
     }
 
+    fun testAllClassesInOneFileAreIndexed() {
+        val psiFile = myFixture.addFileToProject(
+            "modules/custom/my_module/src/Hook/MyModuleAllHooks.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Hook;
+
+            use Drupal\Core\Hook\Attribute\Hook;
+
+            class MyModuleHooks {
+
+              #[Hook('node_view')]
+              public function nodeView(): void {}
+
+            }
+
+            class MyModuleFormHooks {
+
+              #[Hook('form_alter')]
+              public function formAlter(): void {}
+
+            }
+            """.trimIndent()
+        )
+
+        val fileContent = FileContentImpl.createByFile(psiFile.virtualFile, project)
+        val map = HookAttributesIndex().indexer.map(fileContent)
+        assertEquals(
+            mapOf(
+                "node_view" to "\\Drupal\\my_module\\Hook\\MyModuleHooks",
+                "form_alter" to "\\Drupal\\my_module\\Hook\\MyModuleFormHooks",
+            ),
+            map
+        )
+    }
+
     fun testGetHookAttributesByNameSkipsBareHookAttribute() {
         val file = myFixture.configureByText(
             "MyModuleHooks.php",

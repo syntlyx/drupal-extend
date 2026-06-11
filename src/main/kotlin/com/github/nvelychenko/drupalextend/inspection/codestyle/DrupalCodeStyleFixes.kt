@@ -132,7 +132,7 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
 
     if (settings.isCodeStyleCastSpacingEnabled) {
         PsiTreeUtil.collectElements(this) { element ->
-            element.node.elementType == PhpElementTypes.CAST_EXPRESSION
+            element.node?.elementType == PhpElementTypes.CAST_EXPRESSION
         }
             .mapNotNullTo(edits) { it.castSpacingEdit() }
     }

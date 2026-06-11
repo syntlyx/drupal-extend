@@ -29,7 +29,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 
 class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>() {
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     override fun getIndexer(): DataIndexer<String, DrupalContentEntity, FileContent> {
         return DataIndexer { inputData ->
@@ -192,7 +192,7 @@ class ContentEntityIndex : FileBasedIndexExtension<String, DrupalContentEntity>(
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 15
+    override fun getVersion(): Int = 16
 
 }
 

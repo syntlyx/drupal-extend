@@ -23,19 +23,22 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
             if (!inputData.project.drupalExtendSettings.isEnabled) return@DataIndexer map
 
             val phpFile = inputData.psiFile as PhpFile
-            val clazz = PsiTreeUtil.findChildOfType(phpFile, PhpClass::class.java) ?: return@DataIndexer map
 
-            if (!clazz.namespaceName.startsWith("\\Drupal\\") || !clazz.namespaceName.endsWith("\\Hook\\")) return@DataIndexer map
+            // Every class in the file: nothing stops a module from declaring several hook
+            // classes per file.
+            for (clazz in PsiTreeUtil.findChildrenOfType(phpFile, PhpClass::class.java)) {
+                if (!clazz.namespaceName.startsWith("\\Drupal\\") || !clazz.namespaceName.endsWith("\\Hook\\")) continue
 
-            val attributes = PsiTreeUtil.findChildrenOfType(clazz, PhpAttribute::class.java)
+                val attributes = PsiTreeUtil.findChildrenOfType(clazz, PhpAttribute::class.java)
 
-            for (attribute in attributes) {
-                if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") continue
-                // A bare `#[Hook]` (no arguments yet) is normal mid-typing PHP.
-                val hookName = attribute.parameters.firstOrNull() ?: continue
+                for (attribute in attributes) {
+                    if (attribute.fqn != "\\Drupal\\Core\\Hook\\Attribute\\Hook") continue
+                    // A bare `#[Hook]` (no arguments yet) is normal mid-typing PHP.
+                    val hookName = attribute.parameters.firstOrNull() ?: continue
 
-                if (hookName is StringLiteralExpression && hookName.contents.isNotEmpty()) {
-                    map[hookName.contents] = clazz.fqn
+                    if (hookName is StringLiteralExpression && hookName.contents.isNotEmpty()) {
+                        map[hookName.contents] = clazz.fqn
+                    }
                 }
             }
 
@@ -60,7 +63,7 @@ class HookAttributesIndex : FileBasedIndexExtension<String, String>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }
 

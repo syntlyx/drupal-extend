@@ -96,12 +96,13 @@ class ServicesYamlSupportTest : BasePlatformTestCase() {
             "Drupal\\Core\\Database\\Connection",
             index.getValues(SERVICES_INDEX_KEY, "database.replica", scope).firstOrNull()
         )
+        // FQN-style service ids (alias or autowired `~` definitions) resolve to the id itself.
         assertEquals(
-            "",
+            "Drupal\\Core\\Database\\Connection",
             index.getValues(SERVICES_INDEX_KEY, "Drupal\\Core\\Database\\Connection", scope).firstOrNull()
         )
         assertEquals(
-            "",
+            "Drupal\\Core\\Database\\EventSubscriber\\StatementExecutionSubscriber",
             index.getValues(
                 SERVICES_INDEX_KEY,
                 "Drupal\\Core\\Database\\EventSubscriber\\StatementExecutionSubscriber",

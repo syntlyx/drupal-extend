@@ -40,7 +40,7 @@ class ContentEntityFqnIndex : FileBasedIndexExtension<String, ContentEntity>() {
         "\\Drupal\\Core\\Cache\\CacheableDependencyInterface",
         "\\Drupal\\Core\\TypedData\\TranslationStatusInterface"
     )
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer: DataExternalizer<ContentEntity> =
         object : DataExternalizer<ContentEntity> {

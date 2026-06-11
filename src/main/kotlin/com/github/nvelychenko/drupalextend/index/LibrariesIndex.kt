@@ -18,7 +18,7 @@ class LibrariesIndex : FileBasedIndexExtension<String, Void?>() {
         return DataIndexer { inputData ->
             val map = hashMapOf<String, Void?>()
 
-            val yamlFile = inputData.psiFile as YAMLFile
+            val yamlFile = inputData.psiFile as? YAMLFile ?: return@DataIndexer map
             val file = inputData.file
             val fileName = file.name
 
@@ -37,7 +37,7 @@ class LibrariesIndex : FileBasedIndexExtension<String, Void?>() {
         }
     }
 
-    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor()
+    private val myKeyDescriptor: KeyDescriptor<String> = EnumeratorStringDescriptor.INSTANCE
 
     private val myDataExternalizer = VoidDataExternalizer.INSTANCE
 
@@ -50,11 +50,14 @@ class LibrariesIndex : FileBasedIndexExtension<String, Void?>() {
     override fun getValueExternalizer(): DataExternalizer<Void?> = myDataExternalizer
 
     override fun getInputFilter(): FileBasedIndex.InputFilter {
-        return FileBasedIndex.InputFilter { file: VirtualFile -> file.fileType == YAMLFileType.YML }
+        // The indexer only reads `*.libraries.yml` — don't parse every other YAML file.
+        return FileBasedIndex.InputFilter { file: VirtualFile ->
+            file.fileType == YAMLFileType.YML && file.name.endsWith(".libraries.yml")
+        }
     }
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 0
+    override fun getVersion(): Int = 1
 
 }
