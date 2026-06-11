@@ -9,6 +9,7 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
@@ -298,6 +299,9 @@ class ServicesYamlInspection : LocalInspectionTool() {
             .distinct()
             .filterNot { it in excludedServiceIds }
             .mapNotNull { serviceId ->
+                // One index lookup plus a PhpType.findSuper per candidate — keep the sweep
+                // over all services cancellable.
+                ProgressManager.checkCanceled()
                 serviceClass(project, serviceId, localServiceClasses)
                     ?.let { CandidateService(serviceId, it) }
             }

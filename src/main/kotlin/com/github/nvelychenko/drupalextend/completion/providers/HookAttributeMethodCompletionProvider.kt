@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.completion.providers
 
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.github.nvelychenko.drupalextend.util.DrupalHookSuggestions
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
@@ -14,16 +15,12 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtilBase
 import com.intellij.util.ProcessingContext
-import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.text.NameUtilCore
 import com.jetbrains.php.PhpIndex
 import com.jetbrains.php.codeInsight.PhpCodeInsightUtil
-import com.jetbrains.php.drupal.DrupalVersion
-import com.jetbrains.php.drupal.hooks.DrupalHooksIndex
 import com.jetbrains.php.drupal.settings.DrupalDataService
 import com.jetbrains.php.lang.psi.PhpCodeEditUtil
 import com.jetbrains.php.lang.psi.PhpGroupUseElement.PhpUseKeyword
@@ -32,7 +29,6 @@ import com.jetbrains.php.lang.psi.elements.*
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.impl.ParameterListImpl
 import com.jetbrains.php.lang.psi.resolve.types.PhpType
-import com.jetbrains.php.lang.psi.stubs.indexes.PhpFunctionNameIndex
 import com.jetbrains.php.refactoring.PhpAliasImporter
 
 class HookAttributeMethodCompletionProvider : CompletionProvider<CompletionParameters>() {
@@ -55,62 +51,15 @@ class HookAttributeMethodCompletionProvider : CompletionProvider<CompletionParam
             return
         }
 
-        val prefixMatcher: PrefixMatcher = completionResultSet.prefixMatcher
-        val functionNamesFromIndex = getAllHooksInvocationsFromIndex(prefixMatcher, service.version, project)
-        val functionNamesFromDocs = getAllHooksInvocationsFromDocs(prefixMatcher, project)
-
-        val hookNames: HashSet<String> = HashSet()
-        hookNames.addAll(functionNamesFromIndex)
-        hookNames.addAll(functionNamesFromDocs)
-
+        val hookNames = DrupalHookSuggestions.matchingHookNames(
+            completionResultSet.prefixMatcher, service.version, project
+        )
         for (name in hookNames) {
             completionResultSet.addElement(
                 LookupElementBuilder.create(name).withBoldness(true)
                     .withInsertHandler(MyInsertHandler.INSTANCE)
             )
         }
-    }
-
-    private fun getAllHooksInvocationsFromIndex(
-        prefixMatcher: PrefixMatcher, version: DrupalVersion, project: Project
-    ): Collection<String> {
-        val index = FileBasedIndex.getInstance()
-        val indexKeys = index.getAllKeys(DrupalHooksIndex.KEY, project)
-        val filtered: ArrayList<String> = ArrayList()
-        val searchScope = GlobalSearchScope.allScope(project)
-
-        for (result in indexKeys) {
-            if (result.suits(version)) {
-                val hookImplementationText = result.name
-                if (prefixMatcher.prefixMatches(hookImplementationText)) {
-                    val fileCollection = index.getContainingFiles(DrupalHooksIndex.KEY, result, searchScope)
-                    if (!fileCollection.isEmpty()) {
-                        filtered.add(hookImplementationText)
-                    }
-                }
-            }
-        }
-
-        return filtered
-    }
-
-    private fun getAllHooksInvocationsFromDocs(
-        prefixMatcher: PrefixMatcher, project: Project
-    ): Collection<String> {
-
-        val results = FileBasedIndex.getInstance().getAllKeys(PhpFunctionNameIndex.KEY, project)
-        val filtered: ArrayList<String> = ArrayList()
-
-        for (key in results) {
-            if (key.startsWith("hook_")) {
-                val hookImplementationText = key.substring("hook_".length)
-                if (prefixMatcher.prefixMatches(hookImplementationText)) {
-                    filtered.add(hookImplementationText)
-                }
-            }
-        }
-
-        return filtered
     }
 
     class MyInsertHandler : InsertHandler<LookupElement> {

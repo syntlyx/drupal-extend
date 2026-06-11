@@ -2,6 +2,7 @@ package com.github.nvelychenko.drupalextend.extensions
 
 import com.github.nvelychenko.drupalextend.project.DEFAULT_CONFIG_SYNC_DIRECTORY
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.util.Key
@@ -69,7 +70,10 @@ fun <K : Any, V> FileBasedIndex.getValue(
         ?.first()
 }
 
-@Synchronized
+// No locking here on purpose: these helpers are reached from the EDT (completion, highlighting)
+// while indexing threads call them too. CachedValuesManager already handles concurrent
+// computation safely; a file-level @Synchronized would serialize ALL index helpers across all
+// projects and stall the UI thread behind background work.
 fun <K : Any, V> FileBasedIndex.getAllProjectKeys(
     id: ID<K, V>,
     project: Project,
@@ -87,7 +91,6 @@ fun <K : Any, V> FileBasedIndex.getAllProjectKeys(
     )
 }
 
-@Synchronized
 fun <K : Any, V> FileBasedIndex.getAllValuesWithKeyPrefix(
     id: ID<K, V>,
     prefix: String,
@@ -111,15 +114,18 @@ fun <K : Any, V> FileBasedIndex.getAllValuesWithKeyPrefix(
     )
 }
 
-@Synchronized
 private fun <K : Any, V> getAllIndexKeys(
     id: ID<K, V>,
     project: Project,
     index: FileBasedIndex
 ): List<K> {
     val items = mutableSetOf<K>()
+    val scope = GlobalSearchScope.allScope(project)
     for (indexKey in index.getAllKeys(id, project)) {
-        val inScope = !index.processValues(id, indexKey, null, { _, _ -> false }, GlobalSearchScope.allScope(project))
+        // One presence probe per key; the loop re-runs whenever the index changes, so it must
+        // stay cancellable to never pin the calling (possibly UI-adjacent) thread.
+        ProgressManager.checkCanceled()
+        val inScope = !index.processValues(id, indexKey, null, { _, _ -> false }, scope)
 
         if (inScope) {
             items.add(indexKey)
@@ -128,7 +134,6 @@ private fun <K : Any, V> getAllIndexKeys(
     return items.toList()
 }
 
-@Synchronized
 fun <K : Any, V> getModificationTrackerForIndexId(
     project: Project,
     id: ID<K, V>,
