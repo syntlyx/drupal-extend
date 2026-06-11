@@ -75,16 +75,20 @@ private data class ControlKeyword(
 }
 
 private fun PsiElement.controlKeyword(): ControlKeyword? {
+    // Constrain the keyword search to THIS element's own text range instead of the whole
+    // physical line.  The original line-scan approach matched the WRONG keyword when two
+    // control structures shared a single line (e.g. `if ($a) { foreach(…) {…} }`):
+    // inspecting the `foreach` element would find `if` first because it appears earlier
+    // on the line.
+    //
+    // By restricting the scan to [textRange.startOffset, textRange.endOffset) the first
+    // keyword token found is always the one that belongs to THIS element, because a PSI
+    // element for a control structure starts at its own keyword token.
     val fileText = containingFile.text
-    val lineStartOffset = fileText.lastIndexOf('\n', (textRange.startOffset - 1).coerceAtLeast(0))
-        .takeIf { it >= 0 }
-        ?.plus(1)
-        ?: 0
-    val lineEndOffset = fileText.indexOf('\n', lineStartOffset)
-        .takeIf { it >= 0 }
-        ?: fileText.length
+    val elementStart = textRange.startOffset
+    val elementEnd = textRange.endOffset
 
-    for (startOffset in lineStartOffset until lineEndOffset) {
+    for (startOffset in elementStart until elementEnd) {
         val keyword = controlKeywords.firstOrNull { keyword ->
             fileText.regionMatches(startOffset, keyword, 0, keyword.length) &&
                 fileText.getOrNull(startOffset - 1)?.isPhpIdentifierPart() != true &&

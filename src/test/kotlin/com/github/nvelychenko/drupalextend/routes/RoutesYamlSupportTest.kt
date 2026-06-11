@@ -426,6 +426,92 @@ class RoutesYamlSupportTest : BasePlatformTestCase() {
         )
     }
 
+    fun testPhpRouteInspectionQuickFixPreservesMultilineArguments() {
+        myFixture.enableInspections(RoutesPhpInspection::class.java)
+        addFormStateInterface()
+        myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.routing.yml",
+            """
+            my_module.item_detail:
+              path: '/items/{id}/{step}'
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "consumer.php",
+            $$"""
+            <?php
+
+            function submit(\Drupal\Core\Form\FormStateInterface $form_state): void {
+              $form_state->setRedirect(
+                'my_module.item_<caret>detail',
+                [
+                  // Existing formatting must survive the fix untouched.
+                  'id' => $id,
+                ]
+              );
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single { it.text == "Add missing route parameters" }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            $$"""
+            <?php
+
+            function submit(\Drupal\Core\Form\FormStateInterface $form_state): void {
+              $form_state->setRedirect(
+                'my_module.item_detail',
+                [
+                  // Existing formatting must survive the fix untouched.
+                  'id' => $id,
+                  'step' => $step,
+                ]
+              );
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testPhpRouteInspectionQuickFixExtendsLegacyArraySyntaxWithSpacing() {
+        myFixture.enableInspections(RoutesPhpInspection::class.java)
+        addFormStateInterface()
+        myFixture.addFileToProject(
+            "modules/custom/my_module/my_module.routing.yml",
+            """
+            my_module.item_detail:
+              path: '/items/{id}/{step}'
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "consumer.php",
+            $$"""
+            <?php
+
+            function submit(\Drupal\Core\Form\FormStateInterface $form_state): void {
+              $form_state->setRedirect('my_module.item_<caret>detail', array ('id' => $id));
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single { it.text == "Add missing route parameters" }
+        myFixture.launchAction(intention)
+
+        // `array (...)` with a space was a silent no-op before; the PSI-derived insertion handles it.
+        myFixture.checkResult(
+            $$"""
+            <?php
+
+            function submit(\Drupal\Core\Form\FormStateInterface $form_state): void {
+              $form_state->setRedirect('my_module.item_detail', array ('id' => $id, 'step' => $step));
+            }
+            """.trimIndent()
+        )
+    }
+
     fun testPhpRouteInspectionMissingRouteParameterQuickFixExtendsExistingParameterArray() {
         myFixture.enableInspections(RoutesPhpInspection::class.java)
         addFormStateInterface()

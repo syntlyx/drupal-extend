@@ -1,6 +1,10 @@
 package com.github.nvelychenko.drupalextend.inspection
 
+import com.github.nvelychenko.drupalextend.php.edit.TextEdit
+import com.github.nvelychenko.drupalextend.php.edit.applyTo
+import com.github.nvelychenko.drupalextend.php.edit.escapePhpSingleQuoted
 import com.github.nvelychenko.drupalextend.util.Routes
+import com.github.nvelychenko.drupalextend.util.RouteParametersArgument
 import com.github.nvelychenko.drupalextend.util.getRouteMethodReference
 import com.github.nvelychenko.drupalextend.util.isRouteCall
 import com.github.nvelychenko.drupalextend.util.routeParameterKeys
@@ -10,11 +14,12 @@ import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
-import com.jetbrains.php.lang.psi.PhpPsiElementFactory
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
@@ -93,45 +98,82 @@ class RoutesPhpInspection : LocalInspectionTool() {
             val existingParameters = routeParametersArgument.arrayArgument?.routeParameterKeys().orEmpty()
             val missingParameters = route.parameters.filterNot { it in existingParameters }
             if (missingParameters.isEmpty()) return
+            val psiFile = methodReference.containingFile ?: return
+            val document = PsiDocumentManager.getInstance(project).getDocument(psiFile) ?: return
 
-            val parameterList = routeParametersArgument.parameterList
-            val arguments = parameterList.parameters.map { it.text }.toMutableList()
-            val routeParametersIndex = routeParametersArgument.parameterIndex
+            // A single targeted insertion at a PSI-derived offset: the other arguments (their
+            // formatting, line breaks, and comments) are never rewritten.
             val entries = missingParameters.joinToString(", ") { routeParameterEntry(it) }
+            val edit = routeParametersArgument.arrayArgument
+                ?.let { entriesInsertionEdit(it, entries, document) }
+                ?: newArgumentInsertionEdit(routeParametersArgument, entries)
+                ?: return
 
-            if (arguments.size <= routeParametersIndex) {
-                while (arguments.size < routeParametersIndex) {
-                    arguments.add("[]")
-                }
-                arguments.add("[$entries]")
-            } else {
-                val arrayArgument = routeParametersArgument.arrayArgument ?: return
-                arguments[routeParametersIndex] = addEntriesToArrayText(arrayArgument, entries)
-            }
-
-            val newParameterList = PhpPsiElementFactory.createArgumentList(project, arguments.joinToString(", "))
-            parameterList.replace(newParameterList)
+            listOf(edit).applyTo(document)
+            PsiDocumentManager.getInstance(project).commitDocument(document)
         }
 
-        private fun addEntriesToArrayText(arrayArgument: ArrayCreationExpression, entries: String): String {
-            val text = arrayArgument.text.trim()
-            return when {
-                text == "[]" -> "[$entries]"
-                text == "array()" -> "array($entries)"
-                text.startsWith("[") && text.endsWith("]") -> {
-                    text.dropLast(1) + if (arrayArgument.hashElements.iterator().hasNext()) ", $entries]" else "$entries]"
-                }
+        /** Appends `, [entries]` (plus `[]` fillers for skipped positions) after the last argument. */
+        private fun newArgumentInsertionEdit(argument: RouteParametersArgument, entries: String): TextEdit? {
+            // A non-array argument at the parameters position can't be extended safely.
+            if (argument.argument != null) return null
+            val parameters = argument.parameterList.parameters
+            val lastParameter = parameters.lastOrNull() ?: return null
+            val fillers = ", []".repeat((argument.parameterIndex - parameters.size).coerceAtLeast(0))
 
-                text.startsWith("array(") && text.endsWith(")") -> {
-                    text.dropLast(1) + if (arrayArgument.hashElements.iterator().hasNext()) ", $entries)" else "$entries)"
-                }
+            return TextEdit(lastParameter.textRange.endOffset, "$fillers, [$entries]")
+        }
 
-                else -> text
+        /**
+         * Inserts the entries inside the existing array argument before its closing
+         * bracket/paren. The offsets come from PSI, so `[...]`, `array(...)`, and any
+         * spacing/case variant work alike, and brackets inside strings or comments can
+         * never confuse the insertion point.
+         */
+        private fun entriesInsertionEdit(
+            array: ArrayCreationExpression,
+            entries: String,
+            document: Document,
+        ): TextEdit? {
+            val closeOffset = array.textRange.endOffset - 1
+            if (closeOffset < array.textRange.startOffset) return null
+            val lastValue = array.children.lastOrNull()
+                ?: return TextEdit(closeOffset, entries)
+            val afterLastValue = lastValue.textRange.endOffset
+            val trailingCommaIndex = document.charsSequence
+                .subSequence(afterLastValue, closeOffset)
+                .indexOf(',')
+            val multiline = document.getLineNumber(array.textRange.startOffset) != document.getLineNumber(closeOffset)
+
+            if (!multiline) {
+                return TextEdit(closeOffset, if (trailingCommaIndex >= 0) " $entries" else ", $entries")
             }
+
+            val indent = document.lineIndentAt(lastValue.textRange.startOffset)
+            return if (trailingCommaIndex >= 0) {
+                TextEdit(afterLastValue + trailingCommaIndex + 1, "\n$indent$entries,")
+            } else {
+                TextEdit(afterLastValue, ",\n$indent$entries")
+            }
+        }
+
+        private fun Document.lineIndentAt(offset: Int): String {
+            val line = getLineNumber(offset)
+
+            return charsSequence
+                .subSequence(getLineStartOffset(line), getLineEndOffset(line))
+                .takeWhile { it == ' ' || it == '\t' }
+                .toString()
         }
 
         private fun routeParameterEntry(parameter: String): String {
-            return "'$parameter' => " + '$' + parameter
+            // Route placeholder names are identifier-like, but never trust that for the quoted
+            // key, and keep the suggested variable a valid PHP identifier.
+            val variableName = parameter.replace(NON_IDENTIFIER_CHARS, "_")
+
+            return "'${parameter.escapePhpSingleQuoted()}' => " + '$' + variableName
         }
     }
 }
+
+private val NON_IDENTIFIER_CHARS = Regex("[^A-Za-z0-9_]")

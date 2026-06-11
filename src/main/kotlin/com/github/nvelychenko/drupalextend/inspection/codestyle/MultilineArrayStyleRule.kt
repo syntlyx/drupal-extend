@@ -5,8 +5,9 @@ import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiWhiteSpace
+import com.jetbrains.php.lang.lexer.PhpTokenTypes
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
-import com.jetbrains.php.lang.psi.elements.ArrayHashElement
 
 internal object MultilineArrayStyleRule : DrupalCodeStyleRule {
     override val id: String = "multiline_array_style"
@@ -52,12 +53,14 @@ internal fun ArrayCreationExpression.multilineArrayStyleEdits(document: Document
 private fun ArrayCreationExpression.multilineArrayStyleIssues(document: Document): List<MultilineArrayStyleIssue> {
     if (!isShortSyntax) return emptyList()
 
-    val bracketPair = shortArrayBrackets(document) ?: return emptyList()
+    val bracketPair = shortArrayBrackets() ?: return emptyList()
     val openLine = document.getLineNumber(bracketPair.openOffset)
     val closeLine = document.getLineNumber(bracketPair.closeOffset)
     if (openLine == closeLine) return emptyList()
 
-    val lastElement = hashElements.toList()
+    // Bug 1 fix: use ALL direct value children (hash elements AND plain expressions),
+    // not only hashElements, so that positional arrays like ['a', 'b'] are covered.
+    val lastElement = arrayValueElements()
         .maxByOrNull { it.textRange.endOffset }
         ?: return emptyList()
 
@@ -103,6 +106,29 @@ private fun ArrayCreationExpression.multilineArrayStyleIssues(document: Document
     return issues
 }
 
+/**
+ * Returns the direct PSI children of the array that represent actual values —
+ * both [ArrayHashElement] nodes (key => value pairs) and plain expression nodes
+ * (positional values like `['a', 'b']`). Bracket tokens, commas, and whitespace
+ * are excluded.
+ */
+private fun ArrayCreationExpression.arrayValueElements(): List<PsiElement> {
+    val result = mutableListOf<PsiElement>()
+    var child = firstChild
+    while (child != null) {
+        val elementType = child.node?.elementType
+        if (child !is PsiWhiteSpace
+            && elementType != PhpTokenTypes.chLBRACKET
+            && elementType != PhpTokenTypes.chRBRACKET
+            && elementType != PhpTokenTypes.opCOMMA
+        ) {
+            result += child
+        }
+        child = child.nextSibling
+    }
+    return result
+}
+
 private data class MultilineArrayStyleIssue(
     val message: String,
     val edit: TextEdit,
@@ -115,16 +141,28 @@ private data class ShortArrayBrackets(
     val closeOffset: Int,
 )
 
-private fun ArrayCreationExpression.shortArrayBrackets(document: Document): ShortArrayBrackets? {
-    val openOffset = textRange.startOffset
-    if (document.charsSequence.getOrNull(openOffset) != '[') return null
-
-    val closeOffset = document.charsSequence.matchingBracketOffset(openOffset, textRange.endOffset) ?: return null
-    return ShortArrayBrackets(openOffset, closeOffset)
+/**
+ * Derives the opening and closing bracket offsets from the [ArrayCreationExpression]
+ * PSI text range rather than scanning raw text.
+ *
+ * For a short-syntax array `[...]`, the PSI node always starts with `[` and ends
+ * with `]`, so `textRange.startOffset` and `textRange.endOffset - 1` give the
+ * exact bracket positions without touching string or comment content.
+ *
+ * Bug 2 fix: the previous implementation used a raw-text bracket-depth scanner that
+ * could be confused by `]` characters inside strings (it handled string quoting) or
+ * comments (which it did NOT handle), producing a wrong closeOffset for arrays like
+ * `['a', // ]\n 'b']`.
+ */
+private fun ArrayCreationExpression.shortArrayBrackets(): ShortArrayBrackets? {
+    val open = textRange.startOffset
+    val close = textRange.endOffset - 1
+    if (close < open) return null
+    return ShortArrayBrackets(open, close)
 }
 
 private fun closeBracketLineEdit(
-    lastElement: ArrayHashElement,
+    lastElement: PsiElement,
     closeBracketOffset: Int,
     document: Document,
     arrayIndent: String,
@@ -139,37 +177,11 @@ private fun closeBracketLineEdit(
     return TextEdit(lastElementEndOffset, closeBracketOffset, ",$lineSeparator$arrayIndent")
 }
 
-private fun ArrayHashElement.hasTrailingCommaBefore(closeBracketOffset: Int, document: Document): Boolean {
+private fun PsiElement.hasTrailingCommaBefore(closeBracketOffset: Int, document: Document): Boolean {
     if (textRange.endOffset >= closeBracketOffset) return false
     return document.charsSequence
         .subSequence(textRange.endOffset, closeBracketOffset)
         .contains(',')
-}
-
-private fun CharSequence.matchingBracketOffset(openOffset: Int, endOffset: Int): Int? {
-    var depth = 0
-    var inSingleQuotedString = false
-    var inDoubleQuotedString = false
-    var escaped = false
-    val end = endOffset.coerceAtMost(length)
-
-    for (offset in openOffset until end) {
-        val char = this[offset]
-        when {
-            escaped -> escaped = false
-            char == '\\' && (inSingleQuotedString || inDoubleQuotedString) -> escaped = true
-            char == '\'' && !inDoubleQuotedString -> inSingleQuotedString = !inSingleQuotedString
-            char == '"' && !inSingleQuotedString -> inDoubleQuotedString = !inDoubleQuotedString
-            inSingleQuotedString || inDoubleQuotedString -> Unit
-            char == '[' -> depth++
-            char == ']' -> {
-                depth--
-                if (depth == 0) return offset
-            }
-        }
-    }
-
-    return null
 }
 
 private fun Document.lineIndent(line: Int): String {

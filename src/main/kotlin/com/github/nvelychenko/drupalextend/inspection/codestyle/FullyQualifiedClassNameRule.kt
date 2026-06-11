@@ -74,11 +74,17 @@ private fun ClassReference.fullyQualifiedClassNameImportCandidate(): FullyQualif
 
     val namespace = normalizedFqn.substringBeforeLast("\\", missingDelimiterValue = "")
     if (namespace.isBlank()) return null
-    if (namespace == containingFile.currentPhpNamespace()) return null
+    // PHP namespaces are case-insensitive: compare without regard to case.
+    if (namespace.equals(containingFile.currentPhpNamespace(), ignoreCase = true)) return null
 
     val shortName = normalizedFqn.substringAfterLast("\\")
     val existingImports = containingFile.classUseImports()
-    if (existingImports.any { it.alias == shortName && it.fqn != normalizedFqn }) return null
+    // Reject if another import already occupies this short name (alias collision),
+    // but allow if it is the same FQN (case-insensitive) — that import already covers this reference.
+    if (existingImports.any {
+            it.alias.equals(shortName, ignoreCase = true) &&
+            !it.fqn.equals(normalizedFqn, ignoreCase = true)
+        }) return null
 
     return FullyQualifiedClassNameImportCandidate(this, normalizedFqn, shortName)
 }
@@ -106,21 +112,67 @@ private data class ClassUseImport(
     }
 }
 
+/**
+ * Returns all top-level (file-scope) class use imports parsed via PSI.
+ *
+ * Using PSI instead of a text regex ensures that `use` statements inside
+ * heredocs, nowdocs, or string literals are never mistakenly recognised as
+ * real imports.
+ */
 private fun PsiFile.classUseImports(): List<ClassUseImport> {
-    return topLevelUseStatements()
-        .mapNotNull { it.classUseImport() }
+    return PsiTreeUtil.findChildrenOfType(this, PhpUseList::class.java)
+        .mapNotNull { it.psiClassUseImport() }
 }
 
+/**
+ * Converts a PSI [PhpUseList] to a [ClassUseImport], or returns `null` if it
+ * is not a simple top-level class import (e.g. trait import, function/const
+ * import, grouped import, or a single-segment name with no namespace).
+ */
+private fun PhpUseList.psiClassUseImport(): ClassUseImport? {
+    if (isTraitImport || isOfFunction || isOfConst) return null
+    // Grouped or multi-import lists ("use A, B;" / "use A\{B, C};") are not handled.
+    if (declarations.size != 1) return null
+    val declaration = declarations[0]
+    val fqn = declaration.targetReference?.fqn?.trim('\\') ?: return null
+    // Must be a namespaced name (contains at least one backslash after trimming).
+    if (!fqn.contains("\\")) return null
+    // aliasName is the declared alias, or the simple class name when there is none.
+    val alias = declaration.aliasName?.takeIf { it.isNotBlank() }
+        ?: fqn.substringAfterLast("\\")
+    // offsets are unused in text-edit generation; pass -1 as sentinel.
+    return ClassUseImport(fqn, alias, -1, -1)
+}
+
+/**
+ * Returns PSI-based descriptors for all top-level use statements (class, function,
+ * and const) so that offset-based text edits can be generated correctly.
+ *
+ * Using PSI guarantees that heredoc/nowdoc content that textually resembles a
+ * `use` statement never corrupts the rule's view of imports.
+ */
 private fun PsiFile.topLevelUseStatements(): List<UseStatementMatch> {
-    return TOP_LEVEL_USE_STATEMENT.findAll(text)
-        .map { match ->
+    val fileText = text
+    return PsiTreeUtil.findChildrenOfType(this, PhpUseList::class.java)
+        .filter { !it.isTraitImport }
+        .map { useList ->
+            val psiStart = useList.textRange.startOffset
+            // Extend the end offset to swallow trailing horizontal whitespace
+            // and one optional line-terminator, matching the original regex:
+            //   [ \t]*(?:\r?\n)?
+            var psiEnd = useList.textRange.endOffset
+            while (psiEnd < fileText.length && (fileText[psiEnd] == ' ' || fileText[psiEnd] == '\t')) {
+                psiEnd++
+            }
+            if (psiEnd < fileText.length && fileText[psiEnd] == '\r') psiEnd++
+            if (psiEnd < fileText.length && fileText[psiEnd] == '\n') psiEnd++
             UseStatementMatch(
-                body = match.groupValues[1].trim(),
-                startOffset = match.range.first,
-                endOffset = match.range.last + 1,
+                body = useList.text.removePrefix("use").removeSuffix(";").trim(),
+                startOffset = psiStart,
+                endOffset = psiEnd,
             )
         }
-        .toList()
+        .sortedBy { it.startOffset }
 }
 
 private data class UseStatementMatch(
@@ -146,10 +198,11 @@ private data class UseStatementMatch(
 private fun PsiFile.missingClassImportsEdit(fqns: Collection<String>): TextEdit? {
     val document = document() ?: return null
     val existingImports = classUseImports()
-    val existingFqns = existingImports.mapTo(mutableSetOf()) { it.fqn }
+    // Use case-insensitive lookup: PHP FQNs are case-insensitive.
+    val existingFqnsLower = existingImports.mapTo(mutableSetOf()) { it.fqn.lowercase() }
     val missingImports = fqns
         .distinct()
-        .filterNot { it in existingFqns }
+        .filterNot { it.lowercase() in existingFqnsLower }
         .map { ClassUseImport(it, it.substringAfterLast("\\"), -1, -1) }
     if (missingImports.isEmpty()) return null
 
@@ -157,7 +210,7 @@ private fun PsiFile.missingClassImportsEdit(fqns: Collection<String>): TextEdit?
     val topLevelUses = topLevelUseStatements()
     if (topLevelUses.isNotEmpty() && topLevelUses.size == existingImports.size) {
         val sortedImports = (existingImports + missingImports)
-            .distinctBy { it.fqn to it.alias }
+            .distinctBy { it.fqn.lowercase() to it.alias.lowercase() }
             .sortedWith(compareBy<ClassUseImport> { it.fqn.lowercase() }.thenBy { it.alias.lowercase() })
 
         return TextEdit(
@@ -208,7 +261,6 @@ private fun Char?.isLineBreak(): Boolean {
     return this == '\n' || this == '\r'
 }
 
-private val TOP_LEVEL_USE_STATEMENT = Regex("""(?m)^use\s+([^;]+);[ \t]*(?:\r?\n)?""")
 private val PHP_NAMESPACE = Regex("""(?m)^namespace\s+([^;\r\n]+);""")
 private val PHP_NAMESPACE_LINE = Regex("""(?m)^namespace[ \t]+[^;\r\n]+;[ \t]*(?:\r?\n)?""")
 private val PHP_OPEN_TAG_LINE = Regex("""(?m)^<\?php[ \t]*(?:\r?\n)?""")

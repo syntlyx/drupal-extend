@@ -200,8 +200,9 @@ private fun CharSequence.matchingParenthesisOffset(openOffset: Int, endOffset: I
     var inDoubleQuotedString = false
     var escaped = false
     val end = endOffset.coerceAtMost(length)
+    var offset = openOffset
 
-    for (offset in openOffset until end) {
+    while (offset < end) {
         val char = this[offset]
         when {
             escaped -> escaped = false
@@ -209,12 +210,31 @@ private fun CharSequence.matchingParenthesisOffset(openOffset: Int, endOffset: I
             char == '\'' && !inDoubleQuotedString -> inSingleQuotedString = !inSingleQuotedString
             char == '"' && !inSingleQuotedString -> inDoubleQuotedString = !inDoubleQuotedString
             inSingleQuotedString || inDoubleQuotedString -> Unit
+            // Line comment: // or # — skip to the end of the line.
+            (char == '/' && offset + 1 < end && this[offset + 1] == '/') || char == '#' -> {
+                while (offset < end && this[offset] != '\n' && this[offset] != '\r') {
+                    offset++
+                }
+                // Let the outer loop advance past the newline.
+                continue
+            }
+            // Block comment: /* ... */ — skip to closing */.
+            char == '/' && offset + 1 < end && this[offset + 1] == '*' -> {
+                offset += 2
+                while (offset + 1 < end && !(this[offset] == '*' && this[offset + 1] == '/')) {
+                    offset++
+                }
+                // Skip the closing */.
+                offset += 2
+                continue
+            }
             char == '(' -> depth++
             char == ')' -> {
                 depth--
                 if (depth == 0) return offset
             }
         }
+        offset++
     }
 
     return null
