@@ -119,12 +119,13 @@ private fun List<DrupalDocBlockLine>.lastParamBlockEndIndex(tagLineIndex: Int): 
 /**
  * Collects the normalized variable names (e.g. `$foo`) from existing `@param` tags in the
  * docblock lines, stripping variadic (`...$`) and pass-by-ref (`&`) prefixes so they can be
- * compared against [Parameter.phpDocVariableName].
+ * compared against [Parameter.phpDocVariableName]. Goes through [paramTagName] so a multiline
+ * type (`array{` … `} $options`) still counts as documenting its parameter — otherwise the
+ * fixpoint fixer would re-insert the tag on every pass.
  */
 private fun collectExistingParamNames(lines: List<DrupalDocBlockLine>): Set<String> {
-    return lines
-        .filter { it.tagName() == "param" }
-        .mapNotNull { it.paramTag()?.name }
+    return lines.indices
+        .mapNotNull { lines.paramTagName(it) }
         .map { normalizeParamName(it) }
         .toSet()
 }
@@ -581,7 +582,7 @@ private val KEYWORD_TYPES = setOf("static", "self", "parent", "never", "void", "
  * For example: `contextFactory` → `context factory`, `Foo` → `foo`.
  * The caller is responsible for adding "The " prefix and a trailing ".".
  */
-private fun shortTypeNameForDescription(rawText: String): String {
+internal fun shortTypeNameForDescription(rawText: String): String {
     val base = rawText.removePrefix("?").trimStart('\\')
     val shortName = base.substringAfterLast('\\').substringAfterLast('/')
         .substringBefore('|')   // For unions, describe just the primary type.

@@ -702,6 +702,114 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
         assertEquals(afterFirstFix, myFixture.file.text)
     }
 
+    fun testMultilineArrayShapeParamCountsAsDocumented() {
+        // The variable name of a multiline-shaped @param sits on the type-closing line
+        // (`} ${'$'}options`) — it must still count as documented, otherwise the fixpoint fixer
+        // re-inserts the tag on every pass and the docblock fills up with duplicates.
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Updates the document.
+             *
+             * @param array{
+             *   status?: mixed,
+             *   metadata: mixed
+             * } ${'$'}options
+             *   The options.
+             */
+            function example_update(array ${'$'}options = []): void {}
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "Multiline array-shape @param must count as documenting its parameter",
+            descriptions.contains("Missing @param for \$options")
+        )
+    }
+
+    fun testFixInsertsMultilineArrayShapeParamExactlyOnce() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Applies the configuration.
+             */
+            function example_configure(array ${'$'}configuration): void {
+              ${'$'}a = ${'$'}configuration['connection_timeout_seconds'];
+              ${'$'}b = ${'$'}configuration['maximum_retry_attempts'];
+              ${'$'}c = ${'$'}configuration['exponential_backoff_multiplier'] ?? 2;
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        val result = myFixture.file.text
+        assertEquals(
+            "The fixpoint fixer must insert the multiline @param exactly once, got:\n$result",
+            1,
+            Regex("""@param array\{""").findAll(result).count()
+        )
+
+        // And the docblock is now clean: no further missing-tags problems.
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(descriptions.contains("Missing @param for \$configuration"))
+    }
+
+    fun testFixDocBlockAddsDescriptionToEveryThrows() {
+        // Pre-existing @throws without descriptions: each one gets its own generated
+        // description, not just the tag the missing-tags generator happens to insert.
+        project.drupalExtendSettings.isCodeStyleDocBlockTagDescriptionRequiredEnabled = true
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Updates the document.
+             *
+             * @throws \Drupal\my_module\Exceptions\OffersException
+             * @throws \DateMalformedStringException
+             * @throws \Drupal\my_module\Exceptions\PayoffAmountLimitException
+             *   Thrown when the payoff amount limit exception occurs.
+             */
+            function example_update(): void {}
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertContainsElements(descriptions, "@throws tag is missing description")
+
+        val fix = myFixture.getAllQuickFixes().first { it.text == "Fix Drupal DocBlock" }
+        myFixture.launchAction(fix)
+
+        val result = myFixture.file.text
+        assertTrue(
+            "Every @throws must get a description, got:\n$result",
+            result.contains(
+                " * @throws \\Drupal\\my_module\\Exceptions\\OffersException\n" +
+                    " *   Thrown when the offers exception occurs.\n" +
+                    " * @throws \\DateMalformedStringException\n" +
+                    " *   Thrown when the date malformed string exception occurs.\n" +
+                    " * @throws \\Drupal\\my_module\\Exceptions\\PayoffAmountLimitException\n" +
+                    " *   Thrown when the payoff amount limit exception occurs."
+            )
+        )
+
+        // The fix is idempotent: nothing left to flag.
+        val remaining = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(remaining.contains("@throws tag is missing description"))
+    }
+
     // -------------------------------------------------------------------------
     // @throws: detection and generation
     // -------------------------------------------------------------------------

@@ -157,7 +157,7 @@ internal fun DrupalCodeStyleContext.registerDocBlockProblem(
 private fun List<LocalQuickFix>.withGroupedDocBlockFixes(): List<LocalQuickFix> {
     if (isEmpty()) return this
 
-    return this + DrupalDocBlockFixes.fixDocBlock
+    return (this + DrupalDocBlockFixes.fixDocBlock).distinct()
 }
 
 private fun DrupalDocBlockLine.problemRange(): TextRange? {

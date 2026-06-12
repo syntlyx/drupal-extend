@@ -160,10 +160,18 @@ internal fun List<DrupalDocBlockLine>.tagDescriptionLines(tagIndex: Int): List<D
 }
 
 internal fun List<DrupalDocBlockLine>.paramTagHasName(tagIndex: Int): Boolean {
-    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == "param" } ?: return false
-    if (tagLine.paramTag()?.name?.isParamNameToken() == true) return true
+    return paramTagName(tagIndex) != null
+}
 
-    return multilineParamTagName(tagIndex) != null
+/**
+ * The variable name of the `@param` tag at [tagIndex], whether it sits on the tag line itself
+ * or — for a multiline type like `array{` … `} $options` — on the line closing the type.
+ */
+internal fun List<DrupalDocBlockLine>.paramTagName(tagIndex: Int): String? {
+    val tagLine = getOrNull(tagIndex)?.takeIf { it.tagName() == "param" } ?: return null
+    tagLine.paramTag()?.name?.takeIf { it.isParamNameToken() }?.let { return it }
+
+    return multilineParamTagName(tagIndex)?.name
 }
 
 internal fun List<DrupalDocBlockLine>.paramTagNameInsertOffset(tagIndex: Int): Int? {

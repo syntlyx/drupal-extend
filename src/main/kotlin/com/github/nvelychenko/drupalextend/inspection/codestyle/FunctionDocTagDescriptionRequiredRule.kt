@@ -27,7 +27,8 @@ internal object FunctionDocTagDescriptionRequiredRule : DrupalCodeStyleRule {
             context.registerDocBlockProblem(
                 docComment,
                 line,
-                "@$tagName tag is missing description"
+                "@$tagName tag is missing description",
+                DrupalDocBlockFixes.fixDocBlock
             )
         }
     }
@@ -36,9 +37,10 @@ internal object FunctionDocTagDescriptionRequiredRule : DrupalCodeStyleRule {
         return when (tagName()) {
             "param" -> paramTag()?.description?.isNotBlank() == true
             "return" -> returnTag()?.description?.isNotBlank() == true
+            "throws" -> throwsTag()?.description?.isNotBlank() == true
             else -> false
         }
     }
 
-    private val REQUIRED_DESCRIPTION_TAGS = setOf("param", "return")
+    private val REQUIRED_DESCRIPTION_TAGS = setOf("param", "return", "throws")
 }

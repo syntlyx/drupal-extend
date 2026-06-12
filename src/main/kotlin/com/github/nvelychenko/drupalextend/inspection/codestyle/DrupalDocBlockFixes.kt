@@ -116,6 +116,7 @@ private fun PhpDocComment.fullDocBlockFixText(
         .withMissingParamNames(function, settings)
         .withThrowsExceptionNamespaces(settings, throwsExceptionFqns())
         .withInlineDescriptionsOnContinuationLines(settings)
+        .withMissingTagDescriptions(function, settings)
         .withDescriptionIndentation(settings)
         .withTagDescriptionPunctuation(settings)
         .withSummaryPunctuation(settings)
@@ -193,6 +194,95 @@ private fun List<String>.withInlineDescriptionsOnContinuationLines(
 
     return flatMap { line ->
         line.splitInlineDescription() ?: listOf(line)
+    }
+}
+
+/**
+ * Inserts a generated description line under every `@param` / `@return` / `@throws` tag that has
+ * none — same wording the missing-tags generator uses, so a docblock whose tags were written by
+ * hand (or by PhpStorm) normalizes to the same shape. Every tag gets its own description, not
+ * just the ones the generator happens to insert.
+ */
+private fun List<String>.withMissingTagDescriptions(
+    function: Function?,
+    settings: DrupalExtendSettings,
+): List<String> {
+    if (!settings.isCodeStyleDocBlockTagDescriptionRequiredEnabled) return this
+
+    val result = mutableListOf<String>()
+    var index = 0
+    while (index < size) {
+        val line = get(index)
+        result += line
+        val tagName = line.tagName()
+        if (tagName !in DRUPAL_DOCBLOCK_DESCRIPTION_TAGS) {
+            index++
+            continue
+        }
+
+        // Lines belonging to this tag: multiline-type continuation first, then description.
+        val continuationLines = ((index + 1) until size)
+            .asSequence()
+            .takeWhile { !this[it].isTag() && this[it].isNotBlank() }
+            .map { get(it) }
+            .toList()
+        val typeLineCount = line.continuationDescriptionStartIndex(continuationLines)
+        repeat(typeLineCount) { offset -> result += get(index + 1 + offset) }
+
+        if (!hasTagDescription(index, line, tagName!!, continuationLines, typeLineCount)) {
+            missingTagDescription(index, line, tagName, function)?.let { result += "$DESCRIPTION_INDENT$it" }
+        }
+
+        index += 1 + typeLineCount
+    }
+
+    return result
+}
+
+private fun List<String>.hasTagDescription(
+    tagIndex: Int,
+    tagLine: String,
+    tagName: String,
+    continuationLines: List<String>,
+    typeLineCount: Int,
+): Boolean {
+    if (continuationLines.size > typeLineCount) return true
+    if (tagLine.hasInlineTagDescription(tagName)) return true
+
+    // Multiline @param: the description may trail the name on the type-closing line.
+    return tagName == "param" && multilineParamNameAndRest(tagIndex)?.second?.isNotBlank() == true
+}
+
+private fun List<String>.missingTagDescription(
+    tagIndex: Int,
+    tagLine: String,
+    tagName: String,
+    function: Function?,
+): String? {
+    return when (tagName) {
+        "param" -> {
+            val name = tagLine.drupalDocBlockParamTag()?.name?.takeIf { it.isParamName() }
+                ?: multilineParamNameAndRest(tagIndex)?.first?.takeIf { it.isParamName() }
+                ?: return null
+            "The ${humanizeIdentifier(name.trimStart('&', '.', '$'))}."
+        }
+
+        "return" -> {
+            val rawType = function?.typeDeclaration?.text?.trim()?.takeIf { it.isNotBlank() }
+                ?: tagLine.drupalDocBlockReturnTag()?.type?.substringBefore('{')?.takeIf { it.isNotBlank() }
+                ?: return null
+            if (rawType.equals("void", ignoreCase = true) || rawType.equals("never", ignoreCase = true)) return null
+            "The ${shortTypeNameForDescription(rawType)}."
+        }
+
+        "throws" -> {
+            val type = tagLine.drupalDocBlockThrowsTag()?.type?.takeIf { it.isNotBlank() } ?: return null
+            val shortName = type.substringAfterLast('\\').replaceFirstChar { it.lowercaseChar() }
+            if (shortName.isBlank()) return null
+            "Thrown when the ${humanizeIdentifier(shortName)} occurs."
+        }
+
+        else -> null
     }
 }
 
@@ -346,10 +436,15 @@ private fun List<String>.hasParamNameAt(index: Int): Boolean {
     val line = getOrNull(index)?.takeIf { it.tagName() == "param" } ?: return false
     if (line.drupalDocBlockParamTag()?.name?.isParamName() == true) return true
 
-    return multilineParamName(index)?.isParamName() == true
+    return multilineParamNameAndRest(index)?.first?.isParamName() == true
 }
 
-private fun List<String>.multilineParamName(index: Int): String? {
+/**
+ * For a multiline-typed `@param` at [index], the first token after the type-closing bracket
+ * (the variable name) and whatever trails it on that line (an inline description), or null
+ * when the type is single-line or never closes.
+ */
+private fun List<String>.multilineParamNameAndRest(index: Int): Pair<String, String?>? {
     var typeBalance = getOrNull(index)
         ?.drupalDocBlockParamTag()
         ?.type
@@ -364,11 +459,13 @@ private fun List<String>.multilineParamName(index: Int): String? {
         val result = line.trim().consumeDocBlockTypeLine(typeBalance)
         typeBalance = result.balance
         val typeEndOffset = result.typeEndOffset ?: return@forEach
-        return line.trim()
+        val parts = line.trim()
             .substring(typeEndOffset)
             .trimStart()
             .split(Regex("""\s+"""), limit = 2)
-            .first()
+        val name = parts.firstOrNull()?.takeIf { it.isNotBlank() } ?: return null
+
+        return name to parts.getOrNull(1)?.takeIf { it.isNotBlank() }
     }
 
     return null
