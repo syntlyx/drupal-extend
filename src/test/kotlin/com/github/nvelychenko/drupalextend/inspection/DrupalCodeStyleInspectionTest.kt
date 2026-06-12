@@ -2821,6 +2821,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionDocMissingTagsEnabled = true
         myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
         myFixture.configureByText(
             "Example.php",
@@ -2873,6 +2874,9 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
                *
                * @param string ${'$'}name
                *   Name.
+               *
+               * @return string
+               *   The string.
                */
               public function format(string ${'$'}name): string {
                 return ${'$'}name;

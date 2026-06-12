@@ -276,4 +276,35 @@ class DocBlockSummaryLengthRuleTest : BasePlatformTestCase() {
         val overLimit = myFixture.file.text.lines().filter { it.length > 80 }
         assertEmpty("All wrapped lines must fit in 80 characters: $overLimit", overLimit)
     }
+
+    fun testFileWideFixWrapsSummaryInOneRun() {
+        // Regression: the umbrella docblock rewrite (triggered here by the missing summary
+        // period) overlap-filtered the summary wrap, so the wrap only landed on a SECOND
+        // action launch. The fixer now iterates to a fixpoint — one launch must suffice.
+        project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        val longSummary = (1..14).joinToString(" ") { "word$it" }
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * $longSummary
+             */
+            function example(): void {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Fix Drupal code style in file"
+        }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        val overLimit = result.lines().filter { it.length > 80 }
+        assertEmpty("Summary must be wrapped by a single file-wide fix run: $overLimit", overLimit)
+        assertTrue("Summary words must be preserved, got:\n$result", result.contains("word14"))
+    }
 }

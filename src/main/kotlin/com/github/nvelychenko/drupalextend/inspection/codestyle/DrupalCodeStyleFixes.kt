@@ -68,19 +68,31 @@ internal object DrupalCodeStyleFileFixer {
         val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return false
         val beforeText = document.text
         val settings = project.drupalExtendSettings
+        val documentManager = PsiDocumentManager.getInstance(project)
 
         if (settings.isCodeStyleShortArraySyntaxEnabled) {
             PhpStormShortArraySyntaxFixes.applyToFile(file)
-            PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
+            documentManager.doPostponedOperationsAndUnblockDocument(document)
         }
 
-        val edits = file.drupalCodeStyleFileEdits(project.drupalExtendSettings)
-        if (edits.isEmpty()) return beforeText != document.text
+        // Run to a fixpoint: edit sources targeting the same region (e.g. the umbrella docblock
+        // rewrite vs the summary wrap or the @file insertion) are overlap-filtered, so a single
+        // pass may legitimately postpone some fixes. Every fix is idempotent, so the loop
+        // strictly converges; the cap is a safety net.
+        repeat(MAX_FIX_PASSES) {
+            val passStartText = document.text
+            val edits = file.drupalCodeStyleFileEdits(settings)
+            if (edits.isEmpty()) return beforeText != document.text
 
-        edits.applyTo(document)
-        PsiDocumentManager.getInstance(project).commitDocument(document)
+            edits.applyTo(document)
+            documentManager.commitDocument(document)
+            if (document.text == passStartText) return beforeText != document.text
+        }
+
         return beforeText != document.text
     }
+
+    private const val MAX_FIX_PASSES = 4
 }
 
 internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): Collection<TextEdit> {

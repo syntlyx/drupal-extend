@@ -184,8 +184,8 @@ class FileDocCommentRuleTest : BasePlatformTestCase() {
 
     fun testFileWideFixDoesNotCorruptDocBlockNeedingBothFileTagAndNormalization() {
         // Regression: the @file-tag insertion and the umbrella docblock rewrite both target the
-        // same top docblock; overlapping edits used to corrupt it. The fix may need two passes
-        // to fully converge, but no pass may ever produce broken output.
+        // same top docblock; overlapping edits used to corrupt it. The fixer now runs internal
+        // passes to a fixpoint, so a single action launch must converge without broken output.
         project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
         myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
         myFixture.configureByText(
@@ -200,12 +200,10 @@ class FileDocCommentRuleTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        repeat(2) {
-            myFixture.doHighlighting()
-            myFixture.getAllQuickFixes()
-                .firstOrNull { it.text == "Fix Drupal code style in file" }
-                ?.let { myFixture.launchAction(it) }
-        }
+        myFixture.doHighlighting()
+        myFixture.getAllQuickFixes()
+            .firstOrNull { it.text == "Fix Drupal code style in file" }
+            ?.let { myFixture.launchAction(it) }
 
         val result = myFixture.file.text
         assertTrue("Docblock must contain the @file tag, got:\n$result", result.contains("* @file"))
