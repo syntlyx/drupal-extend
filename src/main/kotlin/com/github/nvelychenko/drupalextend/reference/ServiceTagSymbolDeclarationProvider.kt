@@ -22,7 +22,7 @@ class ServiceTagSymbolDeclarationProvider : PsiSymbolDeclarationProvider {
     override fun getDeclarations(element: PsiElement, offsetInElement: Int): Collection<PsiSymbolDeclaration> {
         val scalar = element as? YAMLScalar ?: return emptyList()
         if (!Services.isSupportEnabled(scalar.project)) return emptyList()
-        if (ServicesYaml.tagNameDeclarationScalar(scalar) != scalar) return emptyList()
+        if (ServicesYaml.tagPositionScalar(scalar) != scalar) return emptyList()
 
         return listOf(ServiceTagDeclaration(scalar))
     }

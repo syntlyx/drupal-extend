@@ -96,7 +96,9 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         assertContainsElements(lookupStrings, "my_module.collector", "breadcrumb_builder")
     }
 
-    fun testTaggedIteratorReferenceResolvesToTaggedServices() {
+    fun testTaggedIteratorConsumerUsagesListTagDeclarations() {
+        // Clicking the tag name on the consumer side goes through the same usages flow: the
+        // declarations carrying the tag come back as usages of the consumer position.
         addTaggedServices()
         myFixture.configureByText(
             "consumer.services.yml",
@@ -111,13 +113,23 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
 
         val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
         assertTrue("expected a ServiceTagReference", reference is ServiceTagReference)
+        assertEquals(
+            "Tag reference must resolve to itself (usage-flow routing)",
+            reference.element,
+            reference.resolve()
+        )
 
-        val resolvedServiceIds = (reference as ServiceTagReference).multiResolve(false)
-            .mapNotNull {
-                PsiTreeUtil.getParentOfType(it.element, YAMLKeyValue::class.java, false)?.keyText
+        val consumerScalar = ServicesYaml.tagPositionScalar(
+            myFixture.file.findElementAt(myFixture.caretOffset)!!
+        )!!
+        val usageServiceIds = ReferencesSearch.search(consumerScalar).findAll()
+            .mapNotNull { PsiTreeUtil.getParentOfType(it.element, YAMLKeyValue::class.java, false) }
+            .mapNotNull { keyValue ->
+                generateSequence(keyValue) { PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, true) }
+                    .firstOrNull { ServicesYaml.isServiceDefinition(it) }?.keyText
             }
 
-        assertContainsElements(resolvedServiceIds, "my_module.thing_one", "my_module.thing_two")
+        assertContainsElements(usageServiceIds, "my_module.thing_one", "my_module.thing_two")
     }
 
     fun testTagDeclarationUsagesListTaggedIteratorConsumer() {
@@ -143,7 +155,7 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val declaration = ServicesYaml.tagNameDeclarationScalar(
+        val declaration = ServicesYaml.tagPositionScalar(
             myFixture.file.findElementAt(myFixture.caretOffset)!!
         )
         assertNotNull("Caret element must be recognized as a tag declaration", declaration)
@@ -175,7 +187,7 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val scalar = ServicesYaml.tagNameDeclarationScalar(
+        val scalar = ServicesYaml.tagPositionScalar(
             myFixture.file.findElementAt(myFixture.caretOffset)!!
         )!!
 
@@ -209,7 +221,7 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val declaration = ServicesYaml.tagNameDeclarationScalar(
+        val declaration = ServicesYaml.tagPositionScalar(
             myFixture.file.findElementAt(myFixture.caretOffset)!!
         )!!
 
@@ -221,7 +233,7 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         )
     }
 
-    fun testServiceCollectorTagValueNavigatesToTaggedServices() {
+    fun testServiceCollectorTagValueUsagesListTagDeclarations() {
         addTaggedServices()
         myFixture.configureByText(
             "collector.services.yml",
@@ -237,12 +249,13 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
         assertTrue("expected a ServiceTagReference", reference is ServiceTagReference)
 
-        val resolvedServiceIds = (reference as ServiceTagReference).multiResolve(false)
-            .mapNotNull {
-                PsiTreeUtil.getParentOfType(it.element, YAMLKeyValue::class.java, false)?.keyText
-            }
+        val collectorScalar = ServicesYaml.tagPositionScalar(
+            myFixture.file.findElementAt(myFixture.caretOffset)!!
+        )!!
+        val usageFiles = ReferencesSearch.search(collectorScalar).findAll()
+            .map { it.element.containingFile.name }
 
-        assertContainsElements(resolvedServiceIds, "my_module.thing_one", "my_module.thing_two")
+        assertContainsElements(usageFiles, "my_module.services.yml")
     }
 
     fun testInspectionFlagsUnknownTagButSilentForKnownAndCuratedTags() {

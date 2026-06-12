@@ -16,11 +16,11 @@ class ServiceTagsYamlFindUsagesHandlerFactory : FindUsagesHandlerFactory() {
     override fun canFindUsages(element: PsiElement): Boolean {
         if (!Services.isSupportEnabled(element.project)) return false
 
-        return ServicesYaml.tagNameDeclarationScalar(element) != null
+        return ServicesYaml.tagPositionScalar(element) != null
     }
 
     override fun createFindUsagesHandler(element: PsiElement, forHighlightUsages: Boolean): FindUsagesHandler? {
-        val declaration = ServicesYaml.tagNameDeclarationScalar(element) ?: return null
-        return object : FindUsagesHandler(declaration) {}
+        val tagScalar = ServicesYaml.tagPositionScalar(element) ?: return null
+        return object : FindUsagesHandler(tagScalar) {}
     }
 }

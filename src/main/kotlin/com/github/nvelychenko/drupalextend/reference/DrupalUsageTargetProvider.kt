@@ -51,7 +51,7 @@ internal object DrupalUsageTargets {
     }
 
     private fun declarationTarget(element: PsiElement): PsiElement? {
-        ServicesYaml.tagNameDeclarationScalar(element)?.let { return it }
+        ServicesYaml.tagPositionScalar(element)?.let { return it }
 
         val definition = ServicesYaml.serviceDefinitionFromKeyElement(element)
             ?: RoutingYaml.routeDefinitionFromKeyElement(element)

@@ -110,19 +110,29 @@ object ServicesYaml {
     }
 
     /**
-     * The tag-name declaration scalar [element] belongs to (`tags: - { name: '<here>' }` or the
-     * bare `tags: ['<here>']` form), walking up from a caret leaf when needed. Null outside a
-     * `*.services.yml` file or a declaration position. The usage machinery's entry point —
-     * usage-target detection, find-usages handler, and references search all key off it.
+     * The tag-name scalar [element] belongs to, in *any* tag position — a declaration under
+     * `tags:` or a consumer (`!tagged_iterator` / `service_collector`) — walking up from a caret
+     * leaf when needed. Null outside a `*.services.yml` file or a tag position. The usage
+     * machinery's entry point: symbol declaration, usage-target detection, find-usages handler,
+     * and references search all key off it, so clicking a tag name anywhere shows every site.
      */
-    fun tagNameDeclarationScalar(element: PsiElement): YAMLScalar? {
+    fun tagPositionScalar(element: PsiElement): YAMLScalar? {
         if (!isServicesFileName(element.containingFile?.virtualFile?.name)) return null
 
         val scalar = element as? YAMLScalar
             ?: PsiTreeUtil.getParentOfType(element, YAMLScalar::class.java, false)
             ?: return null
 
-        return scalar.takeIf { isTagNameValuePosition(it) }
+        return scalar.takeIf { tagNameAtPosition(it) != null }
+    }
+
+    /** The tag name when [scalar] is any tag position (declaration or consumer), else null. */
+    fun tagNameAtPosition(scalar: YAMLScalar): String? {
+        if (isTagNameValuePosition(scalar)) {
+            return scalar.textValue.trim().takeIf { it.isNotBlank() && !it.contains("%") }
+        }
+
+        return consumedTagName(scalar)
     }
 
     /**

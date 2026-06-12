@@ -26,8 +26,9 @@ class ServiceTagsReferencesSearch : QueryExecutor<PsiReference, ReferencesSearch
         if (!Services.isSupportEnabled(project)) return true
 
         val searchRequest = ReadAction.compute<Pair<String, SearchScope>?, RuntimeException> {
-            val declaration = ServicesYaml.tagNameDeclarationScalar(elementToSearch) ?: return@compute null
-            declaration.textValue.trim() to queryParameters.effectiveSearchScope
+            val tagScalar = ServicesYaml.tagPositionScalar(elementToSearch) ?: return@compute null
+            val name = ServicesYaml.tagNameAtPosition(tagScalar) ?: return@compute null
+            name to queryParameters.effectiveSearchScope
         } ?: return true
 
         val tagName = searchRequest.first

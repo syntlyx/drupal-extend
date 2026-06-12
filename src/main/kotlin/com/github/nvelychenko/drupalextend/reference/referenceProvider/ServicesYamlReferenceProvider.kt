@@ -40,8 +40,10 @@ class ServicesYamlReferenceProvider : PsiReferenceProvider() {
         return PsiReference.EMPTY_ARRAY
     }
 
+    // One self-reference for every tag position — declarations under `tags:` and consumer
+    // arguments alike — so Ctrl+Click anywhere on a tag name goes through Show Usages.
     private fun getTaggedArgumentReference(scalar: YAMLScalar): PsiReference? {
-        val tagName = ServicesYaml.consumedTagName(scalar) ?: return null
+        val tagName = ServicesYaml.tagNameAtPosition(scalar) ?: return null
 
         return ServiceTagReference(
             scalar,
