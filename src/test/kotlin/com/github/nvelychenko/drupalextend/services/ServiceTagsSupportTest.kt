@@ -161,7 +161,7 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         val presentation = (resolvedElements.first() as NavigationItem).presentation
         assertNotNull(presentation)
         assertEquals("- !tagged_iterator my_module.collector", presentation!!.presentableText)
-        assertEquals("consumer.services.yml", presentation.locationString)
+        assertEquals("(consumer.services.yml)", presentation.locationString)
 
         // The tag-carrying services are NOT targets here — listing them is the consumer-side
         // reference's job.
