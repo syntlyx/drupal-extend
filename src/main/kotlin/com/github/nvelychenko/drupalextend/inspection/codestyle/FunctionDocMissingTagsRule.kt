@@ -2,6 +2,8 @@ package com.github.nvelychenko.drupalextend.inspection.codestyle
 
 import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -79,14 +81,19 @@ internal object FunctionDocMissingTagsRule : DrupalCodeStyleRule {
         }
     }
 
-    private fun addMissingTagsFix(): DrupalCodeStyleTextEditQuickFix {
-        return DrupalCodeStyleTextEditQuickFix("Add missing doc tags") { _, descriptor ->
-            val docComment = descriptor.psiElement as? PhpDocComment
-                ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-            val function = PsiTreeUtil.findChildrenOfType(docComment.containingFile, Function::class.java)
-                .firstOrNull { it.docComment?.textRange == docComment.textRange }
-                ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-            function.missingDocTagsEdits(docComment)
+    // Delegates to the per-docblock fixpoint fixer: inserting tags alone can leave the docblock
+    // violating other docblock rules (group spacing, punctuation), forcing a second action run —
+    // the fixer inserts AND normalizes in one go.
+    private fun addMissingTagsFix(): LocalQuickFix {
+        return object : LocalQuickFix {
+            override fun getFamilyName(): String = "Add missing doc tags"
+
+            override fun getName(): String = familyName
+
+            override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                val docComment = descriptor.psiElement as? PhpDocComment ?: return
+                DrupalDocBlockFixer.apply(project, docComment)
+            }
         }
     }
 }

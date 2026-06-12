@@ -1,19 +1,92 @@
 package com.github.nvelychenko.drupalextend.inspection.codestyle
 
 import com.github.nvelychenko.drupalextend.php.edit.TextEdit
+import com.github.nvelychenko.drupalextend.php.edit.applyTo
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
 import com.jetbrains.php.lang.psi.elements.Function
 
 internal object DrupalDocBlockFixes {
-    val fixDocBlock = DrupalCodeStyleTextEditQuickFix("Fix Drupal DocBlock") { project, descriptor ->
-        val docComment = descriptor.psiElement as? PhpDocComment ?: return@DrupalCodeStyleTextEditQuickFix emptyList()
-        docComment.fullDocBlockFixEdit(project.drupalExtendSettings)
-            ?.let { listOf(it) }
-            ?: emptyList()
+    val fixDocBlock = object : LocalQuickFix {
+        override fun getFamilyName(): String = "Fix Drupal DocBlock"
+
+        override fun getName(): String = familyName
+
+        override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+            val docComment = descriptor.psiElement as? PhpDocComment ?: return
+            DrupalDocBlockFixer.apply(project, docComment)
+        }
     }
+}
+
+/**
+ * Applies every docblock-scoped fix to one docblock, iterating to a fixpoint: the umbrella
+ * rewrite, the summary wrap, the declaration-spacing fix, and the owner function's missing
+ * `@param`/`@return`/`@throws` insertion. Edit sources targeting the same region are
+ * overlap-filtered per pass — the loop converges what a single pass postpones, so one action
+ * run both inserts and normalizes (no "run it twice" dance).
+ */
+internal object DrupalDocBlockFixer {
+    fun apply(project: Project, docComment: PhpDocComment) {
+        val file = docComment.containingFile ?: return
+        val documentManager = PsiDocumentManager.getInstance(project)
+        val document = documentManager.getDocument(file) ?: return
+        val settings = project.drupalExtendSettings
+        // Every edit source touches offsets at or after the docblock start, so the start offset
+        // is stable across passes and re-locates the (re-parsed) docblock.
+        val startOffset = docComment.textRange.startOffset
+
+        repeat(MAX_DOC_BLOCK_FIX_PASSES) {
+            val passStartText = document.text
+            val currentDocComment = PsiTreeUtil
+                .findElementOfClassAtOffset(file, startOffset, PhpDocComment::class.java, true)
+                ?: return
+            val edits = currentDocComment.docBlockFixEdits(settings, document)
+            if (edits.isEmpty()) return
+
+            edits.applyTo(document)
+            documentManager.commitDocument(document)
+            if (document.text == passStartText) return
+        }
+    }
+}
+
+private const val MAX_DOC_BLOCK_FIX_PASSES = 4
+
+private fun PhpDocComment.docBlockFixEdits(
+    settings: DrupalExtendSettings,
+    document: Document,
+): Collection<TextEdit> {
+    val edits = mutableListOf<TextEdit>()
+
+    fullDocBlockFixEdit(settings)?.let { edits += it }
+
+    if (settings.isCodeStyleDocBlockDeclarationSpacingEnabled) {
+        declarationSpacingEdit(document)
+            ?.takeIf { spacingEdit -> edits.none { it.overlaps(spacingEdit) } }
+            ?.let { edits += it }
+    }
+
+    if (settings.isCodeStyleDocBlockSummaryLengthEnabled) {
+        summaryWrapEdit()
+            ?.takeIf { wrapEdit -> edits.none { it.overlaps(wrapEdit) } }
+            ?.let { edits += it }
+    }
+
+    if (settings.isCodeStyleFunctionDocMissingTagsEnabled) {
+        owningFunction()?.missingDocTagsEdits(this)
+            ?.filterNot { tagEdit -> edits.any { it.overlaps(tagEdit) } }
+            ?.let { edits += it }
+    }
+
+    return edits.distinctBy { Triple(it.startOffset, it.endOffset, it.text) }
 }
 
 internal fun PhpDocComment.fullDocBlockFixEdit(

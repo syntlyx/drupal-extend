@@ -35,9 +35,12 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleUseStatementSortingEnabled = false
         project.drupalExtendSettings.isCodeStyleFullyQualifiedClassNameEnabled = false
         project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = false
-        project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = false
-        project.drupalExtendSettings.isCodeStyleDocBlockTagGroupSpacingEnabled = false
-        project.drupalExtendSettings.isCodeStyleDocBlockBlankLineNormalizationEnabled = false
+        // The blank-line trio stays ON: "Add missing doc tags" delegates to the docblock
+        // fixpoint fixer, whose umbrella rewrite re-derives blank lines from these settings —
+        // with them off the canonical separators the fixtures assert would be stripped.
+        project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = true
+        project.drupalExtendSettings.isCodeStyleDocBlockTagGroupSpacingEnabled = true
+        project.drupalExtendSettings.isCodeStyleDocBlockBlankLineNormalizationEnabled = true
         project.drupalExtendSettings.isCodeStyleDocBlockContentAfterOpenEnabled = false
         project.drupalExtendSettings.isCodeStyleDocBlockMissingSummaryEnabled = false
         project.drupalExtendSettings.isCodeStyleDocBlockMissingParamNameEnabled = false
@@ -1194,6 +1197,86 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
                     " *   Thrown when the entity storage exception occurs.\n" +
                     " */"
             )
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // One-shot fixes: insertion + normalization in a single action run
+    // -------------------------------------------------------------------------
+
+    fun testAddMissingDocTagsNormalizesDocBlockInOneRun() {
+        project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
+        project.drupalExtendSettings.isCodeStyleDocBlockBlankLineBeforeTagsEnabled = true
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Does something
+             */
+            function example_do(string ${'$'}value): void {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first { it.text == "Add missing doc tags" }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            /**
+             * Does something.
+             *
+             * @param string ${'$'}value
+             *   The value.
+             */
+            function example_do(string ${'$'}value): void {}
+            """.trimIndent()
+        )
+    }
+
+    fun testFixDocBlockAlsoAddsMissingTags() {
+        project.drupalExtendSettings.isCodeStyleDocBlockSummaryPunctuationEnabled = true
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Does something
+             */
+            function example_do(string ${'$'}value): string {
+              return ${'$'}value;
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first { it.text == "Fix Drupal DocBlock" }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            /**
+             * Does something.
+             *
+             * @param string ${'$'}value
+             *   The value.
+             *
+             * @return string
+             *   The string.
+             */
+            function example_do(string ${'$'}value): string {
+              return ${'$'}value;
+            }
+            """.trimIndent()
         )
     }
 

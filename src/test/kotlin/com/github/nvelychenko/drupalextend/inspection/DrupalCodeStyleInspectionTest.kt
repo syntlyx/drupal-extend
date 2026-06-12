@@ -2093,6 +2093,7 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleMissingDocCommentsEnabled = false
         project.drupalExtendSettings.isCodeStyleFunctionSpacingEnabled = false
         project.drupalExtendSettings.isCodeStyleClassCloseBraceSpacingEnabled = false
+        project.drupalExtendSettings.isCodeStyleFunctionDocMissingTagsEnabled = true
         myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
         myFixture.configureByText(
             "Example.php",
@@ -2126,6 +2127,9 @@ class DrupalCodeStyleInspectionTest : BasePlatformTestCase() {
             final class Example {
               /**
                * Builds rows.
+               *
+               * @return array
+               *   The array.
                *
                * @throws \RuntimeException
                *   Something failed.

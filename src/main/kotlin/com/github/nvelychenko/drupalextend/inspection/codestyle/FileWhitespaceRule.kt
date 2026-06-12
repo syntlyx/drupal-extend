@@ -122,10 +122,6 @@ private fun TextEdit.issueEndOffset(): Int {
     return startOffset
 }
 
-private fun TextEdit.overlaps(other: TextEdit): Boolean {
-    return startOffset < other.endOffset && other.startOffset < endOffset
-}
-
 private fun CharSequence.lastNonWhitespaceOffset(): Int? {
     for (offset in length - 1 downTo 0) {
         if (!this[offset].isWhitespace()) return offset

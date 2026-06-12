@@ -241,7 +241,7 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
     return edits.distinctBy { Triple(it.startOffset, it.endOffset, it.text) }
 }
 
-private fun TextEdit.overlaps(other: TextEdit): Boolean {
+internal fun TextEdit.overlaps(other: TextEdit): Boolean {
     return startOffset < other.endOffset && other.startOffset < endOffset
 }
 
