@@ -191,7 +191,8 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             gtduOutcomeAtCaret()
         )
 
-        // Find Usages on the declaration lists the !tagged_iterator consumer site.
+        // Find Usages on the declaration lists the !tagged_iterator consumer site — and only
+        // consumers: sibling declarations of the same tag are not usages of each other.
         val usages = ReferencesSearch.search(declaration!!).findAll()
         assertTrue(
             "Usages must include the !tagged_iterator consumer, got: " +
@@ -201,13 +202,29 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
                     && it.element.text.contains("my_module.collector")
             }
         )
+        assertFalse(
+            "Sibling declarations must not be usages of a declaration",
+            usages.any { it.element.containingFile.name == "my_module.services.yml" }
+        )
     }
 
-    fun testTagPositionCarriesNoReferenceAndExcludesSelfFromUsages() {
+    fun testTagDeclarationUsagesListOnlyConsumersNotSiblingDeclarations() {
         // Tag positions are declarations, not references: a self-resolving reference at the
         // caret makes the goto-or-usages handler "navigate" in place instead of showing usages.
-        // The clicked site itself must also not come back as its own usage.
+        // A declaration's usages are the consumer sites only — not the clicked site itself and
+        // not other services declaring the same tag — so a single consumer means Show Usages
+        // jumps straight to it.
         addTaggedServices()
+        myFixture.addFileToProject(
+            "modules/custom/my_module/consumer/consumer.services.yml",
+            """
+            services:
+              my_module.registry:
+                class: Drupal\my_module\Registry
+                arguments:
+                  - !tagged_iterator my_module.collector
+            """.trimIndent()
+        )
         myFixture.configureByText(
             "provider.services.yml",
             """
@@ -234,9 +251,14 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             "The clicked declaration must not list itself as a usage",
             usageElements.any { it == scalar }
         )
-        assertTrue(
-            "Sibling declarations of the same tag must be usages",
+        assertFalse(
+            "Sibling declarations of the same tag must not be usages",
             usageElements.any { it.containingFile.name == "my_module.services.yml" }
+        )
+        assertEquals(
+            "The consumer site must be the only usage",
+            listOf("consumer.services.yml"),
+            usageElements.map { it.containingFile.name }
         )
     }
 
