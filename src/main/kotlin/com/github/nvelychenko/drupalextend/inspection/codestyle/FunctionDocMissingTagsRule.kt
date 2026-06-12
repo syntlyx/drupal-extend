@@ -5,9 +5,14 @@ import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
+import com.jetbrains.php.lang.psi.elements.Catch
 import com.jetbrains.php.lang.psi.elements.ClassReference
 import com.jetbrains.php.lang.psi.elements.Function
+import com.jetbrains.php.lang.psi.elements.NewExpression
 import com.jetbrains.php.lang.psi.elements.Parameter
+import com.jetbrains.php.lang.psi.elements.PhpThrowExpression
+import com.jetbrains.php.lang.psi.elements.Try
+import com.jetbrains.php.lang.psi.elements.Variable
 
 internal object FunctionDocMissingTagsRule : DrupalCodeStyleRule {
     override val id: String = "function_doc_missing_tags"
@@ -55,6 +60,15 @@ internal object FunctionDocMissingTagsRule : DrupalCodeStyleRule {
                     addMissingTagsFix()
                 )
             }
+        }
+
+        // Report exceptions the function demonstrably throws but the docblock doesn't document.
+        for (exceptionFqn in function.undocumentedThrownExceptionFqns(docComment, lines)) {
+            context.registerDocBlockProblem(
+                docComment,
+                "Missing @throws for $exceptionFqn",
+                addMissingTagsFix()
+            )
         }
     }
 
@@ -142,7 +156,9 @@ internal fun Function.missingDocTagsEdits(
         && !rawReturnType.equals("void", ignoreCase = true)
         && !rawReturnType.equals("never", ignoreCase = true)
 
-    if (missingParams.isEmpty() && !needsReturn) return emptyList()
+    val missingThrows = undocumentedThrownExceptionFqns(effectiveDocComment, lines)
+
+    if (missingParams.isEmpty() && !needsReturn && missingThrows.isEmpty()) return emptyList()
 
     val docStartOffset = effectiveDocComment.textRange.startOffset
     val indentation = effectiveDocComment.docBlockFileIndentation()
@@ -190,26 +206,25 @@ internal fun Function.missingDocTagsEdits(
         }
     }
 
-    if (needsReturn) {
-        // @return goes after the last @param (or after newly added ones, i.e. same anchor),
-        // with a blank line separating it from the @param group.
-        val returnInsertAfterIndex = if (missingParams.isNotEmpty()) {
-            paramInsertAfterIndex
-        } else {
-            // Only @return is missing; insert after existing @param group if any.
-            if (lastParamLineIndex >= 0) lines.lastParamBlockEndIndex(lastParamLineIndex)
-            else {
-                val firstTagIdx = lines.indexOfFirst { it.isTag && it.tagName() != null }
-                if (firstTagIdx > 0) firstTagIdx - 1
-                else (lines.size - 2).coerceAtLeast(0)
-            }
+    // Shared anchor for tags appended after the @param group: right after the params being
+    // inserted, after the existing @param group, or after the summary when there are no params.
+    val tagAppendAnchorIndex = when {
+        missingParams.isNotEmpty() -> paramInsertAfterIndex
+        lastParamLineIndex >= 0 -> lines.lastParamBlockEndIndex(lastParamLineIndex)
+        else -> {
+            val firstTagIdx = lines.indexOfFirst { it.isTag && it.tagName() != null }
+            if (firstTagIdx > 0) firstTagIdx - 1
+            else (lines.size - 2).coerceAtLeast(0)
         }
+    }
 
-        val sb = sbAt(returnInsertAfterIndex)
+    if (needsReturn) {
+        // @return goes after the @param group, with a blank line separating the groups.
+        val sb = sbAt(tagAppendAnchorIndex)
         val prevHasParams = missingParams.isNotEmpty() || lastParamLineIndex >= 0
         if (prevHasParams) {
             sb.append("\n").append(indentation).append(" *")
-        } else if (lines.getOrNull(returnInsertAfterIndex)?.let { !it.isTag && !it.isBlankContent } == true) {
+        } else if (lines.getOrNull(tagAppendAnchorIndex)?.let { !it.isTag && !it.isBlankContent } == true) {
             sb.append("\n").append(indentation).append(" *")
         }
 
@@ -219,7 +234,124 @@ internal fun Function.missingDocTagsEdits(
         sb.append("\n").append(indentation).append(" *   The ").append(shortName).append(".")
     }
 
+    if (missingThrows.isNotEmpty()) {
+        val lastThrowsLineIndex = lines.indexOfLast { it.tagName() == "throws" }
+        val returnLineIndex = lines.indexOfLast { it.tagName() == "return" }
+        // New @throws join the existing @throws group directly; otherwise they form a new group
+        // after @return (existing or just appended above — same anchor keeps the order), else
+        // after the @param group / summary.
+        val joinsExistingThrowsGroup = lastThrowsLineIndex >= 0
+        val throwsInsertAfterIndex = when {
+            joinsExistingThrowsGroup -> lines.lastParamBlockEndIndex(lastThrowsLineIndex)
+            returnLineIndex >= 0 -> lines.lastParamBlockEndIndex(returnLineIndex)
+            else -> tagAppendAnchorIndex
+        }
+
+        val sb = sbAt(throwsInsertAfterIndex)
+        if (!joinsExistingThrowsGroup) {
+            val anchorIsBlank = sb.isEmpty()
+                && lines.getOrNull(throwsInsertAfterIndex)?.isBlankContent == true
+            if (!anchorIsBlank) {
+                sb.append("\n").append(indentation).append(" *")
+            }
+        }
+
+        for (exceptionFqn in missingThrows) {
+            val shortName = exceptionFqn.substringAfterLast('\\').replaceFirstChar { it.lowercaseChar() }
+            sb.append("\n").append(indentation).append(" * @throws ").append(exceptionFqn)
+            sb.append("\n").append(indentation).append(" *   Thrown when the ")
+                .append(humanizeIdentifier(shortName)).append(" occurs.")
+        }
+    }
+
     return insertionMap.map { (offset, sb) -> TextEdit(offset, sb.toString()) }
+}
+
+/**
+ * Collects FQNs of exceptions this function demonstrably throws that its docblock does not
+ * document. Conservative by design — only syntactically certain throws count:
+ * - `throw new FooException(...)` whose class resolves through the use table / namespace;
+ * - `throw $e` rethrows of a caught exception (the catch clause names the classes).
+ *
+ * Throws inside nested closures/arrow functions/anonymous classes belong to that scope, not
+ * this one. Throws lexically inside a `try` block are assumed handled by its catches —
+ * hierarchy-aware flow analysis is out of scope for a docblock generator, and a false `@throws`
+ * is worse than a missing one. A rethrow in a `catch` block still counts.
+ */
+private fun Function.undocumentedThrownExceptionFqns(
+    docComment: PhpDocComment,
+    lines: List<DrupalDocBlockLine>,
+): List<String> {
+    val thrown = LinkedHashSet<String>()
+    for (throwExpression in PsiTreeUtil.findChildrenOfType(this, PhpThrowExpression::class.java)) {
+        if (PsiTreeUtil.getParentOfType(throwExpression, Function::class.java) != this) continue
+        if (throwExpression.isInsideTryBlock(this)) continue
+        thrown += throwExpression.thrownExceptionFqns(this)
+    }
+    if (thrown.isEmpty()) return emptyList()
+
+    val documented = documentedThrowsKeys(docComment, lines)
+    return thrown.filter { fqn ->
+        fqn !in documented && fqn.substringAfterLast('\\') !in documented
+    }
+}
+
+/**
+ * Every key an existing `@throws` tag is known by: the type as written, its short name, and —
+ * for unqualified types that resolve — the resolved FQN. Detected exceptions are matched against
+ * all of them so a short-name `@throws FooException` still counts as documenting
+ * `\Drupal\foo\FooException`.
+ */
+private fun documentedThrowsKeys(docComment: PhpDocComment, lines: List<DrupalDocBlockLine>): Set<String> {
+    val resolvedFqns = docComment.throwsExceptionFqns()
+    val keys = mutableSetOf<String>()
+    lines.filter { it.tagName() == "throws" }
+        .mapNotNull { it.throwsTag()?.type }
+        .forEach { type ->
+            keys += type
+            keys += type.substringAfterLast('\\')
+            resolvedFqns[type]?.let { keys += it }
+        }
+    return keys
+}
+
+private fun PhpThrowExpression.thrownExceptionFqns(scope: Function): List<String> {
+    return when (val thrownValue = argument) {
+        is NewExpression -> listOfNotNull(thrownValue.classReference?.exceptionFqn())
+        is Variable -> rethrownCatchExceptionFqns(thrownValue, scope)
+        else -> emptyList()
+    }
+}
+
+private fun ClassReference.exceptionFqn(): String? {
+    val lower = name?.lowercase() ?: return null
+    if (lower in KEYWORD_TYPES) return null
+    return fqn?.takeIf { it.startsWith("\\") }
+}
+
+/**
+ * For `throw $e`, finds the enclosing `catch` clause (within [scope]) that binds `$e` and
+ * returns the exception classes it catches — the rethrown types.
+ */
+private fun PhpThrowExpression.rethrownCatchExceptionFqns(variable: Variable, scope: Function): List<String> {
+    var node: PsiElement? = parent
+    while (node != null && node != scope) {
+        if (node is Catch && node.exception?.name == variable.name) {
+            return node.exceptionTypes.mapNotNull { it.exceptionFqn() }
+        }
+        node = node.parent
+    }
+    return emptyList()
+}
+
+private fun PhpThrowExpression.isInsideTryBlock(scope: Function): Boolean {
+    var node: PsiElement? = this
+    while (node != null && node != scope) {
+        val parent = node.parent
+        if (parent is Try && parent.statement == node) return true
+        node = parent
+    }
+    return false
 }
 
 /**

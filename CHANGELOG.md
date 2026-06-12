@@ -38,6 +38,7 @@
 
 ### Fixed
 
+- The function-docblock-tags rule now also covers `@throws`: exceptions the function demonstrably throws (`throw new FooException(...)`, and `throw $e` rethrows of a caught exception) but doesn't document are reported, and the "Add missing doc tags" fix generates the `@throws` group (fully qualified class, placeholder description) after `@return`. Conservative on purpose: throws inside nested closures belong to the closure, and throws lexically inside a `try` block are assumed handled — a wrong `@throws` is worse than a missing one.
 - The "Add missing doc tags" fix now fully qualifies class types through the file's `use` statements (aliases included) and the current namespace — a parameter hinted `ContextFactory` renders as `@param \Drupal\my_module\ContextFactory` instead of the wrong `\ContextFactory`.
 - "Fix Drupal code style in file" now runs its edit collection to a fixpoint (capped), so fixes that used to require a second action launch — the summary wrap held back by an umbrella docblock rewrite on the same block, the `@file` insertion, missing `@param`/`@return` insertion — land in a single run.
 - "Missing @param for $x" / "Missing @return tag" problems now highlight the whole docblock instead of an arbitrary existing line (previously a missing `@param` could underline the `@return` line, which read as if the `@return` itself were wrong).

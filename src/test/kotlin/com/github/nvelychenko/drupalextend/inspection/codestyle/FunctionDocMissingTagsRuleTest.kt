@@ -700,6 +700,278 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
     }
 
     // -------------------------------------------------------------------------
+    // @throws: detection and generation
+    // -------------------------------------------------------------------------
+
+    fun testReportsMissingThrowsForDirectThrow() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\my_module\Exception\DocumentGenerationException;
+
+            class Example {
+
+              /**
+               * Generates the document.
+               */
+              public function generate(): void {
+                throw new DocumentGenerationException('nope');
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertContainsElements(
+            descriptions,
+            "Missing @throws for \\Drupal\\my_module\\Exception\\DocumentGenerationException"
+        )
+    }
+
+    fun testDocumentedThrowsByShortNameIsSilent() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\my_module\Exception\DocumentGenerationException;
+
+            class Example {
+
+              /**
+               * Generates the document.
+               *
+               * @throws DocumentGenerationException
+               *   Thrown when generation fails.
+               */
+              public function generate(): void {
+                throw new DocumentGenerationException('nope');
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "A @throws documented by short name must count as documented",
+            descriptions.any { it.startsWith("Missing @throws") }
+        )
+    }
+
+    fun testThrowInsideTryBlockIsNotReported() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Does something.
+             */
+            function example_do(): void {
+              try {
+                throw new \RuntimeException('handled');
+              }
+              catch (\RuntimeException ${'$'}e) {
+                // Swallowed.
+              }
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "A throw inside a try block is assumed handled and must not be reported",
+            descriptions.any { it.startsWith("Missing @throws") }
+        )
+    }
+
+    fun testRethrowInCatchBlockIsReported() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\Core\Entity\EntityStorageException;
+
+            class Example {
+
+              /**
+               * Saves the thing.
+               */
+              public function save(): void {
+                try {
+                  ${'$'}this->doSave();
+                }
+                catch (EntityStorageException ${'$'}e) {
+                  throw ${'$'}e;
+                }
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertContainsElements(
+            descriptions,
+            "Missing @throws for \\Drupal\\Core\\Entity\\EntityStorageException"
+        )
+    }
+
+    fun testThrowInsideClosureIsNotReportedForOuterFunction() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Does something.
+             */
+            function example_do(): void {
+              ${'$'}callback = function () {
+                throw new \RuntimeException('belongs to the closure');
+              };
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "A throw inside a nested closure must not be attributed to the outer function",
+            descriptions.any { it.startsWith("Missing @throws") }
+        )
+    }
+
+    fun testFixAddsThrowsAfterReturnGroup() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\my_module\Exception\DocumentGenerationException;
+
+            class Example {
+
+              /**
+               * Generates the document.
+               */
+              public function generate(string ${'$'}id): string {
+                if (${'$'}id === '') {
+                  throw new DocumentGenerationException('empty id');
+                }
+                return ${'$'}id;
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first { it.text == "Add missing doc tags" }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\my_module\Exception\DocumentGenerationException;
+
+            class Example {
+
+              /**
+               * Generates the document.
+               *
+               * @param string ${'$'}id
+               *   The id.
+               *
+               * @return string
+               *   The string.
+               *
+               * @throws \Drupal\my_module\Exception\DocumentGenerationException
+               *   Thrown when the document generation exception occurs.
+               */
+              public function generate(string ${'$'}id): string {
+                if (${'$'}id === '') {
+                  throw new DocumentGenerationException('empty id');
+                }
+                return ${'$'}id;
+              }
+
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testFixAppendsThrowsToExistingThrowsGroup() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\my_module\Exception\FirstException;
+            use Drupal\my_module\Exception\SecondException;
+
+            class Example {
+
+              /**
+               * Does the thing.
+               *
+               * @throws \Drupal\my_module\Exception\FirstException
+               *   Thrown when the first thing fails.
+               */
+              public function doThing(bool ${'$'}flag): void {
+                if (${'$'}flag) {
+                  throw new FirstException();
+                }
+                throw new SecondException();
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first { it.text == "Add missing doc tags" }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertTrue(
+            "Second exception must be appended to the existing @throws group, got:\n$result",
+            result.contains(
+                " *   Thrown when the first thing fails.\n" +
+                    "   * @throws \\Drupal\\my_module\\Exception\\SecondException"
+            )
+        )
+        assertFalse(
+            "Already documented exception must not be duplicated",
+            Regex("""@throws \\Drupal\\my_module\\Exception\\FirstException""").findAll(result).count() > 1
+        )
+    }
+
+    // -------------------------------------------------------------------------
     // Fix: class-typed parameters are fully qualified via the use table
     // -------------------------------------------------------------------------
 
