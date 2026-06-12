@@ -4,7 +4,6 @@ import com.github.nvelychenko.drupalextend.extensions.keyPath
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceClassReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceMethodReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceReference
-import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
 import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.psi.PsiElement
@@ -31,25 +30,17 @@ class ServicesYamlReferenceProvider : PsiReferenceProvider() {
             return PsiReference.EMPTY_ARRAY
         }
 
-        getTaggedArgumentReference(scalar)?.let { return arrayOf(it) }
+        // Tag-name positions intentionally carry no reference: a self-resolving reference sends
+        // Ctrl+Click into a dead in-place navigation instead of the Show Usages branch driven by
+        // ServiceTagSymbolDeclarationProvider.
+        if (ServicesYaml.tagNameAtPosition(scalar) != null) return PsiReference.EMPTY_ARRAY
+
         getServiceReference(scalar)?.let { return arrayOf(it) }
         getPlainServiceIdReference(scalar)?.let { return arrayOf(it) }
         getFactoryMethodReference(scalar)?.let { return arrayOf(it) }
         getClassReference(scalar)?.let { return arrayOf(it) }
 
         return PsiReference.EMPTY_ARRAY
-    }
-
-    // One self-reference for every tag position — declarations under `tags:` and consumer
-    // arguments alike — so Ctrl+Click anywhere on a tag name goes through Show Usages.
-    private fun getTaggedArgumentReference(scalar: YAMLScalar): PsiReference? {
-        val tagName = ServicesYaml.tagNameAtPosition(scalar) ?: return null
-
-        return ServiceTagReference(
-            scalar,
-            tagName,
-            ServicesYaml.scalarTextValueRange(scalar, tagName)
-        )
     }
 
     private fun getServiceReference(scalar: YAMLScalar): PsiReference? {

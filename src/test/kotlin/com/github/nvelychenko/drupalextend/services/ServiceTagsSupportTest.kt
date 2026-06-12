@@ -2,8 +2,9 @@ package com.github.nvelychenko.drupalextend.services
 
 import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
-import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
+import com.intellij.codeInsight.navigation.actions.GotoDeclarationOrUsageHandler2
+import com.intellij.codeInsight.navigation.actions.GotoDeclarationOrUsageHandler2.GTDUOutcome
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.psi.util.PsiTreeUtil
@@ -16,6 +17,14 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isEnabled = true
         project.drupalExtendSettings.isServicesCompletionEnabled = true
     }
+
+    /**
+     * The Ctrl+Click outcome the goto-or-usages handler would produce at the caret. SU (Show
+     * Usages) is the contract for every tag-name position: GTD means a dead in-place navigation
+     * — the exact regression the self-resolving reference used to cause.
+     */
+    private fun gtduOutcomeAtCaret(): GTDUOutcome? =
+        GotoDeclarationOrUsageHandler2.testGTDUOutcome(myFixture.editor, myFixture.file, myFixture.caretOffset)
 
     private fun addTaggedServices() {
         myFixture.addFileToProject(
@@ -110,12 +119,10 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
-        assertTrue("expected a ServiceTagReference", reference is ServiceTagReference)
         assertEquals(
-            "Tag reference must resolve to itself (usage-flow routing)",
-            reference.element,
-            reference.resolve()
+            "Ctrl+Click on the consumer tag name must take the Show Usages branch",
+            GTDUOutcome.SU,
+            gtduOutcomeAtCaret()
         )
 
         val consumerScalar = ServicesYaml.tagPositionScalar(
@@ -129,6 +136,26 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             }
 
         assertContainsElements(usageServiceIds, "my_module.thing_one", "my_module.thing_two")
+    }
+
+    fun testTaggedIteratorMappingFormGoesThroughShowUsages() {
+        addTaggedServices()
+        myFixture.configureByText(
+            "consumer.services.yml",
+            """
+            services:
+              consumer:
+                class: Drupal\consumer\Consumer
+                arguments:
+                  - !tagged_iterator { tag: my_module.collec<caret>tor }
+            """.trimIndent()
+        )
+
+        assertEquals(
+            "Ctrl+Click on the mapping-form consumer tag must take the Show Usages branch",
+            GTDUOutcome.SU,
+            gtduOutcomeAtCaret()
+        )
     }
 
     fun testTagDeclarationUsagesListTaggedIteratorConsumer() {
@@ -158,6 +185,11 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             myFixture.file.findElementAt(myFixture.caretOffset)!!
         )
         assertNotNull("Caret element must be recognized as a tag declaration", declaration)
+        assertEquals(
+            "Ctrl+Click on the tag declaration must take the Show Usages branch",
+            GTDUOutcome.SU,
+            gtduOutcomeAtCaret()
+        )
 
         // Find Usages on the declaration lists the !tagged_iterator consumer site.
         val usages = ReferencesSearch.search(declaration!!).findAll()
@@ -171,9 +203,10 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         )
     }
 
-    fun testTagReferenceResolvesToItselfAndExcludesSelfFromUsages() {
-        // The self-resolve routes Ctrl+Click into the Show Usages branch; the clicked site
-        // itself must not come back as its own usage.
+    fun testTagPositionCarriesNoReferenceAndExcludesSelfFromUsages() {
+        // Tag positions are declarations, not references: a self-resolving reference at the
+        // caret makes the goto-or-usages handler "navigate" in place instead of showing usages.
+        // The clicked site itself must also not come back as its own usage.
         addTaggedServices()
         myFixture.configureByText(
             "provider.services.yml",
@@ -186,13 +219,16 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
-        assertTrue("expected a ServiceTagReference", reference is ServiceTagReference)
-        assertEquals(reference.element, reference.resolve())
-
         val scalar = ServicesYaml.tagPositionScalar(
             myFixture.file.findElementAt(myFixture.caretOffset)!!
         )!!
+        assertEmpty("Tag positions must not carry references — they hijack Ctrl+Click", scalar.references.toList())
+        assertEquals(
+            "Ctrl+Click on a tag declaration must take the Show Usages branch",
+            GTDUOutcome.SU,
+            gtduOutcomeAtCaret()
+        )
+
         val usageElements = ReferencesSearch.search(scalar).findAll().map { it.element }
         assertFalse(
             "The clicked declaration must not list itself as a usage",
@@ -252,8 +288,11 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
-        assertTrue("expected a ServiceTagReference", reference is ServiceTagReference)
+        assertEquals(
+            "Ctrl+Click on the service_collector tag value must take the Show Usages branch",
+            GTDUOutcome.SU,
+            gtduOutcomeAtCaret()
+        )
 
         val collectorScalar = ServicesYaml.tagPositionScalar(
             myFixture.file.findElementAt(myFixture.caretOffset)!!
