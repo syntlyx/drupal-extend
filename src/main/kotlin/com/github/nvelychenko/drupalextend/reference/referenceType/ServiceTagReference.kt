@@ -29,6 +29,9 @@ class ServiceTagReference(
 
     override fun isReferenceTo(element: PsiElement): Boolean {
         val scalar = ServicesYaml.tagPositionScalar(element) ?: return false
+        // The clicked site itself is not its own usage — without this, every usage list
+        // (and the Show Usages popup) starts with the very element the search ran from.
+        if (scalar == this.element) return false
 
         return ServicesYaml.tagNameAtPosition(scalar) == tagName
     }

@@ -90,8 +90,6 @@ services), while still understanding legacy annotations and procedural code.</p>
         <referencesSearch
                 implementation="com.github.nvelychenko.drupalextend.reference.ServiceTagsReferencesSearch"
                 order="first"/>
-        <psi.declarationProvider
-                implementation="com.github.nvelychenko.drupalextend.reference.ServiceTagSymbolDeclarationProvider"/>
         <referencesSearch
                 implementation="com.github.nvelychenko.drupalextend.reference.RoutesReferencesSearch"
                 order="first"/>

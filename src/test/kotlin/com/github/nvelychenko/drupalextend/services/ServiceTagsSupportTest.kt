@@ -2,7 +2,6 @@ package com.github.nvelychenko.drupalextend.services
 
 import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
-import com.github.nvelychenko.drupalextend.reference.ServiceTagSymbolDeclarationProvider
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.psi.search.searches.ReferencesSearch
@@ -172,9 +171,9 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         )
     }
 
-    fun testTagDeclarationScalarIsDeclaredAsSymbol() {
-        // Ctrl+Click switches to the usages branch only when the caret sits on a declared
-        // symbol — a plain YAML value scalar isn't one without our declaration provider.
+    fun testTagReferenceResolvesToItselfAndExcludesSelfFromUsages() {
+        // The self-resolve routes Ctrl+Click into the Show Usages branch; the clicked site
+        // itself must not come back as its own usage.
         addTaggedServices()
         myFixture.configureByText(
             "provider.services.yml",
@@ -187,15 +186,22 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
+        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
+        assertTrue("expected a ServiceTagReference", reference is ServiceTagReference)
+        assertEquals(reference.element, reference.resolve())
+
         val scalar = ServicesYaml.tagPositionScalar(
             myFixture.file.findElementAt(myFixture.caretOffset)!!
         )!!
-
-        val declarations = ServiceTagSymbolDeclarationProvider()
-            .getDeclarations(scalar, myFixture.caretOffset - scalar.textRange.startOffset)
-
-        assertEquals(1, declarations.size)
-        assertEquals(scalar, declarations.first().declaringElement)
+        val usageElements = ReferencesSearch.search(scalar).findAll().map { it.element }
+        assertFalse(
+            "The clicked declaration must not list itself as a usage",
+            usageElements.any { it == scalar }
+        )
+        assertTrue(
+            "Sibling declarations of the same tag must be usages",
+            usageElements.any { it.containingFile.name == "my_module.services.yml" }
+        )
     }
 
     fun testTagDeclarationUsagesListServiceCollectorConsumer() {
