@@ -98,17 +98,6 @@ object ServicesYaml {
     }
 
     /**
-     * The id of the service definition [scalar] belongs to, or `null` outside one. Walks parents
-     * rather than parsing the key path — service ids contain dots, so path segments are ambiguous.
-     */
-    fun containingServiceId(scalar: YAMLScalar): String? {
-        return scalar.parents
-            .filterIsInstance<YAMLKeyValue>()
-            .firstOrNull { isServiceDefinition(it) }
-            ?.keyText
-    }
-
-    /**
      * The `!tagged_iterator` / `!tagged_locator` tag name [scalar] refers to, or `null` when the
      * scalar is not in such a position. Handles both the scalar form (`- !tagged_iterator tag.name`)
      * and the mapping form (`- !tagged_iterator { tag: tag.name }`).
@@ -116,6 +105,36 @@ object ServicesYaml {
     fun taggedArgumentTagName(scalar: YAMLScalar): String? {
         if (isKey(scalar)) return null
         if (!isTaggedArgumentTagNamePosition(scalar)) return null
+
+        return scalar.textValue.trim().takeIf { it.isNotBlank() && !it.contains("%") }
+    }
+
+    /**
+     * The tag a *consumer* position [scalar] collects, in either consumer form: a
+     * `!tagged_iterator` / `!tagged_locator` argument, or the `tag:` value of a
+     * `{ name: service_collector, tag: '<here>' }` collector tag (the core pattern behind
+     * service_collector / service_id_collector).
+     */
+    fun consumedTagName(scalar: YAMLScalar): String? {
+        return taggedArgumentTagName(scalar) ?: serviceCollectorCollectedTagName(scalar)
+    }
+
+    private val serviceCollectorTagNames = setOf("service_collector", "service_id_collector")
+
+    private fun serviceCollectorCollectedTagName(scalar: YAMLScalar): String? {
+        val tagKeyValue = scalar.parent as? YAMLKeyValue ?: return null
+        if (tagKeyValue.value != scalar || tagKeyValue.keyText != "tag") return null
+
+        val mapping = tagKeyValue.parent as? YAMLMapping ?: return null
+        val collectorName = (mapping.keyValues.firstOrNull { it.keyText == "name" }?.value as? YAMLScalar)
+            ?.textValue?.trim()
+        if (collectorName !in serviceCollectorTagNames) return null
+
+        val sequenceItem = mapping.parent as? YAMLSequenceItem ?: return null
+        val tagsKeyValue = sequenceItem.parents
+            .filterIsInstance<YAMLKeyValue>()
+            .firstOrNull() ?: return null
+        if (tagsKeyValue.keyText != "tags" || !tagsKeyValue.keyPath.startsWith("services.")) return null
 
         return scalar.textValue.trim().takeIf { it.isNotBlank() && !it.contains("%") }
     }

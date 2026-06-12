@@ -94,7 +94,7 @@ class ServicesYamlInspection : LocalInspectionTool() {
         scalar: YAMLScalar,
         holder: ProblemsHolder
     ) {
-        val tagName = ServicesYaml.taggedArgumentTagName(scalar) ?: return
+        val tagName = ServicesYaml.consumedTagName(scalar) ?: return
         if (ServiceTags.isKnown(holder.project, tagName)) return
 
         holder.registerProblem(

@@ -43,7 +43,7 @@ class ServicesYamlReferenceProvider : PsiReferenceProvider() {
     }
 
     private fun getTaggedArgumentReference(scalar: YAMLScalar): PsiReference? {
-        val tagName = ServicesYaml.taggedArgumentTagName(scalar) ?: return null
+        val tagName = ServicesYaml.consumedTagName(scalar) ?: return null
 
         return ServiceTagReference(
             scalar,
@@ -59,7 +59,6 @@ class ServicesYamlReferenceProvider : PsiReferenceProvider() {
         return ServiceTagDeclarationReference(
             scalar,
             tagName,
-            ServicesYaml.containingServiceId(scalar),
             ServicesYaml.scalarTextValueRange(scalar, tagName)
         )
     }

@@ -118,7 +118,7 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         assertContainsElements(resolvedServiceIds, "my_module.thing_one", "my_module.thing_two")
     }
 
-    fun testTagDeclarationNavigatesToConsumerAndSiblingProviders() {
+    fun testTagDeclarationNavigatesToConsumerOnly() {
         addTaggedServices()
         myFixture.addFileToProject(
             "modules/custom/my_module/consumer/consumer.services.yml",
@@ -154,31 +154,73 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             }
         )
 
-        val siblingServiceIds = resolvedElements.mapNotNull {
+        // The tag-carrying services are NOT targets here — listing them is the consumer-side
+        // reference's job.
+        val resolvedServiceIds = resolvedElements.mapNotNull {
             PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText
         }
-        assertContainsElements(siblingServiceIds, "my_module.thing_one", "my_module.thing_two")
+        assertFalse(resolvedServiceIds.contains("my_module.thing_one"))
+        assertFalse(resolvedServiceIds.contains("my_module.thing_two"))
     }
 
-    fun testTagDeclarationDoesNotResolveToItsOwnService() {
+    fun testTagDeclarationNavigatesToServiceCollectorConsumer() {
         addTaggedServices()
-        myFixture.configureFromTempProjectFile("modules/custom/my_module/my_module.services.yml")
-        // Move the caret onto thing_one's tag name.
-        val caretOffset = myFixture.file.text.indexOf("my_module.collector }")
-        myFixture.editor.caretModel.moveToOffset(caretOffset + 3)
-
-        val reference = myFixture.file.findReferenceAt(myFixture.editor.caretModel.offset)
-        assertTrue("expected a ServiceTagDeclarationReference", reference is ServiceTagDeclarationReference)
-
-        val resolvedServiceIds = (reference as ServiceTagDeclarationReference).multiResolve(false)
-            .mapNotNull { it.element }
-            .mapNotNull { PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText }
-
-        assertContainsElements(resolvedServiceIds, "my_module.thing_two")
-        assertFalse(
-            "Declaring service must not be a navigation target of its own tag",
-            resolvedServiceIds.contains("my_module.thing_one")
+        myFixture.addFileToProject(
+            "modules/custom/my_module/collector/collector.services.yml",
+            """
+            services:
+              my_module.manager:
+                class: Drupal\my_module\Manager
+                tags:
+                  - { name: service_collector, tag: my_module.collector, call: addHandler }
+            """.trimIndent()
         )
+        myFixture.configureByText(
+            "provider.services.yml",
+            """
+            services:
+              provider.extra:
+                class: Drupal\provider\Extra
+                tags:
+                  - { name: my_module.col<caret>lector }
+            """.trimIndent()
+        )
+
+        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
+        val resolvedElements = (reference as ServiceTagDeclarationReference).multiResolve(false)
+            .mapNotNull { it.element }
+
+        assertTrue(
+            "Declaration must navigate to the service_collector consumer, got: " +
+                resolvedElements.map { it.containingFile.name + ": " + it.text },
+            resolvedElements.any {
+                it.containingFile.name == "collector.services.yml" && it.text.contains("my_module.collector")
+            }
+        )
+    }
+
+    fun testServiceCollectorTagValueNavigatesToTaggedServices() {
+        addTaggedServices()
+        myFixture.configureByText(
+            "collector.services.yml",
+            """
+            services:
+              my_module.manager:
+                class: Drupal\my_module\Manager
+                tags:
+                  - { name: service_collector, tag: my_module.col<caret>lector }
+            """.trimIndent()
+        )
+
+        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
+        assertTrue("expected a ServiceTagReference", reference is ServiceTagReference)
+
+        val resolvedServiceIds = (reference as ServiceTagReference).multiResolve(false)
+            .mapNotNull {
+                PsiTreeUtil.getParentOfType(it.element, YAMLKeyValue::class.java, false)?.keyText
+            }
+
+        assertContainsElements(resolvedServiceIds, "my_module.thing_one", "my_module.thing_two")
     }
 
     fun testInspectionFlagsUnknownTagButSilentForKnownAndCuratedTags() {

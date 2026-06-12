@@ -85,7 +85,7 @@ class ServicesYamlCompletionProvider : CompletionProvider<CompletionParameters>(
 
     private fun YAMLScalar.isTagNamePosition(): Boolean {
         return ServicesYaml.isTagNameValuePosition(this)
-                || ServicesYaml.taggedArgumentTagName(this) != null
+                || ServicesYaml.consumedTagName(this) != null
     }
 
     private fun addTagNameCompletions(

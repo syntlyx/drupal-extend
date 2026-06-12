@@ -48,10 +48,10 @@ class ServiceTagsIndex : FileBasedIndexExtension<String, DrupalServiceTag>() {
                 .forEach { serviceKeyValue ->
                     val definition = serviceKeyValue.value as? YAMLMapping ?: return@forEach
 
-                    // Consumers: `!tagged_iterator` / `!tagged_locator` arguments anywhere in
-                    // the definition (scalar and mapping forms alike).
+                    // Consumers: `!tagged_iterator` / `!tagged_locator` arguments (scalar and
+                    // mapping forms) and `{ name: service_collector, tag: … }` collector tags.
                     PsiTreeUtil.findChildrenOfType(definition, YAMLScalar::class.java)
-                        .mapNotNull { ServicesYaml.taggedArgumentTagName(it) }
+                        .mapNotNull { ServicesYaml.consumedTagName(it) }
                         .forEach { tagName ->
                             consumerIdsByTag.getOrPut(tagName) { mutableListOf() }.add(serviceKeyValue.keyText)
                         }
@@ -104,6 +104,6 @@ class ServiceTagsIndex : FileBasedIndexExtension<String, DrupalServiceTag>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 
 }

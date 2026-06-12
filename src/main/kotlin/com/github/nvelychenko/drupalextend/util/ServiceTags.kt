@@ -74,38 +74,30 @@ object ServiceTags {
     }
 
     /**
-     * Navigation targets for a tag *declaration* (`tags: - { name: '<tag>' }`): the
-     * `!tagged_iterator` / `!tagged_locator` argument scalars of every consumer (the place the
-     * tag is collected), plus the sibling services carrying the same tag — excluding
-     * [declaringServiceId], the service the declaration itself belongs to.
+     * Navigation targets for a tag *declaration* (`tags: - { name: '<tag>' }`): the consumer
+     * positions where the tag is collected — a `!tagged_iterator` / `!tagged_locator` argument
+     * or a `service_collector` tag. The services *carrying* the tag are deliberately not
+     * targets: listing them is what the consumer-side reference already does.
      */
-    fun tagUsageElements(project: Project, tagName: String, declaringServiceId: String?): List<PsiElement> {
+    fun tagConsumerElements(project: Project, tagName: String): List<PsiElement> {
         if (DumbService.getInstance(project).isDumb) return emptyList()
 
         val consumerElements = mutableListOf<PsiElement>()
-        val siblingElements = mutableListOf<PsiElement>()
         val psiManager = PsiManager.getInstance(project)
         val processor = FileBasedIndex.ValueProcessor<DrupalServiceTag> { file, value ->
             val yamlFile = psiManager.findFile(file) ?: return@ValueProcessor true
             value.consumerServiceIds.forEach { serviceId ->
                 val definition = YAMLKeyValueFinder("services.$serviceId").findIn(yamlFile) ?: return@forEach
-                val taggedArgument = PsiTreeUtil.findChildrenOfType(definition, YAMLScalar::class.java)
-                    .firstOrNull { ServicesYaml.taggedArgumentTagName(it) == tagName }
-                consumerElements.add(taggedArgument ?: definition.key ?: definition)
+                val consumerPosition = PsiTreeUtil.findChildrenOfType(definition, YAMLScalar::class.java)
+                    .firstOrNull { ServicesYaml.consumedTagName(it) == tagName }
+                consumerElements.add(consumerPosition ?: definition.key ?: definition)
             }
-            value.serviceIds
-                .filter { it != declaringServiceId }
-                .forEach { serviceId ->
-                    val definition = YAMLKeyValueFinder("services.$serviceId").findIn(yamlFile) ?: return@forEach
-                    siblingElements.add(definition.key ?: definition)
-                }
             true
         }
 
         FileBasedIndex.getInstance()
             .processValues(SERVICE_TAGS_INDEX_KEY, tagName, null, processor, GlobalSearchScope.allScope(project))
 
-        // Consumers first: jumping to where the tag is collected is the primary ask.
-        return consumerElements + siblingElements
+        return consumerElements
     }
 }
