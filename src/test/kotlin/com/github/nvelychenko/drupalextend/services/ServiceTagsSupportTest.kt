@@ -2,6 +2,7 @@ package com.github.nvelychenko.drupalextend.services
 
 import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.github.nvelychenko.drupalextend.reference.ServiceTagSymbolDeclarationProvider
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
 import com.intellij.psi.search.searches.ReferencesSearch
@@ -157,6 +158,32 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
                     && it.element.text.contains("my_module.collector")
             }
         )
+    }
+
+    fun testTagDeclarationScalarIsDeclaredAsSymbol() {
+        // Ctrl+Click switches to the usages branch only when the caret sits on a declared
+        // symbol — a plain YAML value scalar isn't one without our declaration provider.
+        addTaggedServices()
+        myFixture.configureByText(
+            "provider.services.yml",
+            """
+            services:
+              provider.extra:
+                class: Drupal\provider\Extra
+                tags:
+                  - { name: my_module.col<caret>lector }
+            """.trimIndent()
+        )
+
+        val scalar = ServicesYaml.tagNameDeclarationScalar(
+            myFixture.file.findElementAt(myFixture.caretOffset)!!
+        )!!
+
+        val declarations = ServiceTagSymbolDeclarationProvider()
+            .getDeclarations(scalar, myFixture.caretOffset - scalar.textRange.startOffset)
+
+        assertEquals(1, declarations.size)
+        assertEquals(scalar, declarations.first().declaringElement)
     }
 
     fun testTagDeclarationUsagesListServiceCollectorConsumer() {
