@@ -972,6 +972,232 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
     }
 
     // -------------------------------------------------------------------------
+    // @throws: propagation from called functions' docblocks
+    // -------------------------------------------------------------------------
+
+    fun testReportsThrowsPropagatedFromCalledFunction() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Saves the thing.
+             *
+             * @throws \Drupal\Core\Entity\EntityStorageException
+             *   Thrown when the save fails.
+             */
+            function example_save(): void {}
+
+            /**
+             * Runs the import.
+             */
+            function example_import(): void {
+              example_save();
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertContainsElements(
+            descriptions,
+            "Missing @throws for \\Drupal\\Core\\Entity\\EntityStorageException"
+        )
+    }
+
+    fun testReportsThrowsPropagatedThroughInheritdocToInterface() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            interface ExampleStorageInterface {
+
+              /**
+               * Saves the entity.
+               *
+               * @throws \Drupal\Core\Entity\EntityStorageException
+               *   Thrown when the save fails.
+               */
+              public function save(): void;
+
+            }
+
+            class ExampleStorage implements ExampleStorageInterface {
+
+              /**
+               * {@inheritdoc}
+               */
+              public function save(): void {}
+
+            }
+
+            class ExampleConsumer {
+
+              /**
+               * Runs the import.
+               */
+              public function import(ExampleStorage ${'$'}storage): void {
+                ${'$'}storage->save();
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertContainsElements(
+            descriptions,
+            "Missing @throws for \\Drupal\\Core\\Entity\\EntityStorageException"
+        )
+    }
+
+    fun testPropagatedThrowsInsideTryBlockIsNotReported() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Saves the thing.
+             *
+             * @throws \Drupal\Core\Entity\EntityStorageException
+             *   Thrown when the save fails.
+             */
+            function example_save(): void {}
+
+            /**
+             * Runs the import.
+             */
+            function example_import(): void {
+              try {
+                example_save();
+              }
+              catch (\Exception ${'$'}e) {
+                // Logged elsewhere.
+              }
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "A call inside a try block is assumed handled and must not propagate @throws",
+            descriptions.any { it.startsWith("Missing @throws") }
+        )
+    }
+
+    fun testPropagatedUncheckedExceptionIsNotReported() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Computes the thing.
+             *
+             * @throws \RuntimeException
+             *   Thrown when the computation fails.
+             */
+            function example_compute(): void {}
+
+            /**
+             * Runs the import.
+             */
+            function example_import(): void {
+              example_compute();
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "Unchecked exception families must not be propagated to callers",
+            descriptions.any { it.startsWith("Missing @throws") }
+        )
+    }
+
+    fun testCallerDocumentingPropagatedThrowsIsSilent() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Saves the thing.
+             *
+             * @throws \Drupal\Core\Entity\EntityStorageException
+             *   Thrown when the save fails.
+             */
+            function example_save(): void {}
+
+            /**
+             * Runs the import.
+             *
+             * @throws \Drupal\Core\Entity\EntityStorageException
+             *   Thrown when the save fails.
+             */
+            function example_import(): void {
+              example_save();
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "A caller documenting the propagated exception must be silent",
+            descriptions.any { it.startsWith("Missing @throws") }
+        )
+    }
+
+    fun testFixAddsPropagatedThrows() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Saves the thing.
+             *
+             * @throws \Drupal\Core\Entity\EntityStorageException
+             *   Thrown when the save fails.
+             */
+            function example_save(): void {}
+
+            /**
+             * Runs the import.
+             */
+            function example_import(): void {
+              example_save();
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first { it.text == "Add missing doc tags" }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertTrue(
+            "Propagated exception must be added to the caller's docblock, got:\n$result",
+            result.contains(
+                "/**\n" +
+                    " * Runs the import.\n" +
+                    " *\n" +
+                    " * @throws \\Drupal\\Core\\Entity\\EntityStorageException\n" +
+                    " *   Thrown when the entity storage exception occurs.\n" +
+                    " */"
+            )
+        )
+    }
+
+    // -------------------------------------------------------------------------
     // Fix: class-typed parameters are fully qualified via the use table
     // -------------------------------------------------------------------------
 

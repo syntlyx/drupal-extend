@@ -2,14 +2,21 @@ package com.github.nvelychenko.drupalextend.inspection.codestyle
 
 import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.jetbrains.php.PhpIndex
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
+import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocType
 import com.jetbrains.php.lang.psi.elements.Catch
 import com.jetbrains.php.lang.psi.elements.ClassReference
 import com.jetbrains.php.lang.psi.elements.Function
+import com.jetbrains.php.lang.psi.elements.FunctionReference
+import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.NewExpression
 import com.jetbrains.php.lang.psi.elements.Parameter
+import com.jetbrains.php.lang.psi.elements.PhpClass
 import com.jetbrains.php.lang.psi.elements.PhpThrowExpression
 import com.jetbrains.php.lang.psi.elements.Try
 import com.jetbrains.php.lang.psi.elements.Variable
@@ -288,12 +295,106 @@ private fun Function.undocumentedThrownExceptionFqns(
         if (throwExpression.isInsideTryBlock(this)) continue
         thrown += throwExpression.thrownExceptionFqns(this)
     }
+    collectPropagatedThrowsFqns(thrown)
     if (thrown.isEmpty()) return emptyList()
 
     val documented = documentedThrowsKeys(docComment, lines)
     return thrown.filter { fqn ->
         fqn !in documented && fqn.substringAfterLast('\\') !in documented
     }
+}
+
+/**
+ * Exceptions documented as thrown by the callables this function invokes directly — the cases
+ * PhpStorm's own "Unhandled exception" inspection flags on the call site (`$storage->save()`
+ * propagating `\Drupal\Core\Entity\EntityStorageException`).
+ *
+ * Same scoping as literal throws: calls inside nested closures belong to that scope, calls
+ * lexically inside a `try` block are assumed handled. Unchecked exception families
+ * (`\RuntimeException`, `\LogicException`, `\Error`) are not propagated — PhpStorm's inspection
+ * ignores them by default and documenting them on every caller is noise; a literal `throw`
+ * in the body still counts regardless of family.
+ */
+private fun Function.collectPropagatedThrowsFqns(into: MutableSet<String>) {
+    val callees = LinkedHashSet<Function>()
+
+    for (call in PsiTreeUtil.findChildrenOfType(this, FunctionReference::class.java)) {
+        ProgressManager.checkCanceled()
+        if (PsiTreeUtil.getParentOfType(call, Function::class.java) != this) continue
+        if (call.isInsideTryBlock(this)) continue
+        (call.resolve() as? Function)?.takeIf { it != this }?.let { callees += it }
+    }
+
+    for (newExpression in PsiTreeUtil.findChildrenOfType(this, NewExpression::class.java)) {
+        ProgressManager.checkCanceled()
+        if (PsiTreeUtil.getParentOfType(newExpression, Function::class.java) != this) continue
+        if (newExpression.isInsideTryBlock(this)) continue
+        val instantiatedClass = newExpression.classReference?.resolve() as? PhpClass ?: continue
+        instantiatedClass.constructor?.let { callees += it }
+    }
+
+    for (callee in callees) {
+        for (fqn in callee.declaredThrowsFqns()) {
+            if (!fqn.isUncheckedExceptionFqn(project)) into += fqn
+        }
+    }
+}
+
+/**
+ * The `@throws` FQNs a callable declares, chasing `{@inheritdoc}` overrides up the class
+ * hierarchy to the documented declaration — in Drupal core the interface method usually
+ * carries the `@throws` while implementations inherit the docs.
+ */
+private fun Function.declaredThrowsFqns(): List<String> {
+    ownDocThrowsFqns().takeIf { it.isNotEmpty() }?.let { return it }
+    if (this !is Method) return emptyList()
+
+    val methodName = name
+    val visited = HashSet<String>()
+    val queue = ArrayDeque(containingClass?.supers?.toList().orEmpty())
+    while (queue.isNotEmpty() && visited.size < MAX_SUPER_CLASSES) {
+        ProgressManager.checkCanceled()
+        val clazz = queue.removeFirst()
+        if (!visited.add(clazz.fqn)) continue
+
+        val superMethod = clazz.findMethodByName(methodName)
+        if (superMethod != null && superMethod.containingClass?.fqn == clazz.fqn) {
+            superMethod.ownDocThrowsFqns().takeIf { it.isNotEmpty() }?.let { return it }
+        }
+
+        queue.addAll(clazz.supers)
+    }
+
+    return emptyList()
+}
+
+private fun Function.ownDocThrowsFqns(): List<String> {
+    val doc = docComment ?: return emptyList()
+    val resolvedFqns = doc.throwsExceptionFqns()
+    return doc.getTagElementsByName("@throws").mapNotNull { tag ->
+        val typeText = PsiTreeUtil.findChildOfType(tag, PhpDocType::class.java)
+            ?.text?.trim()?.takeIf { it.isNotBlank() }
+            ?: return@mapNotNull null
+        if (typeText.startsWith("\\")) typeText else resolvedFqns[typeText]
+    }
+}
+
+private val UNCHECKED_EXCEPTION_FQNS = setOf("\\RuntimeException", "\\LogicException", "\\Error")
+private const val MAX_SUPER_CLASSES = 16
+private const val MAX_HIERARCHY_HOPS = 12
+
+private fun String.isUncheckedExceptionFqn(project: Project): Boolean {
+    if (this in UNCHECKED_EXCEPTION_FQNS) return true
+
+    var current = PhpIndex.getInstance(project).getAnyByFQN(this).firstOrNull()
+    var hops = 0
+    while (current != null && hops < MAX_HIERARCHY_HOPS) {
+        if (current.fqn in UNCHECKED_EXCEPTION_FQNS) return true
+        current = current.superClass
+        hops++
+    }
+
+    return false
 }
 
 /**
@@ -344,7 +445,7 @@ private fun PhpThrowExpression.rethrownCatchExceptionFqns(variable: Variable, sc
     return emptyList()
 }
 
-private fun PhpThrowExpression.isInsideTryBlock(scope: Function): Boolean {
+private fun PsiElement.isInsideTryBlock(scope: Function): Boolean {
     var node: PsiElement? = this
     while (node != null && node != scope) {
         val parent = node.parent
