@@ -28,19 +28,14 @@ internal object FunctionDocMissingTagsRule : DrupalCodeStyleRule {
         val existingParamNames = collectExistingParamNames(lines)
         val hasReturnTag = lines.any { it.tagName() == "return" }
 
-        // Report a single problem per missing @param.
+        // Report a single problem per missing @param. The tag is absent, so there is no line to
+        // anchor — highlight the whole docblock instead of an unrelated existing line.
         for (parameter in function.parameters) {
             val docVarName = parameter.phpDocVariableName()
             if (existingParamNames.contains(docVarName)) continue
 
-            val anchor = lines.lastOrNull { it.tagName() == "param" }
-                ?: lines.firstOrNull { it.tagName() != null }
-                ?: lines.firstOrNull()
-                ?: continue
-
             context.registerDocBlockProblem(
                 docComment,
-                anchor,
                 "Missing @param for $docVarName",
                 addMissingTagsFix()
             )
@@ -53,14 +48,8 @@ internal object FunctionDocMissingTagsRule : DrupalCodeStyleRule {
                 && !rawReturnType.equals("void", ignoreCase = true)
                 && !rawReturnType.equals("never", ignoreCase = true)
             ) {
-                val anchor = lines.lastOrNull { it.tagName() == "param" }
-                    ?: lines.firstOrNull { it.tagName() != null }
-                    ?: lines.firstOrNull()
-                    ?: return
-
                 context.registerDocBlockProblem(
                     docComment,
-                    anchor,
                     "Missing @return tag",
                     addMissingTagsFix()
                 )

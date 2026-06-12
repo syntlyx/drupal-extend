@@ -135,6 +135,25 @@ internal fun DrupalCodeStyleContext.registerDocBlockProblem(
     )
 }
 
+/**
+ * Registers a problem highlighting the whole docblock. For problems about something *absent*
+ * from the docblock (a missing tag) there is no line that is wrong — anchoring an arbitrary
+ * existing line reads as if that line were the problem.
+ */
+internal fun DrupalCodeStyleContext.registerDocBlockProblem(
+    docComment: PhpDocComment,
+    message: String,
+    vararg fixes: LocalQuickFix,
+) {
+    register(
+        DrupalCodeStyleProblem(
+            element = docComment,
+            message = message,
+            fixes = fixes.toList().withGroupedDocBlockFixes()
+        )
+    )
+}
+
 private fun List<LocalQuickFix>.withGroupedDocBlockFixes(): List<LocalQuickFix> {
     if (isEmpty()) return this
 

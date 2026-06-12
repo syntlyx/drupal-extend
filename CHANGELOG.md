@@ -38,6 +38,8 @@
 
 ### Fixed
 
+- "Fix Drupal code style in file" now runs its edit collection to a fixpoint (capped), so fixes that used to require a second action launch — the summary wrap held back by an umbrella docblock rewrite on the same block, the `@file` insertion, missing `@param`/`@return` insertion — land in a single run.
+- "Missing @param for $x" / "Missing @return tag" problems now highlight the whole docblock instead of an arbitrary existing line (previously a missing `@param` could underline the `@return` line, which read as if the `@return` itself were wrong).
 - The file-wide "Fix Drupal code style" could corrupt a procedural file's top docblock when the `@file`-tag insertion and the umbrella docblock rewrite both targeted it: overlapping edits are now filtered at the aggregator AND dropped defensively in the edit applier (the skipped fix converges on the next run).
 - Service-id completion no longer hides config-name completion on receivers that look like both a container and a config factory (e.g. `$configFactoryContainer->get('…')`).
 - The "DocBlock must be immediately followed by the documented declaration" rule got its own settings entry — it was silently sharing the blank-line-normalization rule's toggle and severity.
