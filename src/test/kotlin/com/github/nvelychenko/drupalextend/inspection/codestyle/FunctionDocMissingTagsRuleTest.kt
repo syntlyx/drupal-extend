@@ -1198,6 +1198,179 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
     }
 
     // -------------------------------------------------------------------------
+    // Array shapes in generated @param / @return
+    // -------------------------------------------------------------------------
+
+    private fun applyAddMissingDocTags() {
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first { it.text == "Add missing doc tags" }
+        myFixture.launchAction(intention)
+    }
+
+    fun testReturnArrayShapeFromLiteral() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\my_module\Value\Money;
+
+            /**
+             * Builds the summary.
+             */
+            function example_summary(): array {
+              return [
+                'id' => 1,
+                'label' => 'Summary',
+                'enabled' => TRUE,
+                'amount' => new Money(),
+              ];
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        assertTrue(
+            "Expected a literal-derived array shape, got:\n${myFixture.file.text}",
+            myFixture.file.text.contains(
+                "@return array{id: int, label: string, enabled: bool, amount: \\Drupal\\my_module\\Value\\Money}"
+            )
+        )
+    }
+
+    fun testReturnArrayShapeFromLocallyBuiltRenderArray() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Builds the render array.
+             */
+            function example_build(): array {
+              ${'$'}build = [
+                '#type' => 'markup',
+              ];
+              ${'$'}build['#markup'] = 'Hello';
+              return ${'$'}build;
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        assertTrue(
+            "Expected a render-array shape with quoted keys, got:\n${myFixture.file.text}",
+            myFixture.file.text.contains("@return array{'#type': string, '#markup': string}")
+        )
+    }
+
+    fun testReturnArrayShapeMergesMultipleReturnsWithOptionalKeys() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Builds the result.
+             */
+            function example_result(bool ${'$'}detailed): array {
+              if (${'$'}detailed) {
+                return ['status' => 'ok', 'details' => 'all good'];
+              }
+              return ['status' => 'ok'];
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        assertTrue(
+            "Key present in only some returns must render optional, got:\n${myFixture.file.text}",
+            myFixture.file.text.contains("@return array{status: string, details?: string}")
+        )
+    }
+
+    fun testReturnUniformListRendersAsTypedArray() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Lists the names.
+             */
+            function example_names(): array {
+              return ['one', 'two', 'three'];
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        assertTrue(
+            "Uniform literal list must render as string[], got:\n${myFixture.file.text}",
+            myFixture.file.text.contains("@return string[]")
+        )
+    }
+
+    fun testParameterArrayShapeFromReads() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Applies the options.
+             */
+            function example_apply(array ${'$'}options): void {
+              ${'$'}timeout = ${'$'}options['timeout'];
+              ${'$'}retries = ${'$'}options['retries'] ?? 3;
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        assertTrue(
+            "Guarded read must render optional, got:\n${myFixture.file.text}",
+            myFixture.file.text.contains("@param array{timeout: mixed, retries?: mixed} \$options")
+        )
+    }
+
+    fun testDynamicReturnArrayFallsBackToPlainArray() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Builds the map.
+             */
+            function example_map(string ${'$'}key): array {
+              return [${'$'}key => 'value'];
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        assertTrue(
+            "Dynamic keys must fall back to plain array, got:\n${myFixture.file.text}",
+            myFixture.file.text.contains("@return array\n")
+        )
+    }
+
+    // -------------------------------------------------------------------------
     // Fix: class-typed parameters are fully qualified via the use table
     // -------------------------------------------------------------------------
 

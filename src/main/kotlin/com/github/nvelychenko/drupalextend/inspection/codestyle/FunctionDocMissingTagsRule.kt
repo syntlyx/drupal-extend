@@ -204,7 +204,10 @@ internal fun Function.missingDocTagsEdits(
         }
 
         for (param in missingParams) {
-            val typeStr = param.docBlockTypeString()
+            var typeStr = param.docBlockTypeString()
+            if (typeStr == "array") {
+                ArrayShapes.parameterArrayShape(this, param)?.let { typeStr = it }
+            }
             val varName = param.phpDocVariableName()
             val docVar = if (param.isVariadic) "...$varName" else varName
             val description = humanizeParamName(varName.removePrefix("\$"))
@@ -235,7 +238,10 @@ internal fun Function.missingDocTagsEdits(
             sb.append("\n").append(indentation).append(" *")
         }
 
-        val typeStr = typeDeclaration?.let { renderPhpTypeDeclaration(it) } ?: "mixed"
+        var typeStr = typeDeclaration?.let { renderPhpTypeDeclaration(it) } ?: "mixed"
+        if (typeStr == "array") {
+            ArrayShapes.returnArrayShape(this)?.let { typeStr = it }
+        }
         val shortName = shortTypeNameForDescription(rawReturnType)
         sb.append("\n").append(indentation).append(" * @return ").append(typeStr)
         sb.append("\n").append(indentation).append(" *   The ").append(shortName).append(".")
