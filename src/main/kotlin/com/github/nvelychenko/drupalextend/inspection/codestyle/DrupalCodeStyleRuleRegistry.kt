@@ -40,7 +40,7 @@ internal object DrupalCodeStyleRuleRegistry {
         register(MultilineArrayStyleRule, { it.codeStyleMultilineArrayStyleSeverity }, Target.ARRAY_CREATION),
         register(ElseIfSyntaxRule, { it.codeStyleElseIfSyntaxSeverity }, Target.ELSE),
         register(FullyQualifiedClassNameRule, { it.codeStyleFullyQualifiedClassNameSeverity }, Target.CLASS_REFERENCE),
-        register(MissingDocCommentRule, { it.codeStyleMissingDocCommentsSeverity }, Target.PHP_CLASS, Target.FUNCTION),
+        register(MissingDocCommentRule, { it.codeStyleMissingDocCommentsSeverity }, Target.PHP_CLASS, Target.FUNCTION, Target.CLASS_FIELDS),
         register(FunctionDeclarationStyleRule, { it.codeStyleFunctionDeclarationStyleSeverity }, Target.FUNCTION),
         register(FunctionSpacingRule, { it.codeStyleFunctionSpacingSeverity }, Target.FUNCTION),
         register(ClassCloseBraceSpacingRule, { it.codeStyleClassCloseBraceSpacingSeverity }, Target.PHP_CLASS),

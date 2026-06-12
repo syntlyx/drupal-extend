@@ -480,7 +480,7 @@ private fun Parameter.docBlockTypeString(): String {
  * [ClassReference]s carry exactly that resolution, so each written name is mapped to its FQN
  * before the textual rendering.
  */
-private fun renderPhpTypeDeclaration(declaration: PsiElement): String {
+internal fun renderPhpTypeDeclaration(declaration: PsiElement): String {
     val rawText = declaration.text?.trim()
     if (rawText.isNullOrBlank()) return "mixed"
 
@@ -572,7 +572,7 @@ private fun shortTypeNameForDescription(rawText: String): String {
  * - `context_factory` → `context factory`
  * - `applicationRequirementContextFactory` → `application requirement context factory`
  */
-private fun humanizeIdentifier(name: String): String {
+internal fun humanizeIdentifier(name: String): String {
     val withSpaces = name.replace('_', ' ')
     val words = Regex("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
         .split(withSpaces)

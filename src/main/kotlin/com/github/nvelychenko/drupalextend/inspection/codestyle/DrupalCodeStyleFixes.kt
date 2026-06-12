@@ -133,6 +133,13 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             .toCollection(edits)
     }
 
+    if (settings.isCodeStyleMissingDocCommentsEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, PhpClassFieldsList::class.java)
+            .mapNotNull { it.missingMemberDocCommentEdit() }
+            .filterNot { docEdit -> edits.any { it.overlaps(docEdit) } }
+            .toCollection(edits)
+    }
+
     if (settings.isCodeStyleConstantCasingEnabled) {
         edits += constantCasingEdits()
     }
