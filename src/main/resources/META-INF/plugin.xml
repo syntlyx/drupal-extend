@@ -79,10 +79,16 @@ services), while still understanding legacy annotations and procedural code.</p>
                 implementation="com.github.nvelychenko.drupalextend.reference.ServicesYamlFindUsagesHandlerFactory"
                 order="first"/>
         <findUsagesHandlerFactory
+                implementation="com.github.nvelychenko.drupalextend.reference.ServiceTagsYamlFindUsagesHandlerFactory"
+                order="first"/>
+        <findUsagesHandlerFactory
                 implementation="com.github.nvelychenko.drupalextend.reference.RoutesYamlFindUsagesHandlerFactory"
                 order="first"/>
         <referencesSearch
                 implementation="com.github.nvelychenko.drupalextend.reference.ServicesReferencesSearch"
+                order="first"/>
+        <referencesSearch
+                implementation="com.github.nvelychenko.drupalextend.reference.ServiceTagsReferencesSearch"
                 order="first"/>
         <referencesSearch
                 implementation="com.github.nvelychenko.drupalextend.reference.RoutesReferencesSearch"

@@ -110,6 +110,22 @@ object ServicesYaml {
     }
 
     /**
+     * The tag-name declaration scalar [element] belongs to (`tags: - { name: '<here>' }` or the
+     * bare `tags: ['<here>']` form), walking up from a caret leaf when needed. Null outside a
+     * `*.services.yml` file or a declaration position. The usage machinery's entry point —
+     * usage-target detection, find-usages handler, and references search all key off it.
+     */
+    fun tagNameDeclarationScalar(element: PsiElement): YAMLScalar? {
+        if (!isServicesFileName(element.containingFile?.virtualFile?.name)) return null
+
+        val scalar = element as? YAMLScalar
+            ?: PsiTreeUtil.getParentOfType(element, YAMLScalar::class.java, false)
+            ?: return null
+
+        return scalar.takeIf { isTagNameValuePosition(it) }
+    }
+
+    /**
      * The tag a *consumer* position [scalar] collects, in either consumer form: a
      * `!tagged_iterator` / `!tagged_locator` argument, or the `tag:` value of a
      * `{ name: service_collector, tag: '<here>' }` collector tag (the core pattern behind

@@ -9,9 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.FileBasedIndex
-import org.jetbrains.yaml.psi.YAMLScalar
 
 /**
  * Service-tag lookups backing tag-name completion under `tags:`, `!tagged_iterator` /
@@ -73,32 +71,4 @@ object ServiceTags {
         return keyElements
     }
 
-    /**
-     * Navigation targets for a tag *declaration* (`tags: - { name: '<tag>' }`): the definition
-     * keys of the consumer services that collect the tag (via `!tagged_iterator` /
-     * `!tagged_locator` or a `service_collector` tag). Targets are the real service-key PSI —
-     * the same shape [taggedServiceKeyElements] returns — so the choose-declaration popup
-     * presents them natively (icon, service id, file); custom presentation wrappers get
-     * re-rendered away by the popup's async pass. The services *carrying* the tag are
-     * deliberately not targets: listing them is what the consumer-side reference already does.
-     */
-    fun tagConsumerElements(project: Project, tagName: String): List<PsiElement> {
-        if (DumbService.getInstance(project).isDumb) return emptyList()
-
-        val consumerElements = mutableListOf<PsiElement>()
-        val psiManager = PsiManager.getInstance(project)
-        val processor = FileBasedIndex.ValueProcessor<DrupalServiceTag> { file, value ->
-            val yamlFile = psiManager.findFile(file) ?: return@ValueProcessor true
-            value.consumerServiceIds.forEach { serviceId ->
-                val definition = YAMLKeyValueFinder("services.$serviceId").findIn(yamlFile) ?: return@forEach
-                consumerElements.add(definition.key ?: definition)
-            }
-            true
-        }
-
-        FileBasedIndex.getInstance()
-            .processValues(SERVICE_TAGS_INDEX_KEY, tagName, null, processor, GlobalSearchScope.allScope(project))
-
-        return consumerElements
-    }
 }

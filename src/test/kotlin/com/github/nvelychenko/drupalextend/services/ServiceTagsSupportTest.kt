@@ -2,8 +2,9 @@ package com.github.nvelychenko.drupalextend.services
 
 import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
-import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagDeclarationReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
+import com.github.nvelychenko.drupalextend.util.ServicesYaml
+import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -118,7 +119,7 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         assertContainsElements(resolvedServiceIds, "my_module.thing_one", "my_module.thing_two")
     }
 
-    fun testTagDeclarationNavigatesToConsumerOnly() {
+    fun testTagDeclarationUsagesListTaggedIteratorConsumer() {
         addTaggedServices()
         myFixture.addFileToProject(
             "modules/custom/my_module/consumer/consumer.services.yml",
@@ -141,24 +142,24 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
-        assertTrue("expected a ServiceTagDeclarationReference", reference is ServiceTagDeclarationReference)
+        val declaration = ServicesYaml.tagNameDeclarationScalar(
+            myFixture.file.findElementAt(myFixture.caretOffset)!!
+        )
+        assertNotNull("Caret element must be recognized as a tag declaration", declaration)
 
-        // Targets are the consumer services' definition keys — real PSI the popup presents
-        // natively, the same shape the consumer-side reference resolves to.
-        val resolvedServiceIds = (reference as ServiceTagDeclarationReference).multiResolve(false)
-            .mapNotNull { it.element }
-            .mapNotNull { PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText }
-
-        assertContainsElements(resolvedServiceIds, "my_module.registry")
-
-        // The tag-carrying services are NOT targets here — listing them is the consumer-side
-        // reference's job.
-        assertFalse(resolvedServiceIds.contains("my_module.thing_one"))
-        assertFalse(resolvedServiceIds.contains("my_module.thing_two"))
+        // Find Usages on the declaration lists the !tagged_iterator consumer site.
+        val usages = ReferencesSearch.search(declaration!!).findAll()
+        assertTrue(
+            "Usages must include the !tagged_iterator consumer, got: " +
+                usages.map { it.element.containingFile.name + ": " + it.element.text },
+            usages.any {
+                it.element.containingFile.name == "consumer.services.yml"
+                    && it.element.text.contains("my_module.collector")
+            }
+        )
     }
 
-    fun testTagDeclarationNavigatesToServiceCollectorConsumer() {
+    fun testTagDeclarationUsagesListServiceCollectorConsumer() {
         addTaggedServices()
         myFixture.addFileToProject(
             "modules/custom/my_module/collector/collector.services.yml",
@@ -181,12 +182,16 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             """.trimIndent()
         )
 
-        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
-        val resolvedServiceIds = (reference as ServiceTagDeclarationReference).multiResolve(false)
-            .mapNotNull { it.element }
-            .mapNotNull { PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText }
+        val declaration = ServicesYaml.tagNameDeclarationScalar(
+            myFixture.file.findElementAt(myFixture.caretOffset)!!
+        )!!
 
-        assertContainsElements(resolvedServiceIds, "my_module.manager")
+        val usages = ReferencesSearch.search(declaration).findAll()
+        assertTrue(
+            "Usages must include the service_collector consumer, got: " +
+                usages.map { it.element.containingFile.name + ": " + it.element.text },
+            usages.any { it.element.containingFile.name == "collector.services.yml" }
+        )
     }
 
     fun testServiceCollectorTagValueNavigatesToTaggedServices() {
