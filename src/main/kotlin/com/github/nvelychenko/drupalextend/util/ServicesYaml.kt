@@ -98,6 +98,17 @@ object ServicesYaml {
     }
 
     /**
+     * The id of the service definition [scalar] belongs to, or `null` outside one. Walks parents
+     * rather than parsing the key path — service ids contain dots, so path segments are ambiguous.
+     */
+    fun containingServiceId(scalar: YAMLScalar): String? {
+        return scalar.parents
+            .filterIsInstance<YAMLKeyValue>()
+            .firstOrNull { isServiceDefinition(it) }
+            ?.keyText
+    }
+
+    /**
      * The `!tagged_iterator` / `!tagged_locator` tag name [scalar] refers to, or `null` when the
      * scalar is not in such a position. Handles both the scalar form (`- !tagged_iterator tag.name`)
      * and the mapping form (`- !tagged_iterator { tag: tag.name }`).

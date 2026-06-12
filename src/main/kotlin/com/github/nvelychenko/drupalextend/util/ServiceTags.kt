@@ -9,7 +9,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.FileBasedIndex
+import org.jetbrains.yaml.psi.YAMLScalar
 
 /**
  * Service-tag lookups backing tag-name completion under `tags:`, `!tagged_iterator` /
@@ -31,9 +33,11 @@ object ServiceTags {
     }
 
     /**
-     * Whether [tagName] is known: present in the index or in the curated core list. Used by the
-     * inspection — a `false` result is reported only as a weak warning, since the tag may belong
-     * to a module that is not currently installed.
+     * Whether [tagName] is known: declared by some service in the index or present in the curated
+     * core list. Consumer-only index entries (a `!tagged_iterator` usage with no declaring
+     * service) deliberately don't count — otherwise the very usage being validated would make
+     * its own tag "known". Used by the inspection — a `false` result is reported only as a weak
+     * warning, since the tag may belong to a module that is not currently installed.
      */
     fun isKnown(project: Project, tagName: String): Boolean {
         if (ServicesYaml.curatedCoreTags.contains(tagName)) return true
@@ -41,7 +45,7 @@ object ServiceTags {
 
         return FileBasedIndex.getInstance()
             .getValues(SERVICE_TAGS_INDEX_KEY, tagName, GlobalSearchScope.allScope(project))
-            .isNotEmpty()
+            .any { it.serviceIds.isNotEmpty() }
     }
 
     /**
@@ -67,5 +71,41 @@ object ServiceTags {
             .processValues(SERVICE_TAGS_INDEX_KEY, tagName, null, processor, GlobalSearchScope.allScope(project))
 
         return keyElements
+    }
+
+    /**
+     * Navigation targets for a tag *declaration* (`tags: - { name: '<tag>' }`): the
+     * `!tagged_iterator` / `!tagged_locator` argument scalars of every consumer (the place the
+     * tag is collected), plus the sibling services carrying the same tag — excluding
+     * [declaringServiceId], the service the declaration itself belongs to.
+     */
+    fun tagUsageElements(project: Project, tagName: String, declaringServiceId: String?): List<PsiElement> {
+        if (DumbService.getInstance(project).isDumb) return emptyList()
+
+        val consumerElements = mutableListOf<PsiElement>()
+        val siblingElements = mutableListOf<PsiElement>()
+        val psiManager = PsiManager.getInstance(project)
+        val processor = FileBasedIndex.ValueProcessor<DrupalServiceTag> { file, value ->
+            val yamlFile = psiManager.findFile(file) ?: return@ValueProcessor true
+            value.consumerServiceIds.forEach { serviceId ->
+                val definition = YAMLKeyValueFinder("services.$serviceId").findIn(yamlFile) ?: return@forEach
+                val taggedArgument = PsiTreeUtil.findChildrenOfType(definition, YAMLScalar::class.java)
+                    .firstOrNull { ServicesYaml.taggedArgumentTagName(it) == tagName }
+                consumerElements.add(taggedArgument ?: definition.key ?: definition)
+            }
+            value.serviceIds
+                .filter { it != declaringServiceId }
+                .forEach { serviceId ->
+                    val definition = YAMLKeyValueFinder("services.$serviceId").findIn(yamlFile) ?: return@forEach
+                    siblingElements.add(definition.key ?: definition)
+                }
+            true
+        }
+
+        FileBasedIndex.getInstance()
+            .processValues(SERVICE_TAGS_INDEX_KEY, tagName, null, processor, GlobalSearchScope.allScope(project))
+
+        // Consumers first: jumping to where the tag is collected is the primary ask.
+        return consumerElements + siblingElements
     }
 }

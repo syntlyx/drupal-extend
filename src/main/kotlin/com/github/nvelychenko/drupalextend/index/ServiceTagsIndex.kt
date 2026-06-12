@@ -18,6 +18,7 @@ import kotlinx.serialization.serializer
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLMapping
+import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
 
 /**
@@ -41,10 +42,20 @@ class ServiceTagsIndex : FileBasedIndexExtension<String, DrupalServiceTag>() {
             ) ?: return@DataIndexer map
 
             val serviceIdsByTag = hashMapOf<String, MutableList<String>>()
+            val consumerIdsByTag = hashMapOf<String, MutableList<String>>()
             servicesMapping.keyValues
                 .filter { ServicesYaml.isServiceDefinition(it) }
                 .forEach { serviceKeyValue ->
                     val definition = serviceKeyValue.value as? YAMLMapping ?: return@forEach
+
+                    // Consumers: `!tagged_iterator` / `!tagged_locator` arguments anywhere in
+                    // the definition (scalar and mapping forms alike).
+                    PsiTreeUtil.findChildrenOfType(definition, YAMLScalar::class.java)
+                        .mapNotNull { ServicesYaml.taggedArgumentTagName(it) }
+                        .forEach { tagName ->
+                            consumerIdsByTag.getOrPut(tagName) { mutableListOf() }.add(serviceKeyValue.keyText)
+                        }
+
                     val tagsSequence = definition.keyValues
                         .firstOrNull { it.keyText == "tags" }
                         ?.value as? YAMLSequence
@@ -60,8 +71,12 @@ class ServiceTagsIndex : FileBasedIndexExtension<String, DrupalServiceTag>() {
                     }
                 }
 
-            serviceIdsByTag.forEach { (tagName, serviceIds) ->
-                map[tagName] = DrupalServiceTag(tagName, serviceIds)
+            (serviceIdsByTag.keys + consumerIdsByTag.keys).forEach { tagName ->
+                map[tagName] = DrupalServiceTag(
+                    tagName,
+                    serviceIdsByTag[tagName].orEmpty(),
+                    consumerIdsByTag[tagName].orEmpty(),
+                )
             }
 
             map
@@ -89,6 +104,6 @@ class ServiceTagsIndex : FileBasedIndexExtension<String, DrupalServiceTag>() {
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 1
+    override fun getVersion(): Int = 2
 
 }

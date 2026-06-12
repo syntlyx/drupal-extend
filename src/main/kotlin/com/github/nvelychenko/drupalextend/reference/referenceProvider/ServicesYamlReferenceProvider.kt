@@ -4,6 +4,7 @@ import com.github.nvelychenko.drupalextend.extensions.keyPath
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceClassReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceMethodReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceReference
+import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagDeclarationReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
 import com.github.nvelychenko.drupalextend.util.Services
 import com.github.nvelychenko.drupalextend.util.ServicesYaml
@@ -32,6 +33,7 @@ class ServicesYamlReferenceProvider : PsiReferenceProvider() {
         }
 
         getTaggedArgumentReference(scalar)?.let { return arrayOf(it) }
+        getTagDeclarationReference(scalar)?.let { return arrayOf(it) }
         getServiceReference(scalar)?.let { return arrayOf(it) }
         getPlainServiceIdReference(scalar)?.let { return arrayOf(it) }
         getFactoryMethodReference(scalar)?.let { return arrayOf(it) }
@@ -46,6 +48,18 @@ class ServicesYamlReferenceProvider : PsiReferenceProvider() {
         return ServiceTagReference(
             scalar,
             tagName,
+            ServicesYaml.scalarTextValueRange(scalar, tagName)
+        )
+    }
+
+    private fun getTagDeclarationReference(scalar: YAMLScalar): PsiReference? {
+        if (!ServicesYaml.isTagNameValuePosition(scalar)) return null
+        val tagName = scalar.textValue.trim().takeIf { it.isNotBlank() && !it.contains("%") } ?: return null
+
+        return ServiceTagDeclarationReference(
+            scalar,
+            tagName,
+            ServicesYaml.containingServiceId(scalar),
             ServicesYaml.scalarTextValueRange(scalar, tagName)
         )
     }

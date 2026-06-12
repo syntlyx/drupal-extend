@@ -2,6 +2,7 @@ package com.github.nvelychenko.drupalextend.services
 
 import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagDeclarationReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.psi.util.PsiTreeUtil
@@ -115,6 +116,69 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
             }
 
         assertContainsElements(resolvedServiceIds, "my_module.thing_one", "my_module.thing_two")
+    }
+
+    fun testTagDeclarationNavigatesToConsumerAndSiblingProviders() {
+        addTaggedServices()
+        myFixture.addFileToProject(
+            "modules/custom/my_module/consumer/consumer.services.yml",
+            """
+            services:
+              my_module.registry:
+                class: Drupal\my_module\Registry
+                arguments:
+                  - !tagged_iterator my_module.collector
+            """.trimIndent()
+        )
+        myFixture.configureByText(
+            "provider.services.yml",
+            """
+            services:
+              provider.extra:
+                class: Drupal\provider\Extra
+                tags:
+                  - { name: my_module.col<caret>lector }
+            """.trimIndent()
+        )
+
+        val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
+        assertTrue("expected a ServiceTagDeclarationReference", reference is ServiceTagDeclarationReference)
+
+        val resolvedElements = (reference as ServiceTagDeclarationReference).multiResolve(false)
+            .mapNotNull { it.element }
+
+        assertTrue(
+            "Declaration must navigate to the !tagged_iterator consumer argument",
+            resolvedElements.any {
+                it.containingFile.name == "consumer.services.yml" && it.text.contains("my_module.collector")
+            }
+        )
+
+        val siblingServiceIds = resolvedElements.mapNotNull {
+            PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText
+        }
+        assertContainsElements(siblingServiceIds, "my_module.thing_one", "my_module.thing_two")
+    }
+
+    fun testTagDeclarationDoesNotResolveToItsOwnService() {
+        addTaggedServices()
+        myFixture.configureFromTempProjectFile("modules/custom/my_module/my_module.services.yml")
+        // Move the caret onto thing_one's tag name.
+        val caretOffset = myFixture.file.text.indexOf("my_module.collector }")
+        myFixture.editor.caretModel.moveToOffset(caretOffset + 3)
+
+        val reference = myFixture.file.findReferenceAt(myFixture.editor.caretModel.offset)
+        assertTrue("expected a ServiceTagDeclarationReference", reference is ServiceTagDeclarationReference)
+
+        val resolvedServiceIds = (reference as ServiceTagDeclarationReference).multiResolve(false)
+            .mapNotNull { it.element }
+            .mapNotNull { PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText }
+
+        assertContainsElements(resolvedServiceIds, "my_module.thing_two")
+        assertFalse(
+            "Declaring service must not be a navigation target of its own tag",
+            resolvedServiceIds.contains("my_module.thing_one")
+        )
     }
 
     fun testInspectionFlagsUnknownTagButSilentForKnownAndCuratedTags() {
