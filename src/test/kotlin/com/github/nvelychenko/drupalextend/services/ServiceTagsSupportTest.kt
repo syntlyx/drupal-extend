@@ -4,7 +4,6 @@ import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagDeclarationReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
-import com.intellij.navigation.NavigationItem
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -145,29 +144,16 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
         assertTrue("expected a ServiceTagDeclarationReference", reference is ServiceTagDeclarationReference)
 
-        val resolvedElements = (reference as ServiceTagDeclarationReference).multiResolve(false)
+        // Targets are the consumer services' definition keys — real PSI the popup presents
+        // natively, the same shape the consumer-side reference resolves to.
+        val resolvedServiceIds = (reference as ServiceTagDeclarationReference).multiResolve(false)
             .mapNotNull { it.element }
+            .mapNotNull { PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText }
 
-        assertTrue(
-            "Declaration must navigate to the !tagged_iterator consumer argument",
-            resolvedElements.any {
-                it.navigationElement.containingFile.name == "consumer.services.yml"
-                    && it.navigationElement.text.contains("my_module.collector")
-            }
-        )
-
-        // Popup presentation: the trimmed code line plus the containing file name, like the
-        // native goto chooser.
-        val presentation = (resolvedElements.first() as NavigationItem).presentation
-        assertNotNull(presentation)
-        assertEquals("- !tagged_iterator my_module.collector", presentation!!.presentableText)
-        assertEquals("(consumer.services.yml)", presentation.locationString)
+        assertContainsElements(resolvedServiceIds, "my_module.registry")
 
         // The tag-carrying services are NOT targets here — listing them is the consumer-side
         // reference's job.
-        val resolvedServiceIds = resolvedElements.mapNotNull {
-            PsiTreeUtil.getParentOfType(it.navigationElement, YAMLKeyValue::class.java, false)?.keyText
-        }
         assertFalse(resolvedServiceIds.contains("my_module.thing_one"))
         assertFalse(resolvedServiceIds.contains("my_module.thing_two"))
     }
@@ -196,17 +182,11 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         )
 
         val reference = myFixture.getReferenceAtCaretPositionWithAssertion()
-        val resolvedElements = (reference as ServiceTagDeclarationReference).multiResolve(false)
+        val resolvedServiceIds = (reference as ServiceTagDeclarationReference).multiResolve(false)
             .mapNotNull { it.element }
+            .mapNotNull { PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText }
 
-        assertTrue(
-            "Declaration must navigate to the service_collector consumer, got: " +
-                resolvedElements.map { it.navigationElement.containingFile.name + ": " + it.navigationElement.text },
-            resolvedElements.any {
-                it.navigationElement.containingFile.name == "collector.services.yml"
-                    && it.navigationElement.text.contains("my_module.collector")
-            }
-        )
+        assertContainsElements(resolvedServiceIds, "my_module.manager")
     }
 
     fun testServiceCollectorTagValueNavigatesToTaggedServices() {

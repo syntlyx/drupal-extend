@@ -74,10 +74,13 @@ object ServiceTags {
     }
 
     /**
-     * Navigation targets for a tag *declaration* (`tags: - { name: '<tag>' }`): the consumer
-     * positions where the tag is collected — a `!tagged_iterator` / `!tagged_locator` argument
-     * or a `service_collector` tag. The services *carrying* the tag are deliberately not
-     * targets: listing them is what the consumer-side reference already does.
+     * Navigation targets for a tag *declaration* (`tags: - { name: '<tag>' }`): the definition
+     * keys of the consumer services that collect the tag (via `!tagged_iterator` /
+     * `!tagged_locator` or a `service_collector` tag). Targets are the real service-key PSI —
+     * the same shape [taggedServiceKeyElements] returns — so the choose-declaration popup
+     * presents them natively (icon, service id, file); custom presentation wrappers get
+     * re-rendered away by the popup's async pass. The services *carrying* the tag are
+     * deliberately not targets: listing them is what the consumer-side reference already does.
      */
     fun tagConsumerElements(project: Project, tagName: String): List<PsiElement> {
         if (DumbService.getInstance(project).isDumb) return emptyList()
@@ -88,9 +91,7 @@ object ServiceTags {
             val yamlFile = psiManager.findFile(file) ?: return@ValueProcessor true
             value.consumerServiceIds.forEach { serviceId ->
                 val definition = YAMLKeyValueFinder("services.$serviceId").findIn(yamlFile) ?: return@forEach
-                val consumerPosition = PsiTreeUtil.findChildrenOfType(definition, YAMLScalar::class.java)
-                    .firstOrNull { ServicesYaml.consumedTagName(it) == tagName }
-                consumerElements.add(consumerPosition ?: definition.key ?: definition)
+                consumerElements.add(definition.key ?: definition)
             }
             true
         }

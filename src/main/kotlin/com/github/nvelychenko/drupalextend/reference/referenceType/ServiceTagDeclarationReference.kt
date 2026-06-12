@@ -28,7 +28,7 @@ class ServiceTagDeclarationReference(
         if (!Services.isSupportEnabled(project)) return emptyArray()
 
         return ServiceTags.tagConsumerElements(project, tagName)
-            .map { PsiElementResolveResult(ServiceTagConsumerTarget(it)) }
+            .map { PsiElementResolveResult(it) }
             .toTypedArray()
     }
 }
