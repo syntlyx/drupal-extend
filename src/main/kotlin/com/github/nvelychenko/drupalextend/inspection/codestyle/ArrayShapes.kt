@@ -254,6 +254,53 @@ internal object ArrayShapes {
         return "$single[]"
     }
 
+    /**
+     * Re-renders an inline `array{…}` shape across multiple docblock lines, one top-level entry
+     * per line (the canonical form the docblock rules already normalize around):
+     * ```
+     * array{
+     *   access_token: string,
+     *   refresh_token: string
+     * }
+     * ```
+     * Nested shapes stay inline within their entry. [indentation] is the docblock's file
+     * indentation; the caller appends the result right after `@param ` / `@return `.
+     */
+    fun toMultiline(inlineShape: String, indentation: String): String {
+        val inner = inlineShape.removePrefix("array{").removeSuffix("}")
+        val items = splitTopLevelEntries(inner)
+        if (items.isEmpty()) return inlineShape
+
+        return buildString {
+            append("array{")
+            items.forEachIndexed { index, item ->
+                append("\n").append(indentation).append(" *   ").append(item.trim())
+                if (index < items.lastIndex) append(",")
+            }
+            append("\n").append(indentation).append(" * }")
+        }
+    }
+
+    private fun splitTopLevelEntries(inner: String): List<String> {
+        val items = mutableListOf<String>()
+        val current = StringBuilder()
+        var depth = 0
+        for (char in inner) {
+            when (char) {
+                '{', '<', '[', '(' -> depth++
+                '}', '>', ']', ')' -> if (depth > 0) depth--
+                ',' -> if (depth == 0) {
+                    items.add(current.toString())
+                    current.clear()
+                    continue
+                }
+            }
+            current.append(char)
+        }
+        if (current.isNotBlank()) items.add(current.toString())
+        return items
+    }
+
     /** True when this read is guarded (`?? default`, `isset()`, `empty()`) — the key is optional. */
     private fun ArrayAccessExpression.isGuardedRead(): Boolean {
         var node: PsiElement? = this

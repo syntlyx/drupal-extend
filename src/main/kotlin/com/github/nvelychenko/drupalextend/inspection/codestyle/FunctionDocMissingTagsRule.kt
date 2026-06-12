@@ -210,6 +210,11 @@ internal fun Function.missingDocTagsEdits(
             }
             val varName = param.phpDocVariableName()
             val docVar = if (param.isVariadic) "...$varName" else varName
+            if (typeStr.startsWith("array{")
+                && "$indentation * @param $typeStr $docVar".length > DOC_LINE_LENGTH_LIMIT
+            ) {
+                typeStr = ArrayShapes.toMultiline(typeStr, indentation)
+            }
             val description = humanizeParamName(varName.removePrefix("\$"))
             sb.append("\n").append(indentation).append(" * @param ").append(typeStr).append(" ").append(docVar)
             sb.append("\n").append(indentation).append(" *   ").append(description)
@@ -241,6 +246,11 @@ internal fun Function.missingDocTagsEdits(
         var typeStr = typeDeclaration?.let { renderPhpTypeDeclaration(it) } ?: "mixed"
         if (typeStr == "array") {
             ArrayShapes.returnArrayShape(this)?.let { typeStr = it }
+        }
+        if (typeStr.startsWith("array{")
+            && "$indentation * @return $typeStr".length > DOC_LINE_LENGTH_LIMIT
+        ) {
+            typeStr = ArrayShapes.toMultiline(typeStr, indentation)
         }
         val shortName = shortTypeNameForDescription(rawReturnType)
         sb.append("\n").append(indentation).append(" * @return ").append(typeStr)
@@ -387,6 +397,7 @@ private fun Function.ownDocThrowsFqns(): List<String> {
 
 private val UNCHECKED_EXCEPTION_FQNS = setOf("\\RuntimeException", "\\LogicException", "\\Error")
 private const val MAX_SUPER_CLASSES = 16
+private const val DOC_LINE_LENGTH_LIMIT = 80
 private const val MAX_HIERARCHY_HOPS = 12
 
 private fun String.isUncheckedExceptionFqn(project: Project): Boolean {

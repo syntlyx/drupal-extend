@@ -1235,9 +1235,14 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
         applyAddMissingDocTags()
 
         assertTrue(
-            "Expected a literal-derived array shape, got:\n${myFixture.file.text}",
+            "Expected a literal-derived array shape (multiline — over 80 chars inline), got:\n${myFixture.file.text}",
             myFixture.file.text.contains(
-                "@return array{id: int, label: string, enabled: bool, amount: \\Drupal\\my_module\\Value\\Money}"
+                " * @return array{\n" +
+                    " *   id: int,\n" +
+                    " *   label: string,\n" +
+                    " *   enabled: bool,\n" +
+                    " *   amount: \\Drupal\\my_module\\Value\\Money\n" +
+                    " * }"
             )
         )
     }
@@ -1343,6 +1348,81 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
         assertTrue(
             "Guarded read must render optional, got:\n${myFixture.file.text}",
             myFixture.file.text.contains("@param array{timeout: mixed, retries?: mixed} \$options")
+        )
+    }
+
+    fun testLongReturnArrayShapeRendersMultiline() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Builds the token response.
+             */
+            function example_tokens(): array {
+              return [
+                'access_token' => 'a',
+                'refresh_token' => 'b',
+                'expires_in' => 3600,
+                'token_type' => 'Bearer',
+                'scope' => 'all',
+              ];
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        val result = myFixture.file.text
+        assertTrue(
+            "Long shape must render multiline, got:\n$result",
+            result.contains(
+                " * @return array{\n" +
+                    " *   access_token: string,\n" +
+                    " *   refresh_token: string,\n" +
+                    " *   expires_in: int,\n" +
+                    " *   token_type: string,\n" +
+                    " *   scope: string\n" +
+                    " * }\n" +
+                    " *   The array."
+            )
+        )
+        val overLimit = result.lines().filter { it.length > 80 }
+        assertEmpty("No generated line may exceed 80 characters: $overLimit", overLimit)
+    }
+
+    fun testLongParameterArrayShapeRendersMultilineWithNameAfterBrace() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            /**
+             * Applies the configuration.
+             */
+            function example_configure(array ${'$'}configuration): void {
+              ${'$'}a = ${'$'}configuration['connection_timeout_seconds'];
+              ${'$'}b = ${'$'}configuration['maximum_retry_attempts'];
+              ${'$'}c = ${'$'}configuration['exponential_backoff_multiplier'] ?? 2;
+            }
+            """.trimIndent()
+        )
+
+        applyAddMissingDocTags()
+
+        val result = myFixture.file.text
+        assertTrue(
+            "Long param shape must render multiline with the variable after the brace, got:\n$result",
+            result.contains(
+                " * @param array{\n" +
+                    " *   connection_timeout_seconds: mixed,\n" +
+                    " *   maximum_retry_attempts: mixed,\n" +
+                    " *   exponential_backoff_multiplier?: mixed\n" +
+                    " * } \$configuration"
+            )
         )
     }
 
