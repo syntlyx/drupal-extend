@@ -698,4 +698,54 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
 
         assertEquals(afterFirstFix, myFixture.file.text)
     }
+
+    // -------------------------------------------------------------------------
+    // Fix: class-typed parameters are fully qualified via the use table
+    // -------------------------------------------------------------------------
+
+    fun testFixQualifiesClassTypesViaUseStatementsAliasAndNamespace() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\Core\Entity\EntityTypeManagerInterface;
+            use Drupal\other_module\VeryLongServiceName as ShortAlias;
+
+            class Example {
+
+              /**
+               * Does something.
+               */
+              public function doSomething(EntityTypeManagerInterface ${'$'}entityTypeManager, ShortAlias ${'$'}service, LocalHelper ${'$'}helper): \Drupal\Core\Session\AccountInterface {}
+
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first { it.text == "Add missing doc tags" }
+        myFixture.launchAction(intention)
+
+        val result = myFixture.file.text
+        assertTrue(
+            "Imported class must render as its use-statement FQN, got:\n$result",
+            result.contains("@param \\Drupal\\Core\\Entity\\EntityTypeManagerInterface \$entityTypeManager")
+        )
+        assertTrue(
+            "Aliased class must render as the aliased FQN, got:\n$result",
+            result.contains("@param \\Drupal\\other_module\\VeryLongServiceName \$service")
+        )
+        assertTrue(
+            "Un-imported class must qualify against the current namespace, got:\n$result",
+            result.contains("@param \\Drupal\\my_module\\LocalHelper \$helper")
+        )
+        assertTrue(
+            "Already-qualified return type must stay as written, got:\n$result",
+            result.contains("@return \\Drupal\\Core\\Session\\AccountInterface")
+        )
+    }
 }

@@ -5,6 +5,7 @@ import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment
+import com.jetbrains.php.lang.psi.elements.ClassReference
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.Parameter
 
@@ -212,7 +213,7 @@ internal fun Function.missingDocTagsEdits(
             sb.append("\n").append(indentation).append(" *")
         }
 
-        val typeStr = functionReturnDocBlockTypeString(rawReturnType)
+        val typeStr = typeDeclaration?.let { renderPhpTypeDeclaration(it) } ?: "mixed"
         val shortName = shortTypeNameForDescription(rawReturnType)
         sb.append("\n").append(indentation).append(" * @return ").append(typeStr)
         sb.append("\n").append(indentation).append(" *   The ").append(shortName).append(".")
@@ -224,28 +225,40 @@ internal fun Function.missingDocTagsEdits(
 /**
  * Renders the declared type of a parameter into docblock format.
  *
- * Uses the raw PHP source text from [Parameter.getTypeDeclaration] when available, falling back
- * to `mixed` when the parameter has no declared type.
+ * Uses the type declaration PSI from [Parameter.getTypeDeclaration] when available, falling
+ * back to `mixed` when the parameter has no declared type.
  *
  * Rendering rules:
  * - Nullable `?Foo` → `\Foo|null`
  * - Primitive/scalar types (string, int, bool, float, array, mixed, …) → without leading `\`
- * - Class types → with leading `\`
+ * - Class types → fully qualified through the file's `use` table / current namespace
  * - Union types (PHP 8+) in source → passed through with per-segment rendering
  * - When no type declaration exists → `mixed`
  */
 private fun Parameter.docBlockTypeString(): String {
-    val rawText = typeDeclaration?.text?.trim()
-    if (rawText.isNullOrBlank()) return "mixed"
-    return renderPhpTypeDeclarationText(rawText)
+    return typeDeclaration?.let { renderPhpTypeDeclaration(it) } ?: "mixed"
 }
 
 /**
- * Converts the raw PHP return-type declaration text into docblock format.
+ * Renders a PHP type declaration element into docblock notation.
+ *
+ * A short class name in source (`ContextFactory`) is not the docblock FQN — it resolves through
+ * the file's `use` statements (aliases included) or the current namespace. The declaration's
+ * [ClassReference]s carry exactly that resolution, so each written name is mapped to its FQN
+ * before the textual rendering.
  */
-private fun functionReturnDocBlockTypeString(rawText: String): String {
-    if (rawText.isBlank()) return "mixed"
-    return renderPhpTypeDeclarationText(rawText)
+private fun renderPhpTypeDeclaration(declaration: PsiElement): String {
+    val rawText = declaration.text?.trim()
+    if (rawText.isNullOrBlank()) return "mixed"
+
+    val fqnByWrittenName = PsiTreeUtil.collectElementsOfType(declaration, ClassReference::class.java)
+        .mapNotNull { reference ->
+            val fqn = reference.fqn?.takeIf { it.startsWith("\\") } ?: return@mapNotNull null
+            reference.text.trim() to fqn
+        }
+        .toMap()
+
+    return renderPhpTypeDeclarationText(rawText, fqnByWrittenName)
 }
 
 /**
@@ -256,8 +269,10 @@ private fun functionReturnDocBlockTypeString(rawText: String): String {
  * - May be a union type `Foo|Bar` (PHP 8+)
  * - May be an intersection type `Foo&Bar` (PHP 8.1+)
  * - Individual segments may be unqualified short names or FQNs starting with `\`
+ *
+ * [fqnByWrittenName] maps class names as written in source to their resolved FQNs.
  */
-private fun renderPhpTypeDeclarationText(rawText: String): String {
+private fun renderPhpTypeDeclarationText(rawText: String, fqnByWrittenName: Map<String, String>): String {
     val nullable = rawText.startsWith("?")
     val base = rawText.removePrefix("?").trim()
 
@@ -266,7 +281,7 @@ private fun renderPhpTypeDeclarationText(rawText: String): String {
     val hasExplicitNull = segments.any { it.equals("null", ignoreCase = true) }
     val nonNullSegments = if (hasExplicitNull) segments.filter { !it.equals("null", ignoreCase = true) } else segments
 
-    val rendered = nonNullSegments.joinToString("|") { renderPhpTypeSegment(it) }
+    val rendered = nonNullSegments.joinToString("|") { renderPhpTypeSegment(it, fqnByWrittenName) }
     return when {
         nullable || hasExplicitNull -> "$rendered|null"
         else -> rendered
@@ -276,7 +291,7 @@ private fun renderPhpTypeDeclarationText(rawText: String): String {
 /**
  * Renders a single PHP type segment (not a union/nullable wrapper) to docblock notation.
  */
-private fun renderPhpTypeSegment(segment: String): String {
+private fun renderPhpTypeSegment(segment: String, fqnByWrittenName: Map<String, String>): String {
     if (segment.isBlank()) return "mixed"
     // Already fully qualified.
     if (segment.startsWith("\\")) return segment
@@ -287,10 +302,12 @@ private fun renderPhpTypeSegment(segment: String): String {
     if (lower in KEYWORD_TYPES) return lower
     // Array type hints like `string[]`, `int[]`.
     if (lower.endsWith("[]")) return segment
-    // Intersection type — pass through preserving `&`.
-    if (segment.contains("&")) return segment
-    // Class reference without leading `\` → add it.
-    return "\\$segment"
+    // Intersection type — render each part.
+    if (segment.contains("&")) {
+        return segment.split("&").joinToString("&") { renderPhpTypeSegment(it.trim(), fqnByWrittenName) }
+    }
+    // Class reference without leading `\` → qualify via the use table, fall back to as-written.
+    return fqnByWrittenName[segment] ?: "\\$segment"
 }
 
 private val SCALAR_TYPES = setOf(
