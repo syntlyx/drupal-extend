@@ -1,24 +1,41 @@
 package com.github.nvelychenko.drupalextend.inspection.codestyle
 
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.Processor
 import com.jetbrains.php.lang.parser.PhpElementTypes
 import com.jetbrains.php.lang.psi.elements.ArrayAccessExpression
 import com.jetbrains.php.lang.psi.elements.ArrayCreationExpression
 import com.jetbrains.php.lang.psi.elements.AssignmentExpression
 import com.jetbrains.php.lang.psi.elements.BinaryExpression
+import com.jetbrains.php.lang.psi.elements.Catch
 import com.jetbrains.php.lang.psi.elements.ConstantReference
+import com.jetbrains.php.lang.psi.elements.DoWhile
+import com.jetbrains.php.lang.psi.elements.Else
+import com.jetbrains.php.lang.psi.elements.ElseIf
+import com.jetbrains.php.lang.psi.elements.For
+import com.jetbrains.php.lang.psi.elements.ForeachStatement
 import com.jetbrains.php.lang.psi.elements.Function
 import com.jetbrains.php.lang.psi.elements.FunctionReference
+import com.jetbrains.php.lang.psi.elements.If
+import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.NewExpression
 import com.jetbrains.php.lang.psi.elements.Parameter
 import com.jetbrains.php.lang.psi.elements.PhpEmpty
 import com.jetbrains.php.lang.psi.elements.PhpIsset
+import com.jetbrains.php.lang.psi.elements.PhpMatchExpression
 import com.jetbrains.php.lang.psi.elements.PhpPsiElement
 import com.jetbrains.php.lang.psi.elements.PhpReturn
+import com.jetbrains.php.lang.psi.elements.PhpSwitch
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
+import com.jetbrains.php.lang.psi.elements.TernaryExpression
 import com.jetbrains.php.lang.psi.elements.UnaryExpression
 import com.jetbrains.php.lang.psi.elements.Variable
+import com.jetbrains.php.lang.psi.elements.While
 import com.jetbrains.php.lang.lexer.PhpTokenTypes
 
 /**
@@ -40,6 +57,8 @@ internal object ArrayShapes {
 
     private const val MAX_NESTING_DEPTH = 2
     private const val MAX_KEYS = 12
+    private const val MAX_CALL_SITES = 8
+    private const val MAX_SUPER_CLASSES = 16
 
     /** Shape for the `@return` of [function] (declared `: array`), or null when underivable. */
     fun returnArrayShape(function: Function): String? {
@@ -56,13 +75,12 @@ internal object ArrayShapes {
     }
 
     /**
-     * Shape for an `array` [parameter], derived from `$param['key']` usages, or null. Carries
-     * both the inline `array{…}` rendering and the structured keys, so the caller can fall back
-     * to the Drupal-style key list when the inline form doesn't fit the line limit (Drupal coder
-     * reads `@param` type and variable from the tag's first line only — a multiline shape makes
-     * the parameter "not described").
+     * Shape for an `array` [parameter], or null when underivable. Derived from `$param['key']`
+     * usages in the function's own body; when the body says nothing (pass-through parameters
+     * like a writer's `$values`), falls back to the call sites — literal array arguments and
+     * locally built variables enumerate the keys the callers actually pass.
      */
-    fun parameterShape(function: Function, parameter: Parameter): ParameterShape? {
+    fun parameterArrayShape(function: Function, parameter: Parameter): String? {
         val parameterName = parameter.name
         val guardedKeys = guardCheckedKeys(function, parameterName)
         val entries = LinkedHashMap<String, ShapeEntry>()
@@ -82,18 +100,72 @@ internal object ArrayShapes {
             )
         }
 
-        if (entries.isEmpty() || entries.size > MAX_KEYS) return null
-        val inline = renderShape(entries) ?: return null
+        if (entries.size > MAX_KEYS) return null
+        if (entries.isNotEmpty()) return renderShape(entries)
 
-        return ParameterShape(
-            inline = inline,
-            keys = entries.map { (key, entry) -> ShapeKey(key, entry.optional) },
-        )
+        return callerShapeEntries(function, parameter)?.let { renderShape(it) }
     }
 
-    internal data class ParameterShape(val inline: String, val keys: List<ShapeKey>)
+    /**
+     * Shape derived from the call sites of [function]: arguments at [parameter]'s position that
+     * are array literals or locally built variables enumerate the keys callers actually pass.
+     * Used only when the function body itself reads no keys — the body is the better witness.
+     * Capped at [MAX_CALL_SITES] sites; runs only from the quick fix (user action), never on
+     * the highlighting path. For methods, call sites are also searched through the topmost
+     * overridden declaration, so interface-typed calls count for the implementation.
+     */
+    private fun callerShapeEntries(function: Function, parameter: Parameter): Map<String, ShapeEntry>? {
+        val project = function.project
+        if (DumbService.getInstance(project).isDumb) return null
+        val parameterIndex = function.parameters.indexOf(parameter).takeIf { it >= 0 } ?: return null
 
-    internal data class ShapeKey(val key: String, val optional: Boolean)
+        val shapes = mutableListOf<Map<String, ShapeEntry>>()
+        val scope = GlobalSearchScope.projectScope(project)
+        for (target in callerSearchTargets(function)) {
+            ProgressManager.checkCanceled()
+            ReferencesSearch.search(target, scope).forEach(Processor { reference ->
+                ProgressManager.checkCanceled()
+                callSiteShapeEntries(reference.element, parameterIndex)?.let { shapes += it }
+                shapes.size < MAX_CALL_SITES
+            })
+            if (shapes.size >= MAX_CALL_SITES) break
+        }
+
+        if (shapes.isEmpty()) return null
+        return mergeShapes(shapes).takeIf { it.isNotEmpty() && it.size <= MAX_KEYS }
+    }
+
+    private fun callSiteShapeEntries(element: PsiElement, parameterIndex: Int): Map<String, ShapeEntry>? {
+        val call = element as? FunctionReference ?: return null
+        return when (val argument = call.parameters.getOrNull(parameterIndex)) {
+            is ArrayCreationExpression -> literalShapeEntries(argument, depth = 0)
+            is Variable -> PsiTreeUtil.getParentOfType(call, Function::class.java)
+                ?.let { caller -> locallyBuiltVariableShape(caller, argument.name) }
+
+            else -> null
+        }
+    }
+
+    /** The function itself plus, for methods, every super declaration of the same name. */
+    private fun callerSearchTargets(function: Function): List<Function> {
+        val targets = mutableListOf(function)
+        val method = function as? Method ?: return targets
+
+        val methodName = method.name
+        val visited = HashSet<String>()
+        val queue = ArrayDeque(method.containingClass?.supers?.toList().orEmpty())
+        while (queue.isNotEmpty() && visited.size < MAX_SUPER_CLASSES) {
+            ProgressManager.checkCanceled()
+            val clazz = queue.removeFirst()
+            if (!visited.add(clazz.fqn)) continue
+            clazz.findMethodByName(methodName)
+                ?.takeIf { it.containingClass?.fqn == clazz.fqn }
+                ?.let { targets += it }
+            queue.addAll(clazz.supers)
+        }
+
+        return targets
+    }
 
     /**
      * Keys of [parameterName] whose presence the function checks anywhere via
@@ -167,7 +239,11 @@ internal object ArrayShapes {
                     ?.takeIf { it.isNotBlank() }
                     ?: continue
                 val valueExpression = (assignment.value as? PhpPsiElement)?.unwrapArrayValue()
-                entries[key] = ShapeEntry(valueType(valueExpression, depth = 1), optional = false)
+                // A write inside an if/loop/switch branch may not happen — the key is optional.
+                entries[key] = ShapeEntry(
+                    valueType(valueExpression, depth = 1),
+                    optional = assignment.isConditionallyExecuted(function),
+                )
                 sawInitializerOrWrite = true
             }
         }
@@ -351,13 +427,17 @@ internal object ArrayShapes {
         return items
     }
 
-    /**
-     * Drupal-style key documentation line for a `@param array` description:
-     * `- key: (optional) The key.` — the form Drupal core uses where PHPStan shapes don't fit.
-     */
-    fun keyDescriptionLine(key: ShapeKey): String {
-        val marker = if (key.optional) "(optional) " else ""
-        return "- ${key.key}: ${marker}The ${humanizeIdentifier(key.key)}."
+    /** True when [scope] may skip this element: an if/loop/switch/ternary/catch branch encloses it. */
+    private fun PsiElement.isConditionallyExecuted(scope: Function): Boolean {
+        var node: PsiElement? = parent
+        while (node != null && node != scope) {
+            when (node) {
+                is If, is ElseIf, is Else, is PhpSwitch, is PhpMatchExpression, is TernaryExpression,
+                is While, is DoWhile, is For, is ForeachStatement, is Catch -> return true
+            }
+            node = node.parent
+        }
+        return false
     }
 
     /** True when this read is guarded (`?? default`, `isset()`, `empty()`) — the key is optional. */

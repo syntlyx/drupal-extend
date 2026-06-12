@@ -80,21 +80,6 @@ internal object FunctionDocMissingTagsRule : DrupalCodeStyleRule {
             )
         }
 
-        // A multiline array{ shape leaves the parameter "not described" for Drupal coder, which
-        // reads @param type and variable from the tag's first line only. The fix rewrites it to
-        // `array` with a Drupal-style key list.
-        lines.forEachIndexed { index, line ->
-            if (line.tagName() != "param") return@forEachIndexed
-            if (line.paramTag()?.type != "array{") return@forEachIndexed
-
-            context.registerDocBlockProblem(
-                docComment,
-                line,
-                "Multiline @param array shape is not readable by Drupal coder — " +
-                    "use 'array' with a key list" + (lines.paramTagName(index)?.let { " for $it" } ?: ""),
-                addMissingTagsFix()
-            )
-        }
     }
 
     // Delegates to the per-docblock fixpoint fixer: inserting tags alone can leave the docblock
@@ -229,29 +214,19 @@ internal fun Function.missingDocTagsEdits(
 
         for (param in missingParams) {
             var typeStr = param.docBlockTypeString()
+            if (typeStr == "array") {
+                ArrayShapes.parameterArrayShape(this, param)?.let { typeStr = it }
+            }
             val varName = param.phpDocVariableName()
             val docVar = if (param.isVariadic) "...$varName" else varName
-
-            // Inline array shapes only while they fit the line: Drupal coder reads @param type
-            // and variable from the tag's first line, so a multiline shape leaves the parameter
-            // "not described" — too-long shapes render as a Drupal-style key list instead.
-            var shapeKeys: List<ArrayShapes.ShapeKey> = emptyList()
-            if (typeStr == "array") {
-                ArrayShapes.parameterShape(this, param)?.let { shape ->
-                    if ("$indentation * @param ${shape.inline} $docVar".length <= DOC_LINE_LENGTH_LIMIT) {
-                        typeStr = shape.inline
-                    } else {
-                        shapeKeys = shape.keys
-                    }
-                }
+            if (typeStr.startsWith("array{")
+                && "$indentation * @param $typeStr $docVar".length > DOC_LINE_LENGTH_LIMIT
+            ) {
+                typeStr = ArrayShapes.toMultiline(typeStr, indentation)
             }
-
             val description = humanizeParamName(varName.removePrefix("\$"))
             sb.append("\n").append(indentation).append(" * @param ").append(typeStr).append(" ").append(docVar)
             sb.append("\n").append(indentation).append(" *   ").append(description)
-            for (shapeKey in shapeKeys) {
-                sb.append("\n").append(indentation).append(" *   ").append(ArrayShapes.keyDescriptionLine(shapeKey))
-            }
         }
     }
 

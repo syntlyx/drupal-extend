@@ -114,7 +114,6 @@ private fun PhpDocComment.fullDocBlockFixText(
     val function = owningFunction()
     val normalizedContent = contentLines
         .withMissingParamNames(function, settings)
-        .withParamArrayShapesInDrupalForm(settings)
         .withThrowsExceptionNamespaces(settings, throwsExceptionFqns())
         .withInlineDescriptionsOnContinuationLines(settings)
         .withMissingTagDescriptions(function, settings)
@@ -196,93 +195,6 @@ private fun List<String>.withInlineDescriptionsOnContinuationLines(
     return flatMap { line ->
         line.splitInlineDescription() ?: listOf(line)
     }
-}
-
-/**
- * Rewrites a multiline `@param array{` … `} $name` shape into the Drupal-coder-compatible form:
- * `@param array $name` with the keys documented as a `- key: (optional) …` list under the
- * description. Coder reads the `@param` type and variable from the tag's first line only, so
- * the multiline form leaves the parameter "not described in comment"
- * (Drupal.Commenting.FunctionComment.ParamMissingDefinition). Single-line shapes are left
- * alone — coder accepts PHPStan types on one line. Anything that doesn't parse cleanly (nested
- * multiline shapes, quoted keys with spaces) is left untouched.
- */
-private fun List<String>.withParamArrayShapesInDrupalForm(settings: DrupalExtendSettings): List<String> {
-    if (!settings.isCodeStyleFunctionDocMissingTagsEnabled) return this
-
-    val result = mutableListOf<String>()
-    var index = 0
-    while (index < size) {
-        val converted = convertMultilineParamShape(index)
-        if (converted == null) {
-            result += get(index)
-            index++
-        } else {
-            result += converted.lines
-            index += converted.consumedLines
-        }
-    }
-
-    return result
-}
-
-private data class ConvertedParamShape(val lines: List<String>, val consumedLines: Int)
-
-private fun List<String>.convertMultilineParamShape(index: Int): ConvertedParamShape? {
-    val tagLine = get(index)
-    if (tagLine.tagName() != "param") return null
-    val tag = tagLine.drupalDocBlockParamTag() ?: return null
-    // Only the canonical generated form: the tag line carries `array{` alone, entries follow.
-    if (tag.type != "array{") return null
-    var balance = tag.type.docBlockTypeNestingBalance()
-    if (balance <= 0) return null
-
-    val keys = mutableListOf<ArrayShapes.ShapeKey>()
-    var lineIndex = index + 1
-    var nameAndRest: Pair<String, String?>? = null
-    while (lineIndex < size) {
-        val content = get(lineIndex)
-        if (content.isTag() || content.isBlank()) return null
-        val trimmed = content.trim()
-        val consumed = trimmed.consumeDocBlockTypeLine(balance)
-        balance = consumed.balance
-        val typeEndOffset = consumed.typeEndOffset
-        if (typeEndOffset != null) {
-            val afterType = trimmed.substring(typeEndOffset).trimStart()
-            val parts = afterType.split(Regex("""\s+"""), limit = 2)
-            val name = parts.firstOrNull()?.takeIf { it.isParamName() } ?: return null
-            nameAndRest = name to parts.getOrNull(1)?.takeIf { it.isNotBlank() }
-            lineIndex++
-            break
-        }
-        keys += parseShapeEntryLine(trimmed) ?: return null
-        lineIndex++
-    }
-    val (name, inlineDescription) = nameAndRest ?: return null
-    if (keys.isEmpty()) return null
-
-    val descriptionLines = mutableListOf<String>()
-    while (lineIndex < size && !get(lineIndex).isTag() && get(lineIndex).isNotBlank()) {
-        descriptionLines += get(lineIndex)
-        lineIndex++
-    }
-
-    val output = mutableListOf("@param array $name")
-    inlineDescription?.let { output += "$DESCRIPTION_INDENT$it" }
-    output += descriptionLines
-    if (inlineDescription == null && descriptionLines.isEmpty()) {
-        output += "${DESCRIPTION_INDENT}The ${humanizeIdentifier(name.trimStart('&', '.', '$'))}."
-    }
-    keys.forEach { output += DESCRIPTION_INDENT + ArrayShapes.keyDescriptionLine(it) }
-
-    return ConvertedParamShape(output, lineIndex - index)
-}
-
-/** Parses one `key?: type,` shape-entry line; null bails the whole conversion (fail soft). */
-private fun parseShapeEntryLine(trimmed: String): ArrayShapes.ShapeKey? {
-    val match = Regex("""^('?)([^'?:\s]+)\1(\??):\s*\S.*$""").find(trimmed) ?: return null
-
-    return ArrayShapes.ShapeKey(match.groupValues[2], match.groupValues[3] == "?")
 }
 
 /**
