@@ -4,6 +4,7 @@ import com.github.nvelychenko.drupalextend.inspection.ServicesYamlInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagDeclarationReference
 import com.github.nvelychenko.drupalextend.reference.referenceType.ServiceTagReference
+import com.intellij.navigation.NavigationItem
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -150,14 +151,22 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
         assertTrue(
             "Declaration must navigate to the !tagged_iterator consumer argument",
             resolvedElements.any {
-                it.containingFile.name == "consumer.services.yml" && it.text.contains("my_module.collector")
+                it.navigationElement.containingFile.name == "consumer.services.yml"
+                    && it.navigationElement.text.contains("my_module.collector")
             }
         )
+
+        // Popup presentation: the trimmed code line plus the containing file name, like the
+        // native goto chooser.
+        val presentation = (resolvedElements.first() as NavigationItem).presentation
+        assertNotNull(presentation)
+        assertEquals("- !tagged_iterator my_module.collector", presentation!!.presentableText)
+        assertEquals("consumer.services.yml", presentation.locationString)
 
         // The tag-carrying services are NOT targets here — listing them is the consumer-side
         // reference's job.
         val resolvedServiceIds = resolvedElements.mapNotNull {
-            PsiTreeUtil.getParentOfType(it, YAMLKeyValue::class.java, false)?.keyText
+            PsiTreeUtil.getParentOfType(it.navigationElement, YAMLKeyValue::class.java, false)?.keyText
         }
         assertFalse(resolvedServiceIds.contains("my_module.thing_one"))
         assertFalse(resolvedServiceIds.contains("my_module.thing_two"))
@@ -192,9 +201,10 @@ class ServiceTagsSupportTest : BasePlatformTestCase() {
 
         assertTrue(
             "Declaration must navigate to the service_collector consumer, got: " +
-                resolvedElements.map { it.containingFile.name + ": " + it.text },
+                resolvedElements.map { it.navigationElement.containingFile.name + ": " + it.navigationElement.text },
             resolvedElements.any {
-                it.containingFile.name == "collector.services.yml" && it.text.contains("my_module.collector")
+                it.navigationElement.containingFile.name == "collector.services.yml"
+                    && it.navigationElement.text.contains("my_module.collector")
             }
         )
     }
