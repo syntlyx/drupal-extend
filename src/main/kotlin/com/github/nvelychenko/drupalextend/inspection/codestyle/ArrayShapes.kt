@@ -9,6 +9,7 @@ import com.jetbrains.php.lang.psi.elements.AssignmentExpression
 import com.jetbrains.php.lang.psi.elements.BinaryExpression
 import com.jetbrains.php.lang.psi.elements.ConstantReference
 import com.jetbrains.php.lang.psi.elements.Function
+import com.jetbrains.php.lang.psi.elements.FunctionReference
 import com.jetbrains.php.lang.psi.elements.NewExpression
 import com.jetbrains.php.lang.psi.elements.Parameter
 import com.jetbrains.php.lang.psi.elements.PhpEmpty
@@ -54,9 +55,16 @@ internal object ArrayShapes {
         return uniformListType(returns)
     }
 
-    /** Shape for an `array` [parameter], derived from `$param['key']` usages, or null. */
-    fun parameterArrayShape(function: Function, parameter: Parameter): String? {
+    /**
+     * Shape for an `array` [parameter], derived from `$param['key']` usages, or null. Carries
+     * both the inline `array{…}` rendering and the structured keys, so the caller can fall back
+     * to the Drupal-style key list when the inline form doesn't fit the line limit (Drupal coder
+     * reads `@param` type and variable from the tag's first line only — a multiline shape makes
+     * the parameter "not described").
+     */
+    fun parameterShape(function: Function, parameter: Parameter): ParameterShape? {
         val parameterName = parameter.name
+        val guardedKeys = guardCheckedKeys(function, parameterName)
         val entries = LinkedHashMap<String, ShapeEntry>()
 
         for (access in PsiTreeUtil.findChildrenOfType(function, ArrayAccessExpression::class.java)) {
@@ -66,7 +74,7 @@ internal object ArrayShapes {
             val key = (access.index?.value as? StringLiteralExpression)?.contents
                 ?.takeIf { it.isNotBlank() } ?: continue
 
-            val optional = access.isGuardedRead()
+            val optional = access.isGuardedRead() || key in guardedKeys
             val existing = entries[key]
             entries[key] = ShapeEntry(
                 type = existing?.type ?: "mixed",
@@ -75,7 +83,49 @@ internal object ArrayShapes {
         }
 
         if (entries.isEmpty() || entries.size > MAX_KEYS) return null
-        return renderShape(entries)
+        val inline = renderShape(entries) ?: return null
+
+        return ParameterShape(
+            inline = inline,
+            keys = entries.map { (key, entry) -> ShapeKey(key, entry.optional) },
+        )
+    }
+
+    internal data class ParameterShape(val inline: String, val keys: List<ShapeKey>)
+
+    internal data class ShapeKey(val key: String, val optional: Boolean)
+
+    /**
+     * Keys of [parameterName] whose presence the function checks anywhere via
+     * `array_key_exists('key', $param)`, `isset($param['key'])`, or `empty($param['key'])` —
+     * the check makes the key optional even when the read itself sits unguarded inside the
+     * guarded branch.
+     */
+    private fun guardCheckedKeys(function: Function, parameterName: String?): Set<String> {
+        val keys = mutableSetOf<String>()
+
+        for (call in PsiTreeUtil.findChildrenOfType(function, FunctionReference::class.java)) {
+            if (call.name != "array_key_exists") continue
+            if (PsiTreeUtil.getParentOfType(call, Function::class.java) != function) continue
+            val key = (call.parameters.getOrNull(0) as? StringLiteralExpression)?.contents
+                ?.takeIf { it.isNotBlank() } ?: continue
+            val variable = call.parameters.getOrNull(1) as? Variable ?: continue
+            if (variable.name == parameterName) keys += key
+        }
+
+        val guardExpressions = PsiTreeUtil.findChildrenOfType(function, PhpIsset::class.java) +
+            PsiTreeUtil.findChildrenOfType(function, PhpEmpty::class.java)
+        for (guard in guardExpressions) {
+            if (PsiTreeUtil.getParentOfType(guard, Function::class.java) != function) continue
+            for (access in PsiTreeUtil.findChildrenOfType(guard, ArrayAccessExpression::class.java)) {
+                if ((access.value as? Variable)?.name != parameterName) continue
+                (access.index?.value as? StringLiteralExpression)?.contents
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { keys += it }
+            }
+        }
+
+        return keys
     }
 
     // ---------------------------------------------------------------------
@@ -299,6 +349,15 @@ internal object ArrayShapes {
         }
         if (current.isNotBlank()) items.add(current.toString())
         return items
+    }
+
+    /**
+     * Drupal-style key documentation line for a `@param array` description:
+     * `- key: (optional) The key.` — the form Drupal core uses where PHPStan shapes don't fit.
+     */
+    fun keyDescriptionLine(key: ShapeKey): String {
+        val marker = if (key.optional) "(optional) " else ""
+        return "- ${key.key}: ${marker}The ${humanizeIdentifier(key.key)}."
     }
 
     /** True when this read is guarded (`?? default`, `isset()`, `empty()`) — the key is optional. */
