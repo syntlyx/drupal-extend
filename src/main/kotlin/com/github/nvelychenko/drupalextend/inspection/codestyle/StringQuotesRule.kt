@@ -4,6 +4,7 @@ import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.psi.PsiElement
+import com.jetbrains.php.lang.documentation.phpdoc.parser.PhpDocElementTypes
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
 internal object StringQuotesRule : DrupalCodeStyleRule {
@@ -19,6 +20,7 @@ internal object StringQuotesRule : DrupalCodeStyleRule {
         // Fast bail-outs: single-quoted, heredoc/nowdoc, or interpolated.
         if (literal.isSingleQuote) return
         if (literal.isHeredoc) return
+        if (literal.isPhpDocString) return
 
         // The raw text includes the surrounding delimiters, e.g. `"hello"`.
         val raw = literal.text
@@ -51,6 +53,15 @@ internal object StringQuotesRule : DrupalCodeStyleRule {
                 ?: emptyList()
         }
 }
+
+/**
+ * Strings inside doc-block annotations (`@FieldDiffBuilder(id = "…")`) parse as
+ * [StringLiteralExpression] too, but with the PhpDoc element type. Doctrine/Drupal
+ * annotation syntax only accepts double quotes — converting them would break the
+ * annotation, so they are never candidates.
+ */
+private val StringLiteralExpression.isPhpDocString: Boolean
+    get() = node?.elementType == PhpDocElementTypes.phpDocString
 
 /**
  * Returns true when the raw content (between the outer `"` delimiters) contains
@@ -100,6 +111,7 @@ private fun isConvertibleContent(content: String): Boolean {
 internal fun StringLiteralExpression.toSingleQuoteEdit(): TextEdit? {
     if (isSingleQuote) return null
     if (isHeredoc) return null
+    if (isPhpDocString) return null
     if (children.isNotEmpty()) return null
 
     val raw = text

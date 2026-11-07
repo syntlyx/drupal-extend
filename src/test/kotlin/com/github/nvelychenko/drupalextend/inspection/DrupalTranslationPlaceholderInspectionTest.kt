@@ -177,6 +177,76 @@ class DrupalTranslationPlaceholderInspectionTest : BasePlatformTestCase() {
         )
     }
 
+    fun testPlaceholderBeforeSentencePunctuationIsSilent() {
+        // strtr() replaces `%payoff` inside `%payoff.` — punctuation right after a placeholder
+        // must produce neither a missing-argument nor an unused-argument warning.
+        val descriptions = highlight(
+            """
+            <?php
+            t('Pay off amount is ${'$'}%payoff. The loan amount must be greater than ${'$'}%min', [
+                '%min' => 1,
+                '%payoff' => 2,
+            ]);
+            """.trimIndent()
+        )
+        assertEmpty(descriptions)
+    }
+
+    fun testMissingPlaceholderBeforePunctuationReportsTrimmedName() {
+        val descriptions = highlight(
+            """
+            <?php
+            t('Hello @name.', []);
+            """.trimIndent()
+        )
+        assertTrue(
+            "expected trimmed missing-argument warning, got: $descriptions",
+            descriptions.any { it == "Placeholder '@name' has no replacement argument" }
+        )
+    }
+
+    fun testFormatPluralCountBeforePunctuationIsSilent() {
+        val descriptions = highlight(
+            """
+            <?php
+
+            namespace Drupal\my_module;
+
+            use Drupal\Core\StringTranslation\StringTranslationTrait;
+
+            class Foo {
+                use StringTranslationTrait;
+
+                public function build() {
+                    return ${'$'}this->formatPlural(${'$'}n, 'One item.', 'Items in total: @count.', []);
+                }
+            }
+            """.trimIndent()
+        )
+        assertEmpty(descriptions)
+    }
+
+    fun testDottedPlaceholderKeyStillMatches() {
+        val descriptions = highlight(
+            """
+            <?php
+            t('Value is @foo.bar here', ['@foo.bar' => 'x']);
+            """.trimIndent()
+        )
+        assertEmpty(descriptions)
+    }
+
+    fun testKeyThatIsPrefixOfTokenIsSilent() {
+        // strtr() would replace `@foo` inside `@foo.bar`, so neither side gets flagged.
+        val descriptions = highlight(
+            """
+            <?php
+            t('Value is @foo.bar here', ['@foo' => 'x']);
+            """.trimIndent()
+        )
+        assertEmpty(descriptions)
+    }
+
     fun testVariableStringIsSkipped() {
         val descriptions = highlight(
             """

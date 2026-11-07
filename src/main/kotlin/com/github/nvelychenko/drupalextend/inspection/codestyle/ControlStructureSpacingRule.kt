@@ -4,12 +4,12 @@ import com.github.nvelychenko.drupalextend.php.edit.TextEdit
 import com.github.nvelychenko.drupalextend.project.DrupalExtendSettings
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.psi.PsiElement
+import com.jetbrains.php.lang.lexer.PhpTokenTypes
 import com.jetbrains.php.lang.psi.elements.ControlStatement
 import com.jetbrains.php.lang.psi.elements.DoWhile
 import com.jetbrains.php.lang.psi.elements.Else
 import com.jetbrains.php.lang.psi.elements.ForeachStatement
 import com.jetbrains.php.lang.psi.elements.PhpSwitch
-import com.jetbrains.php.lang.psi.elements.Variable
 
 internal object ControlStructureSpacingRule : DrupalCodeStyleRule {
     override val id: String = "control_structure_spacing"
@@ -124,30 +124,42 @@ private fun PsiElement.closingParenthesisToOpeningBraceSpacingEdit(keyword: Cont
 
 private fun ForeachStatement.foreachAsSpacingEdits(): List<TextEdit> {
     val array = array ?: return emptyList()
-    val value = value ?: return emptyList()
+    if (value == null) return emptyList()
     val key = key
     val edits = mutableListOf<TextEdit>()
 
-    val firstVariable = key ?: value
-    val asGap = if (key == null && value.hasReferenceMarkerBetween(array.textRange.endOffset)) " as &" else " as "
-    singleLineGapEdit(array.textRange.endOffset, firstVariable.textRange.startOffset, asGap)
-        ?.let { edits += it }
-
+    // The PSI of a destructured value (`foreach ($a as [$x, $y])` or `as list($x, $y)`)
+    // is flat: the brackets are plain child tokens and getValue() is a variable INSIDE
+    // them, so measuring gaps against getValue() would swallow the `[` / `list(`.
+    // Anchor on the token that follows the `as` / `=>` keyword instead.
     if (key != null) {
-        val arrowGap = if (value.hasReferenceMarkerBetween(key.textRange.endOffset)) " => &" else " => "
-        singleLineGapEdit(key.textRange.endOffset, value.textRange.startOffset, arrowGap)
+        singleLineGapEdit(array.textRange.endOffset, key.textRange.startOffset, " as ")
+            ?.let { edits += it }
+        node.findChildByType(PhpTokenTypes.opHASH_ARRAY)
+            ?.let { valueConstructGapEdit(key.textRange.endOffset, it.textRange.endOffset, " => ") }
+            ?.let { edits += it }
+    } else {
+        node.findChildByType(PhpTokenTypes.kwAS)
+            ?.let { valueConstructGapEdit(array.textRange.endOffset, it.textRange.endOffset, " as ") }
             ?.let { edits += it }
     }
 
     return edits
 }
 
-private fun Variable.hasReferenceMarkerBetween(startOffset: Int): Boolean {
-    if (startOffset >= textRange.startOffset) return false
-    val gap = containingFile.text.substring(startOffset, textRange.startOffset)
-    if (gap.any { it == '\n' || it == '\r' }) return false
+private fun ForeachStatement.valueConstructGapEdit(
+    gapStartOffset: Int,
+    keywordEndOffset: Int,
+    expectedGap: String,
+): TextEdit? {
+    var constructStart = nextNonWhitespaceSameLine(keywordEndOffset) ?: return null
+    var expected = expectedGap
+    if (containingFile.text.getOrNull(constructStart) == '&') {
+        expected += "&"
+        constructStart = nextNonWhitespaceSameLine(constructStart + 1) ?: return null
+    }
 
-    return gap.trimEnd().endsWith("&")
+    return singleLineGapEdit(gapStartOffset, constructStart, expected)
 }
 
 private fun PsiElement.elseToOpeningBraceSpacingEdit(keyword: ControlKeyword): TextEdit? {

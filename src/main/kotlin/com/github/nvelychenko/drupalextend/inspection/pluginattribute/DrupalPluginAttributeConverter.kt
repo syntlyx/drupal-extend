@@ -28,12 +28,27 @@ internal data class DrupalPluginAttributeConversion(
 
 internal object DrupalPluginAttributeConverter {
     fun findFirst(docText: String, project: Project): DrupalPluginAttributeConversion? {
-        return DrupalPluginAttributeRegistry.supportedSpecs(project)
+        DrupalPluginAttributeRegistry.supportedSpecs(project)
             .firstNotNullOfOrNull { spec -> parse(docText, spec) }
+            ?.let { return it }
+
+        return DrupalDynamicAttributeSpecResolver.candidateNames(docText)
+            .asSequence()
+            .filterNot { DrupalPluginAttributeRegistry.knows(it) }
+            .mapNotNull { annotationName ->
+                DrupalDynamicAttributeSpecResolver.resolve(annotationName, project)
+                    ?.let { spec -> parse(docText, spec) }
+            }
+            .firstOrNull()
     }
 
     fun parse(docText: String, annotationName: String, project: Project): DrupalPluginAttributeConversion? {
-        val spec = DrupalPluginAttributeRegistry.find(annotationName, project) ?: return null
+        val spec = DrupalPluginAttributeRegistry.find(annotationName, project)
+            ?: annotationName
+                .takeUnless { DrupalPluginAttributeRegistry.knows(it) }
+                ?.let { DrupalDynamicAttributeSpecResolver.resolve(it, project) }
+            ?: return null
+
         return parse(docText, spec)
     }
 
@@ -103,7 +118,10 @@ private fun DrupalAnnotationValue.ArrayLiteral.renderArray(imports: PhpImportPla
             if (key == null) value else "$key => $value"
         }
 
-        return renderedEntries.joinToString(prefix = "[", postfix = "]")
+        val singleLine = renderedEntries.joinToString(prefix = "[", postfix = "]")
+        if (indent(indentLevel).length + singleLine.length <= SINGLE_LINE_ARRAY_LIMIT) {
+            return singleLine
+        }
     }
 
     val renderedEntries = entries.map { entry ->
@@ -116,6 +134,13 @@ private fun DrupalAnnotationValue.ArrayLiteral.renderArray(imports: PhpImportPla
 
     return "[\n${renderedEntries.joinToString("\n")}\n${indent(indentLevel)}]"
 }
+
+/**
+ * A simple array that would exceed the Drupal 80-char line (with room for the argument
+ * name and trailing comma) renders one entry per line instead — long `field_types` lists
+ * are the common case.
+ */
+private const val SINGLE_LINE_ARRAY_LIMIT = 72
 
 private fun DrupalArrayEntry.isSimpleArrayEntry(): Boolean {
     return key.isSimpleValue() && value.isSimpleValue()

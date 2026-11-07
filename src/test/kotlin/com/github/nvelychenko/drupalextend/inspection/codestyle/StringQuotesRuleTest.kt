@@ -303,6 +303,41 @@ class StringQuotesRuleTest : BasePlatformTestCase() {
     }
 
     // -------------------------------------------------------------------------
+    // Annotation strings inside doc blocks are NOT reported — Doctrine/Drupal
+    // annotation syntax requires double quotes; converting would break parsing.
+    // -------------------------------------------------------------------------
+
+    fun testAnnotationStringInDocBlockIsNotReported() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "CustomFieldDiffBuilder.php",
+            """
+            <?php
+
+            /**
+             * Plugin to diff entity reference fields.
+             *
+             * @FieldDiffBuilder(
+             *   id = "custom_field_diff_builder",
+             *   label = @Translation("Custom Field Diff"),
+             *   field_types = {
+             *     "bank_information", "credit_grade",
+             *   },
+             * )
+             */
+            class CustomFieldDiffBuilder {}
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+
+        assertFalse(
+            "Double-quoted strings inside doc-block annotations must not be flagged",
+            descriptions.contains("Prefer single quotes for strings without interpolation or escapes")
+        )
+    }
+
+    // -------------------------------------------------------------------------
     // Idempotency: single-quoted result produces no further violations
     // -------------------------------------------------------------------------
 

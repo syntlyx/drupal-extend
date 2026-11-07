@@ -81,7 +81,9 @@ private fun PhpDocComment.docBlockFixEdits(
     }
 
     if (settings.isCodeStyleFunctionDocMissingTagsEnabled) {
-        owningFunction()?.missingDocTagsEdits(this)
+        // Single-docblock fix (one deliberate user action, one function): the call-site
+        // array-shape search is affordable here, unlike the whole-file fan-out.
+        owningFunction()?.missingDocTagsEdits(this, allowCallSiteInference = true)
             ?.filterNot { tagEdit -> edits.any { it.overlaps(tagEdit) } }
             ?.let { edits += it }
     }
@@ -158,15 +160,22 @@ private fun PhpDocComment.owningFunction(): Function? {
 }
 
 private fun PhpDocComment.normalizedContentLines(): List<String> {
-    return drupalDocBlockLines()
-        .mapNotNull { line ->
-            when {
-                line.isOpeningLine() -> line.normalizedTrimmedContent().takeIf { it.isNotBlank() }
-                line.isClosingLine() -> null
-                line.isBlankContent -> null
-                else -> line.normalizedContent()
-            }
+    val lines = drupalDocBlockLines()
+    // A blank line in the description area (before the first tag) is semantic in Drupal: it
+    // separates the one-line summary from the longer description, and one description paragraph
+    // from the next. Preserve those as empty entries so the umbrella rewrite keeps them.
+    // Blank lines in the tag area are re-derived from the tag grouping by withSemanticBlankLines,
+    // so dropping them here (and re-inserting only where needed) keeps that logic the single
+    // source of truth and avoids duplicate separators.
+    val firstTagIndex = lines.indexOfFirst { it.isTag }
+    return lines.mapIndexedNotNull { index, line ->
+        when {
+            line.isOpeningLine() -> line.normalizedTrimmedContent().takeIf { it.isNotBlank() }
+            line.isClosingLine() -> null
+            line.isBlankContent -> "".takeIf { firstTagIndex !in 0..index }
+            else -> line.normalizedContent()
         }
+    }
 }
 
 private fun List<String>.withMissingParamNames(

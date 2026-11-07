@@ -30,6 +30,11 @@ import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
  *  2. Args key never used in the string(s)                           -> WEAK_WARNING.
  *  3. Args key without a valid `@` / `%` / `:` prefix                -> WEAK_WARNING.
  *
+ * Matching mirrors FormattableMarkup's `strtr()`: keys replace literal substrings, so
+ * `%payoff` satisfies `%payoff.` when a sentence continues right after the placeholder —
+ * a scanned token counts as covered when some key occurs at its start offset, and a key
+ * counts as used when it occurs anywhere in a scanned string.
+ *
  * `@count` in `formatPlural` is supplied automatically and is never reported either way.
  *
  * Hot-path discipline: pure PSI, no index access, one hoisted regex. Every element bails on a
@@ -100,42 +105,35 @@ class DrupalTranslationPlaceholderInspection : LocalInspectionTool() {
         val literalStrings = strings.filter { it.firstPsiChild == null }
         if (literalStrings.isEmpty()) return
 
-        // Per-string placeholder lists, so a missing one is reported on the string that uses it.
-        val placeholdersByString = literalStrings.map { string ->
-            string to PLACEHOLDER.findAll(string.contents).map { it.value }.toList()
-        }
-        val placeholders = placeholdersByString.flatMap { it.second }.toSet()
-
-        val literalKeyElements = array.hashElements
-            .map { it.key }
-            .filterIsInstance<StringLiteralExpression>()
-            .filter { it.firstPsiChild == null }
         // An open-ended array (spread, variable/expression key, value-only entry, or interpolated
-        // key) means we can't see every key, so "unused" and "bad prefix" would be unsound.
+        // key) means we can't see every key, so all three checks would be unsound.
         val keyClosed = array.hashElements.all {
             val key = it.key
             key is StringLiteralExpression && key.firstPsiChild == null
         }
+        if (!keyClosed) return
+
+        val literalKeyElements = array.hashElements
+            .map { it.key }
+            .filterIsInstance<StringLiteralExpression>()
         val keys = literalKeyElements.map { it.contents }.toSet()
 
-        // Check 1: placeholder used but no matching key. Skip when the array is open-ended (a
-        // hidden key might satisfy it). `@count` is auto-provided for formatPlural.
-        if (keyClosed) {
-            for ((string, used) in placeholdersByString) {
-                for (placeholder in used) {
-                    if (plural && placeholder == COUNT_PLACEHOLDER) continue
-                    if (placeholder in keys) continue
-                    holder.registerProblem(
-                        string,
-                        "Placeholder '$placeholder' has no replacement argument",
-                        ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
-                    )
-                }
+        // Check 1: placeholder used but no matching key. Replacement is strtr(), so the scanned
+        // token may run past the real placeholder into sentence punctuation ("$%payoff. The…");
+        // a token is covered when any key occurs at its start offset, not only on exact equality.
+        // `@count` is auto-provided for formatPlural.
+        val effectiveKeys = if (plural) keys + COUNT_PLACEHOLDER else keys
+        for (string in literalStrings) {
+            val contents = string.contents
+            for (match in PLACEHOLDER.findAll(contents)) {
+                if (effectiveKeys.any { contents.startsWith(it, match.range.first) }) continue
+                holder.registerProblem(
+                    string,
+                    "Placeholder '${match.value.trimEnd('.', '-')}' has no replacement argument",
+                    ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+                )
             }
         }
-
-        // Checks 2 & 3 need to see every key, so skip the whole array if any key is non-literal.
-        if (!keyClosed) return
 
         for (keyElement in literalKeyElements) {
             val key = keyElement.contents
@@ -152,7 +150,9 @@ class DrupalTranslationPlaceholderInspection : LocalInspectionTool() {
                 continue
             }
 
-            if (key !in placeholders) {
+            // Check 2: same strtr() semantics — the key is used iff it occurs literally somewhere
+            // in a scanned string, even inside a longer token like `%payoff.`.
+            if (literalStrings.none { it.contents.contains(key) }) {
                 holder.registerProblem(
                     keyElement,
                     "Replacement argument '$key' is not used in the string",

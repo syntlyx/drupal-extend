@@ -214,6 +214,115 @@ class ControlStructureSpacingRuleTest : BasePlatformTestCase() {
     }
 
     // -------------------------------------------------------------------------
+    // Bug regression: foreach with list destructuring as the value
+    // `foreach ($windows as [$from, $to])` is already correct — the value PSI is
+    // the first variable INSIDE the brackets, so the `as` gap must be measured
+    // against the destructuring construct, not that inner variable.
+    // -------------------------------------------------------------------------
+
+    fun testNoFalsePositiveForForeachWithListDestructuringValue() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(array ${'$'}windows): void {
+              foreach (${'$'}windows as [${'$'}from, ${'$'}to]) {}
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+
+        assertFalse(
+            "Destructured foreach value with correct spacing must not be reported",
+            descriptions.contains("Control structures must use Drupal spacing")
+        )
+    }
+
+    fun testNoFalsePositiveForForeachWithKeyAndListDestructuringValue() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(array ${'$'}windows): void {
+              foreach (${'$'}windows as ${'$'}index => [${'$'}from, ${'$'}to]) {}
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+
+        assertFalse(
+            "Destructured foreach value after a key with correct spacing must not be reported",
+            descriptions.contains("Control structures must use Drupal spacing")
+        )
+    }
+
+    fun testQuickFixPreservesListDestructuringWhileFixingKeywordSpacing() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(array ${'$'}windows): void {
+              foreach(${'$'}windows as [${'$'}from, ${'$'}to]) {}
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Normalize control structure spacing"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(array ${'$'}windows): void {
+              foreach (${'$'}windows as [${'$'}from, ${'$'}to]) {}
+            }
+            """.trimIndent()
+        )
+    }
+
+    fun testQuickFixNormalizesAsGapBeforeListDestructuring() {
+        myFixture.enableInspections(DrupalCodeStyleInspection::class.java)
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(array ${'$'}windows): void {
+              foreach (${'$'}windows as  [${'$'}from, ${'$'}to]) {}
+            }
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().first {
+            it.text == "Normalize control structure spacing"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            function example_build(array ${'$'}windows): void {
+              foreach (${'$'}windows as [${'$'}from, ${'$'}to]) {}
+            }
+            """.trimIndent()
+        )
+    }
+
+    // -------------------------------------------------------------------------
     // Idempotency: applying the fix twice must not change anything further
     // -------------------------------------------------------------------------
 

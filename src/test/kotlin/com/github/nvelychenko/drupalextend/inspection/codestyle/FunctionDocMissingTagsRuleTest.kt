@@ -2,6 +2,7 @@ package com.github.nvelychenko.drupalextend.inspection.codestyle
 
 import com.github.nvelychenko.drupalextend.inspection.DrupalCodeStyleInspection
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
@@ -1668,6 +1669,57 @@ class FunctionDocMissingTagsRuleTest : BasePlatformTestCase() {
             "The \$values shape must come from the caller's local array, including the " +
                 "conditional file_id as optional, got:\n${myFixture.file.text}",
             myFixture.file.text.contains("@param array{status: mixed, export: string, file_id?: mixed} \$values")
+        )
+    }
+
+    fun testWholeFileFixSkipsCallSiteArrayShapeInference() {
+        // Same pass-through-parameter shape as testParameterShapeInferredFromCallerLocalArray,
+        // but applied through the whole-file fixer. Call-site inference runs a project-wide
+        // search per function; fanning that across a file freezes the IDE, so the whole-file
+        // path must NOT do it — $values falls back to plain `array`, not the caller shape.
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            class Writer {
+
+              /**
+               * Updates the document.
+               */
+              public function update(int ${'$'}documentId, array ${'$'}values): void {}
+
+            }
+
+            class Service {
+
+              /**
+               * Runs the update.
+               *
+               * @param \Writer ${'$'}writer
+               *   The writer.
+               */
+              public function run(Writer ${'$'}writer): void {
+                ${'$'}values = ['status' => 'pending', 'export' => 'none'];
+                ${'$'}writer->update(1, ${'$'}values);
+              }
+
+            }
+            """.trimIndent()
+        )
+
+        WriteCommandAction.runWriteCommandAction(project) {
+            DrupalCodeStyleFileFixer.apply(project, myFixture.file)
+        }
+
+        val text = myFixture.file.text
+        assertTrue(
+            "The whole-file fix should insert a plain `array` @param, got:\n$text",
+            text.contains("@param array \$values")
+        )
+        assertFalse(
+            "The whole-file fix must not run the call-site array-shape search, got:\n$text",
+            text.contains("array{")
         )
     }
 

@@ -77,10 +77,15 @@ internal object ArrayShapes {
     /**
      * Shape for an `array` [parameter], or null when underivable. Derived from `$param['key']`
      * usages in the function's own body; when the body says nothing (pass-through parameters
-     * like a writer's `$values`), falls back to the call sites — literal array arguments and
-     * locally built variables enumerate the keys the callers actually pass.
+     * like a writer's `$values`) and [allowCallSiteSearch] is set, falls back to the call sites —
+     * literal array arguments and locally built variables enumerate the keys the callers pass.
+     *
+     * [allowCallSiteSearch] gates the caller fallback because it runs a project-wide
+     * [ReferencesSearch] (see [callerShapeEntries]): fine for a single, deliberate docblock fix,
+     * but the whole-file / batch fixer must pass `false` — fanning one global search out across
+     * every function in the file, on the EDT under a write lock, freezes the IDE.
      */
-    fun parameterArrayShape(function: Function, parameter: Parameter): String? {
+    fun parameterArrayShape(function: Function, parameter: Parameter, allowCallSiteSearch: Boolean): String? {
         val parameterName = parameter.name
         val guardedKeys = guardCheckedKeys(function, parameterName)
         val entries = LinkedHashMap<String, ShapeEntry>()
@@ -102,6 +107,7 @@ internal object ArrayShapes {
 
         if (entries.size > MAX_KEYS) return null
         if (entries.isNotEmpty()) return renderShape(entries)
+        if (!allowCallSiteSearch) return null
 
         return callerShapeEntries(function, parameter)?.let { renderShape(it) }
     }
@@ -110,9 +116,11 @@ internal object ArrayShapes {
      * Shape derived from the call sites of [function]: arguments at [parameter]'s position that
      * are array literals or locally built variables enumerate the keys callers actually pass.
      * Used only when the function body itself reads no keys — the body is the better witness.
-     * Capped at [MAX_CALL_SITES] sites; runs only from the quick fix (user action), never on
-     * the highlighting path. For methods, call sites are also searched through the topmost
-     * overridden declaration, so interface-typed calls count for the implementation.
+     * Capped at [MAX_CALL_SITES] sites. This runs a project-wide [ReferencesSearch], so it is
+     * reached only for a single, deliberate docblock fix (never the highlighting path, and never
+     * the whole-file / batch fixer — see [parameterArrayShape]'s `allowCallSiteSearch`). For
+     * methods, call sites are also searched through the topmost overridden declaration, so
+     * interface-typed calls count for the implementation.
      */
     private fun callerShapeEntries(function: Function, parameter: Parameter): Map<String, ShapeEntry>? {
         val project = function.project

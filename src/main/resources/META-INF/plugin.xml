@@ -45,7 +45,8 @@ services), while still understanding legacy annotations and procedural code.</p>
     <extensions defaultExtensionNs="com.intellij">
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldTypeIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldPluginDefinitionIndex"/>
-        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldPluginConfigUsageIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.PluginConfigUsageIndex"/>
+        <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.PluginDefinitionIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ConfigEntityIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.ThemeIndex"/>
         <fileBasedIndex implementation="com.github.nvelychenko.drupalextend.index.FieldsIndex"/>
@@ -75,6 +76,9 @@ services), while still understanding legacy annotations and procedural code.</p>
         <psi.referenceContributor
                 implementation="com.github.nvelychenko.drupalextend.reference.InfoYamlReferenceContributor"
                 language="yaml"/>
+        <psi.referenceContributor
+                implementation="com.github.nvelychenko.drupalextend.reference.PluginConfigYamlReferenceContributor"
+                language="yaml"/>
         <findUsagesHandlerFactory
                 implementation="com.github.nvelychenko.drupalextend.reference.ServicesYamlFindUsagesHandlerFactory"
                 order="first"/>
@@ -95,6 +99,9 @@ services), while still understanding legacy annotations and procedural code.</p>
         <referencesSearch
                 implementation="com.github.nvelychenko.drupalextend.reference.RoutesReferencesSearch"
                 order="first"/>
+        <referencesSearch
+                implementation="com.github.nvelychenko.drupalextend.reference.PluginClassReferencesSearch"
+                order="first"/>
         <gotoDeclarationHandler
                 implementation="com.github.nvelychenko.drupalextend.reference.RoutesYamlGotoDeclarationHandler"
                 order="first"/>
@@ -102,6 +109,7 @@ services), while still understanding legacy annotations and procedural code.</p>
         <gotoTargetPresentationProvider
                 implementation="com.github.nvelychenko.drupalextend.reference.DrupalYamlTargetPresentationProvider"/>
         <implicitUsageProvider implementation="com.github.nvelychenko.drupalextend.usage.DrupalImplicitUsageProvider"/>
+        <additionalLibraryRootsProvider implementation="com.github.nvelychenko.drupalextend.project.DrupalConfigLibraryRootsProvider"/>
         <lang.inspectionSuppressor
                 language="PHP"
                 implementationClass="com.github.nvelychenko.drupalextend.inspection.DrupalPhpInspectionSuppressor"/>

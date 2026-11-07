@@ -17,6 +17,7 @@ class FixDrupalCodeStyleActionTest : BasePlatformTestCase() {
         project.drupalExtendSettings.isCodeStyleCommaSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleControlStructureSpacingEnabled = true
         project.drupalExtendSettings.isCodeStyleClosingPhpTagEnabled = true
+        project.drupalExtendSettings.isCodeStyleStringQuotesEnabled = true
     }
 
     fun testActionUpdateRunsInBackgroundThread() {
@@ -54,5 +55,68 @@ class FixDrupalCodeStyleActionTest : BasePlatformTestCase() {
         assertTrue(text.contains("} else {"))
         assertTrue(text.contains("return [TRUE, FALSE, NULL];"))
         assertFalse(text.trimEnd().endsWith("?>"))
+    }
+
+    fun testConvertsDoubleQuotedStringsToSingleQuotes() {
+        myFixture.configureByText(
+            "Example.php",
+            """
+            <?php
+
+            function example_build(string ${'$'}name): array {
+              ${'$'}plain = "hello";
+              ${'$'}escaped = "say \"hi\"";
+              ${'$'}interpolated = "hello ${'$'}name";
+              ${'$'}withNewline = "hello\n";
+              ${'$'}withApostrophe = "it's fine";
+              return [${'$'}plain, ${'$'}escaped, ${'$'}interpolated, ${'$'}withNewline, ${'$'}withApostrophe];
+            }
+            """.trimIndent()
+        )
+
+        WriteCommandAction.runWriteCommandAction(project) {
+            DrupalCodeStyleFileFixer.apply(project, myFixture.file)
+        }
+
+        val text = myFixture.file.text
+        assertTrue(text.contains("${'$'}plain = 'hello';"))
+        assertTrue(text.contains("${'$'}escaped = 'say \"hi\"';"))
+        // Interpolation, double-quote-only escapes, and embedded apostrophes must stay double-quoted.
+        assertTrue(text.contains("${'$'}interpolated = \"hello ${'$'}name\";"))
+        assertTrue(text.contains("${'$'}withNewline = \"hello\\n\";"))
+        assertTrue(text.contains("${'$'}withApostrophe = \"it's fine\";"))
+    }
+
+    fun testDoesNotConvertAnnotationStringsInsideDocBlocks() {
+        myFixture.configureByText(
+            "CustomFieldDiffBuilder.php",
+            """
+            <?php
+
+            /**
+             * Plugin to diff entity reference fields.
+             *
+             * @FieldDiffBuilder(
+             *   id = "custom_field_diff_builder",
+             *   label = @Translation("Custom Field Diff"),
+             *   field_types = {
+             *     "bank_information", "credit_grade",
+             *   },
+             * )
+             */
+            class CustomFieldDiffBuilder {}
+            """.trimIndent()
+        )
+
+        WriteCommandAction.runWriteCommandAction(project) {
+            DrupalCodeStyleFileFixer.apply(project, myFixture.file)
+        }
+
+        val text = myFixture.file.text
+        // Doctrine/Drupal annotations only accept double-quoted strings — the fixer
+        // must leave doc-block contents untouched.
+        assertTrue(text.contains("id = \"custom_field_diff_builder\""))
+        assertTrue(text.contains("@Translation(\"Custom Field Diff\")"))
+        assertTrue(text.contains("\"bank_information\", \"credit_grade\","))
     }
 }

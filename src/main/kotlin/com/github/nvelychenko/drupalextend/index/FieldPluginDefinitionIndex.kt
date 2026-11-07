@@ -57,5 +57,5 @@ class FieldPluginDefinitionIndex : FileBasedIndexExtension<String, DrupalFieldPl
 
     override fun dependsOnFileContent(): Boolean = true
 
-    override fun getVersion(): Int = 5
+    override fun getVersion(): Int = 6
 }

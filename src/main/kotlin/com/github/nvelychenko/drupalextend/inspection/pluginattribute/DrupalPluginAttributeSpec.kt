@@ -107,6 +107,14 @@ internal object DrupalPluginAttributeRegistry {
         return spec.takeIf { DrupalProjectVersion.isAtLeast(project, it.minimumDrupalVersion) }
     }
 
+    /**
+     * Whether the registry owns this annotation name at all — version-gated entries included,
+     * so a gated-off core annotation doesn't fall through to dynamic project-based resolution.
+     */
+    fun knows(annotationName: String): Boolean {
+        return specsByAnnotationName.containsKey(annotationName)
+    }
+
     private fun spec(
         annotationName: String,
         attributeFqn: String,

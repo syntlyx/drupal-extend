@@ -167,6 +167,80 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
         assertFalse(descriptions.contains("Use constructor injection for service 'my_module.sample_manager'"))
     }
 
+    fun testInspectionDeclinesWhenNoOwnConstructorButInheritedOneRequiresArguments() {
+        // Regression: the class has no constructor of its own but extends a base whose constructor
+        // takes arguments (the classic plugin case). Synthesizing __construct(NewService $x) would
+        // shadow the parent's constructor and drop its required args, producing code that cannot be
+        // instantiated. The fix must decline rather than break the class.
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addSampleService()
+        addPluginBaseClass()
+        myFixture.configureByText(
+            "SampleBlock.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Plugin\Block;
+
+            use Drupal\Core\Plugin\PluginBase;
+
+            class SampleBlock extends PluginBase {
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertFalse(
+            "Injection must not be offered when a fresh constructor would drop the parent's required arguments",
+            descriptions.contains("Use constructor injection for service 'my_module.sample_manager'")
+        )
+        assertTrue(
+            "No 'Inject service' quick fix should be offered for the unsafe inherited-constructor case",
+            myFixture.getAllQuickFixes().none { it.text == "Inject service 'my_module.sample_manager' into constructor" }
+        )
+    }
+
+    fun testInspectionStillOffersInjectionWhenOwnConstructorExistsDespiteParentConstructor() {
+        // The guard must not over-suppress: a class with its OWN constructor (that already forwards
+        // to the parent) can still be injected — the existing-constructor path handles it.
+        myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
+        addDrupalClass()
+        addSampleService()
+        addPluginBaseClass()
+        myFixture.configureByText(
+            "SampleBlock.php",
+            $$"""
+            <?php
+
+            namespace Drupal\my_module\Plugin\Block;
+
+            use Drupal\Core\Plugin\PluginBase;
+
+            class SampleBlock extends PluginBase {
+              public function __construct(array $configuration, $plugin_id, $plugin_definition) {
+                parent::__construct($configuration, $plugin_id, $plugin_definition);
+              }
+
+              public function build(): array {
+                $label = \Drupal::service('my_module.sample_manager')->label();
+                return ['#markup' => $label];
+              }
+            }
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting().mapNotNull { it.description }
+        assertContainsElements(
+            descriptions,
+            "Use constructor injection for service 'my_module.sample_manager'"
+        )
+    }
+
     fun testQuickFixInjectsServiceIntoNewConstructor() {
         myFixture.enableInspections(DrupalDependencyInjectionInspection::class.java)
         addDrupalClass()
@@ -928,6 +1002,21 @@ class DrupalDependencyInjectionInspectionTest : BasePlatformTestCase() {
             services:
               my_module.sample_manager:
                 class: Drupal\my_module\SampleManager
+            """.trimIndent()
+        )
+    }
+
+    private fun addPluginBaseClass() {
+        myFixture.addFileToProject(
+            "core/lib/Drupal/Core/Plugin/PluginBase.php",
+            $$"""
+            <?php
+
+            namespace Drupal\Core\Plugin;
+
+            abstract class PluginBase {
+              public function __construct(array $configuration, $plugin_id, $plugin_definition) {}
+            }
             """.trimIndent()
         )
     }

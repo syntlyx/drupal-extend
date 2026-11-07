@@ -8,4 +8,5 @@ data class DrupalFieldPluginDefinition(
     val id: String,
     val defaultWidget: String? = null,
     val defaultFormatter: String? = null,
+    val fieldTypes: List<String> = emptyList(),
 )

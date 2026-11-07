@@ -1,6 +1,7 @@
 package com.github.nvelychenko.drupalextend.usage
 
 import com.github.nvelychenko.drupalextend.project.drupalExtendSettings
+import com.github.nvelychenko.drupalextend.util.DrupalConfigUsagePlugins
 import com.github.nvelychenko.drupalextend.util.DrupalFieldPlugins
 import com.github.nvelychenko.drupalextend.util.DrupalProceduralHooks
 import com.github.nvelychenko.drupalextend.util.Routes
@@ -44,6 +45,7 @@ class DrupalImplicitUsageProvider : ImplicitUsageProvider {
         // A class hosting OOP hook implementations is instantiated by the hook system.
         return phpClass.ownMethods.any { it.hasHookAttribute() } ||
                 DrupalFieldPlugins.referencesClass(project, phpClass) ||
+                DrupalConfigUsagePlugins.referencesClass(project, phpClass) ||
                 Services.referencesClass(project, phpClass.fqn) ||
                 Routes.referencesHandler(project, phpClass.fqn)
     }

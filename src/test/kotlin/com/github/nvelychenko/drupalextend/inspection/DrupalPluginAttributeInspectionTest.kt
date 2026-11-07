@@ -214,4 +214,150 @@ class DrupalPluginAttributeInspectionTest : BasePlatformTestCase() {
 
         assertFalse(descriptions.contains("FieldWidget annotation can be converted to a PHP attribute"))
     }
+
+    fun testQuickFixConvertsContribAnnotationWhenModuleShipsAttributeClass() {
+        project.drupalExtendSettings.drupalCoreVersion = "11.3"
+        myFixture.enableInspections(DrupalPluginAttributeInspection::class.java)
+        addDiffAttributeClass()
+        myFixture.configureByText(
+            "CustomFieldDiffBuilder.php",
+            """
+            <?php
+
+            namespace Drupal\nll_core\Plugin\diff\Field;
+
+            /**
+             * Plugin to diff entity reference fields.
+             *
+             * @FieldDiffBuilder(
+             *   id = "custom_field_diff_builder",
+             *   label = @Translation("Custom Field Diff"),
+             *   field_types = {
+             *     "bank_information", "credit_grade", "institution_fees",
+             *     "loan_debt_settlement_accounts", "underwriting_grid",
+             *     "loan_to_value_rate", "entity_reference_revisions"
+             *   },
+             * )
+             */
+            class CustomFieldDiffBuilder {}
+            """.trimIndent()
+        )
+
+        myFixture.doHighlighting()
+        val intention = myFixture.getAllQuickFixes().single {
+            it.text == "Convert @FieldDiffBuilder annotation to PHP attribute"
+        }
+        myFixture.launchAction(intention)
+
+        myFixture.checkResult(
+            """
+            <?php
+
+            namespace Drupal\nll_core\Plugin\diff\Field;
+
+            use Drupal\Core\StringTranslation\TranslatableMarkup;
+            use Drupal\diff\Attribute\FieldDiffBuilder;
+
+            /**
+             * Plugin to diff entity reference fields.
+             */
+            #[FieldDiffBuilder(
+              id: 'custom_field_diff_builder',
+              label: new TranslatableMarkup('Custom Field Diff'),
+              field_types: [
+                'bank_information',
+                'credit_grade',
+                'institution_fees',
+                'loan_debt_settlement_accounts',
+                'underwriting_grid',
+                'loan_to_value_rate',
+                'entity_reference_revisions',
+              ],
+            )]
+            class CustomFieldDiffBuilder {}
+            """.trimIndent()
+        )
+    }
+
+    fun testInspectionSkipsContribAnnotationWithoutAttributeClass() {
+        project.drupalExtendSettings.drupalCoreVersion = "11.3"
+        myFixture.enableInspections(DrupalPluginAttributeInspection::class.java)
+        // No Drupal\diff\Attribute\FieldDiffBuilder in the project: the module's plugin
+        // manager only understands annotations, so converting would break discovery.
+        myFixture.configureByText(
+            "CustomFieldDiffBuilder.php",
+            """
+            <?php
+
+            namespace Drupal\nll_core\Plugin\diff\Field;
+
+            /**
+             * @FieldDiffBuilder(
+             *   id = "custom_field_diff_builder",
+             *   label = @Translation("Custom Field Diff"),
+             * )
+             */
+            class CustomFieldDiffBuilder {}
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("FieldDiffBuilder annotation can be converted to a PHP attribute"))
+    }
+
+    fun testInspectionSkipsContribAnnotationKeyMissingFromAttributeConstructor() {
+        project.drupalExtendSettings.drupalCoreVersion = "11.3"
+        myFixture.enableInspections(DrupalPluginAttributeInspection::class.java)
+        addDiffAttributeClass()
+        // `settings` is not a constructor parameter of the attribute — converting would
+        // produce a named argument that doesn't compile.
+        myFixture.configureByText(
+            "CustomFieldDiffBuilder.php",
+            """
+            <?php
+
+            namespace Drupal\nll_core\Plugin\diff\Field;
+
+            /**
+             * @FieldDiffBuilder(
+             *   id = "custom_field_diff_builder",
+             *   label = @Translation("Custom Field Diff"),
+             *   settings = {
+             *     "compare" = "raw",
+             *   },
+             * )
+             */
+            class CustomFieldDiffBuilder {}
+            """.trimIndent()
+        )
+
+        val descriptions = myFixture.doHighlighting()
+            .mapNotNull { it.description }
+
+        assertFalse(descriptions.contains("FieldDiffBuilder annotation can be converted to a PHP attribute"))
+    }
+
+    private fun addDiffAttributeClass() {
+        myFixture.addFileToProject(
+            "web/modules/contrib/diff/src/Attribute/FieldDiffBuilder.php",
+            """
+            <?php
+
+            namespace Drupal\diff\Attribute;
+
+            use Drupal\Core\StringTranslation\TranslatableMarkup;
+
+            #[\Attribute(\Attribute::TARGET_CLASS)]
+            class FieldDiffBuilder {
+              public function __construct(
+                public readonly string ${'$'}id,
+                public readonly ?TranslatableMarkup ${'$'}label = NULL,
+                public readonly array ${'$'}field_types = [],
+              ) {}
+            }
+            """.trimIndent()
+        )
+    }
 }

@@ -147,9 +147,15 @@ private fun Parameter.phpDocVariableName(): String = "\$" + name.removePrefix("\
  * docblock of this function. Returns an empty list when no tags are missing.
  *
  * Exposed as an extension so the file-wide fixer can reuse this computation.
+ *
+ * [allowCallSiteInference] controls whether a plain `array` param may derive its `array{…}`
+ * shape from the function's call sites (a project-wide search — see [ArrayShapes.parameterArrayShape]).
+ * The whole-file / batch fixer passes `false`: running that search once per function on the EDT
+ * would freeze the IDE. A single-docblock fix keeps it on.
  */
 internal fun Function.missingDocTagsEdits(
     docComment: PhpDocComment? = null,
+    allowCallSiteInference: Boolean = true,
 ): List<TextEdit> {
     if (isClosure) return emptyList()
     val effectiveDocComment = docComment ?: this.docComment ?: return emptyList()
@@ -215,7 +221,7 @@ internal fun Function.missingDocTagsEdits(
         for (param in missingParams) {
             var typeStr = param.docBlockTypeString()
             if (typeStr == "array") {
-                ArrayShapes.parameterArrayShape(this, param)?.let { typeStr = it }
+                ArrayShapes.parameterArrayShape(this, param, allowCallSiteInference)?.let { typeStr = it }
             }
             val varName = param.phpDocVariableName()
             val docVar = if (param.isVariadic) "...$varName" else varName

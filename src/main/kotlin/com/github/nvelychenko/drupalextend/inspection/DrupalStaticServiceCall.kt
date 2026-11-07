@@ -35,6 +35,13 @@ internal data class DrupalStaticServiceCall(
         val phpClass = method.containingClass ?: return null
         if (phpClass.isInterface || phpClass.isTrait || phpClass.isEnum || phpClass.isAnonymous) return null
         if (phpClass.fqn == DRUPAL_CLASS) return null
+        // A class with no constructor of its own but an inherited one that takes arguments cannot be
+        // injected safely: synthesizing `__construct(NewService $x)` would override the parent's
+        // constructor, drop its required parameters, and skip `parent::__construct()` — broken code
+        // (a plugin extending PluginBase/BlockBase, a form extending ConfigFormBase, …). Forwarding
+        // the parent signature and emitting a matching create() is too fragile to generate reliably,
+        // so decline the injection instead of producing code that won't instantiate.
+        if (phpClass.hasInheritedConstructorRequiringArguments()) return null
 
         return phpClass
     }
@@ -75,6 +82,21 @@ internal data class DrupalStaticServiceCall(
                 ?: fallback
         }
     }
+}
+
+/**
+ * True when the class declares no constructor of its own but inherits one (from a parent class)
+ * that declares at least one parameter. In that case a generated standalone constructor would
+ * shadow the parent's without forwarding to it — see [DrupalStaticServiceCall.targetClassForInjection].
+ *
+ * Own constructor present → the existing-constructor path handles it. No constructor anywhere in the
+ * hierarchy (e.g. a plain class, or a ControllerBase using create()) → [PhpClass.getConstructor]
+ * returns null and a fresh constructor is safe to synthesize.
+ */
+private fun PhpClass.hasInheritedConstructorRequiringArguments(): Boolean {
+    if (ownConstructor != null) return false
+    val inheritedConstructor = constructor ?: return false
+    return inheritedConstructor.parameters.isNotEmpty()
 }
 
 private fun MethodReference.isDrupalClassStaticCall(): Boolean {

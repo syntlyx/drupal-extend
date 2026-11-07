@@ -34,8 +34,11 @@ val FIELD_TYPE_INDEX_KEY: ID<String, DrupalFieldType> =
 val FIELD_PLUGIN_DEFINITION_INDEX_KEY: ID<String, DrupalFieldPluginDefinition> =
     ID.create("com.github.nvelychenko.drupalextend.index.field_plugin_definition")
 
-val FIELD_PLUGIN_CONFIG_USAGE_INDEX_KEY: ID<String, String> =
-    ID.create("com.github.nvelychenko.drupalextend.index.field_plugin_config_usage")
+val PLUGIN_CONFIG_USAGE_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.plugin_config_usage")
+
+val PLUGIN_DEFINITION_INDEX_KEY: ID<String, String> =
+    ID.create("com.github.nvelychenko.drupalextend.index.plugin_definition")
 
 val HOOK_ATTRIBUTES_INDEX_KEY: ID<String, String> =
     ID.create("com.github.nvelychenko.drupalextend.index.hook_attributes")

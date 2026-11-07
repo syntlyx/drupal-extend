@@ -27,6 +27,7 @@ import com.jetbrains.php.lang.psi.elements.Method
 import com.jetbrains.php.lang.psi.elements.PhpClassFieldsList
 import com.jetbrains.php.lang.psi.elements.PhpClass
 import com.jetbrains.php.lang.psi.elements.PhpSwitch
+import com.jetbrains.php.lang.psi.elements.StringLiteralExpression
 
 internal object DrupalCodeStyleFixes {
     val fixFile = object : LocalQuickFix {
@@ -126,9 +127,12 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
     }
 
     if (settings.isCodeStyleFunctionDocMissingTagsEnabled) {
+        // No call-site array-shape inference here: it runs a project-wide search per function,
+        // and fanning that across a whole file on the EDT freezes the IDE. Local body inference
+        // still applies; the deliberate single-docblock fix keeps the call-site fallback.
         PsiTreeUtil.findChildrenOfType(this, Function::class.java)
             .filterNot { it.isClosure }
-            .flatMap { it.missingDocTagsEdits() }
+            .flatMap { it.missingDocTagsEdits(allowCallSiteInference = false) }
             .filterNot { tagEdit -> edits.any { it.overlaps(tagEdit) } }
             .toCollection(edits)
     }
@@ -185,6 +189,13 @@ internal fun PsiFile.drupalCodeStyleFileEdits(settings: DrupalExtendSettings): C
             element.node?.elementType == PhpElementTypes.CAST_EXPRESSION
         }
             .mapNotNullTo(edits) { it.castSpacingEdit() }
+    }
+
+    if (settings.isCodeStyleStringQuotesEnabled) {
+        PsiTreeUtil.findChildrenOfType(this, StringLiteralExpression::class.java)
+            .mapNotNull { it.toSingleQuoteEdit() }
+            .filterNot { quoteEdit -> edits.any { it.overlaps(quoteEdit) } }
+            .toCollection(edits)
     }
 
     if (settings.isCodeStyleOperatorSpacingEnabled) {
